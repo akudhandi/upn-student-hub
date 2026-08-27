@@ -69,13 +69,13 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 required
-                placeholder="nama@upnjatim.ac.id"
+                placeholder="nama@student.upnjatim.ac.id"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
               />
               <p className="text-xs text-gray-500">
-                Use your @upnjatim.ac.id email address
+                Use your @student.upnjatim.ac.id email address
               </p>
             </div>
 
