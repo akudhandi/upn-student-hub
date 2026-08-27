@@ -1,118 +1,142 @@
 # AGENTS.md
 
-## Architecture
+## Project
 
-3 apps + infrastructure, all orchestrated by Docker Compose:
+UPN Student Hub is a solo-developer student platform consisting of:
 
-| App | Stack | Port | Working Dir |
-|---|---|---|---|
-| Backend API | Laravel 11, PHP 8.2, MySQL 8, Redis | 8000 | `backend-api/` |
-| Student Web | Next.js 16 (App Router), TailwindCSS v4, React 19, TS | 3000 | `student-web/` |
-| Admin Web | Next.js 16 (App Router), TailwindCSS v4, React 19, TS | 3001 | `admin-web/` |
+- `backend-api/` — Laravel 11 API
+- `student-web/` — Next.js 16 student application
+- `admin-web/` — Next.js 16 admin application
+- Docker Compose — local infrastructure
 
-- Real-time: Laravel Reverb (WebSocket) via Redis Pub/Sub
-- Auth: Laravel Sanctum (student), separate admin guard
-- Storage: Local disk only (S3 is post-MVP)
-- Maps: Leaflet.js + OpenStreetMap (no Google Maps)
+## Source of Truth
 
-## Dev Commands
+- `SYSTEM_ANALYSIS.md` is the authoritative architecture and scope document.
+- Do not contradict or silently reinterpret it.
+- If requirements conflict with `SYSTEM_ANALYSIS.md`, stop and ask for clarification.
 
-Start everything:
-```bash
-docker-compose up -d --build
-```
+## Architecture Guardrails
 
-Backend setup (first time):
-```bash
-cp backend-api/.env.example backend-api/.env
-# Edit .env to use MySQL (see ⚠️ below), then:
-docker-compose exec php composer install
-docker-compose exec php php artisan key:generate
-docker-compose exec php php artisan migrate
-```
+- Do not change architecture without explicit approval.
+- Do not implement Post-MVP features unless explicitly requested.
+- Keep solutions appropriate for a solo developer.
+- Prefer the simplest solution that satisfies the requirement.
+- Do not introduce unnecessary infrastructure, services, frameworks, libraries, or dependencies.
+- MVP storage is local disk.
+- Maps use Leaflet.js + OpenStreetMap.
+- Chat is 1-on-1 only.
+- Do not introduce Python microservices, Google Maps, S3/MinIO, Group Chat, SSO, or other Post-MVP architecture without approval.
 
-Run backend commands:
-```bash
-docker-compose exec php php artisan <command>
-```
+## Scope Discipline
 
-Backend tests:
-```bash
-docker-compose exec php php artisan test          # all
-docker-compose exec php php artisan test --filter=TestName  # single
-```
+Before implementation:
 
-Lint/typecheck frontends (no script yet — run manually):
-```bash
-# From repo root, inside Docker or locally:
-cd student-web && npm run lint
-cd admin-web && npm run lint
-```
-
-## ⚠️ Critical: `.env.example` vs Docker
-
-The `.env.example` defaults to **SQLite** (`DB_CONNECTION=sqlite`). Docker Compose runs **MySQL 8**. You must update `.env` after copying:
-
-```
-DB_CONNECTION=mysql
-DB_HOST=mysql
-DB_PORT=3306
-DB_DATABASE=student_hub
-DB_USERNAME=upn_user
-DB_PASSWORD=secretpassword
-
-REDIS_HOST=redis
-```
-
-MySQL credentials are defined in `docker-compose.yml`: database `student_hub`, user `upn_user`, password `secretpassword`.
-
-## Repo Structure
-
-This is **not a JS monorepo** — no workspace manager. Each app is independent with its own `package.json` / `composer.json`. They are linked only by Docker Compose networking and the `NEXT_PUBLIC_API_URL=http://localhost:8000` env var.
-
-- `backend-api/` — Laravel skeleton. Only default migration files exist so far; no custom controllers, models, or API routes yet.
-- `student-web/` — Next.js app for students. `src/app/` (App Router pages), `src/lib/` (utilities).
-- `admin-web/` — Next.js app for admins. Same structure as student-web.
-- `docker/nginx/` — Reverse proxy routing ports 8000→Laravel, 3000→student-web, 3001→admin-web.
-- `docker/php/` — PHP 8.2 FPM with extensions: pdo_mysql, redis, gd, mbstring, bcmath.
-
-## Key Conventions
-
-- **Language**: UI and docs are in **Bahasa Indonesia**.
-- **API prefix**: All API routes go under `/api/v1/`.
-- **Polymorphic design**: Media, Favorites, Reports, Ratings all use Laravel polymorphic relations. Design is documented in `SYSTEM_ANALYSIS.md`.
-- **File storage**: Only relative paths stored in DB (e.g. `listings/abc123.jpg`). Absolute URLs built in API resource layer.
-- **No group chat**: MVP is 1-on-1 only.
-- **Soft deletes**: All listing tables use `deleted_at` for moderation.
-
-## Testing
-
-- PHPUnit configured in `backend-api/phpunit.xml` (Unit + Feature suites).
-- Test env uses array/cache drivers by default.
-- No tests written yet. DB-based tests will need MySQL (uncomment `DB_CONNECTION`/`DB_DATABASE` in phpunit.xml or use the Docker env).
-
-## Current State
-
-Project is at **Phase 1** (foundation). Only Laravel skeleton + Next.js scaffolds exist. No custom business logic, migrations, controllers, or frontend pages have been implemented yet. See `SYSTEM_ANALYSIS.md` for the full architecture spec and roadmap.
-
-
-## AI Agent Workflow & Guardrails
-
-- **SYSTEM_ANALYSIS.md is the Source of Truth.**
-- **Do not change architecture without explicit approval.**
-- **Do not implement Post-MVP features unless explicitly requested.**
-- Keep all implementation suitable for a solo developer.
-- Prefer the simplest solution that satisfies the requirements.
-- Do not introduce new infrastructure, services, frameworks, or dependencies unless necessary and approved.
-- Do not introduce: Python microservices, Google Maps, S3/MinIO, Group Chat, or other Post-MVP architecture.
-
-Before modifying architecture or writing significant code:
 1. Inspect the existing implementation.
-2. Read the relevant sections of `SYSTEM_ANALYSIS.md`.
-3. Explain the proposed change and why it is necessary.
-4. Implement only the approved scope.
-5. Run appropriate verification/tests.
-6. Report what was changed and any remaining issues.
-7. Stop at the requested phase.
+2. Read the relevant section of `SYSTEM_ANALYSIS.md`.
+3. Identify the exact requested scope.
+4. State the planned change briefly.
+5. Implement only that scope.
 
-When requirements conflict with `SYSTEM_ANALYSIS.md`, **do not make assumptions**. Stop and ask for clarification.
+After implementation:
+
+1. Run appropriate verification.
+2. Report what changed and any remaining issues.
+3. Stop at the requested task or phase.
+
+Do not continue automatically into the next task.
+
+## Skills
+
+Use the repository's Agent Skills when applicable.
+
+- Use `context-engineering` when determining what project context is necessary.
+- Use `incremental-implementation` for feature implementation.
+- Use `frontend-ui-engineering` for UI/frontend work.
+- Use `code-review-and-quality` before approving completed changes.
+- Use `git-workflow-and-versioning` for commits and checkpoints.
+- Use other available skills only when they directly apply to the current task.
+
+Do not load unrelated skills or unnecessary project context.
+
+## Backend Rules
+
+- Follow Laravel 11 conventions.
+- Keep API routes under `/api/v1/`.
+- Use Eloquent relationships instead of unnecessary custom data access patterns.
+- Use polymorphic relations where specified by `SYSTEM_ANALYSIS.md`.
+- Validate external input.
+- Do not add business logic outside the appropriate application layer.
+- Do not create abstractions without a concrete current use case.
+
+## Frontend Rules
+
+- Use the existing Next.js architecture and components before creating new patterns.
+- Prefer reusable components when repetition is real.
+- Keep client-side JavaScript minimal.
+- Follow accessibility and responsive design principles.
+- Do not introduce a UI library without approval.
+
+## UI/UX Guardrails
+
+Build for usability, not visual novelty.
+
+Avoid generic AI-generated aesthetics, including:
+
+- excessive gradients;
+- excessive glassmorphism;
+- excessive rounded cards;
+- excessive shadows;
+- glowing effects;
+- unnecessary animations;
+- decorative elements without functional purpose;
+- repetitive dashboard/card layouts when another layout communicates better.
+
+Prefer:
+
+- clear visual hierarchy;
+- readable typography;
+- purposeful spacing;
+- consistent design tokens;
+- accessible contrast;
+- responsive layouts;
+- meaningful interaction states.
+
+Reuse existing design patterns once established.
+
+Do not redesign an existing interface unless the task explicitly requests a redesign.
+
+## Verification
+
+Never claim a task is complete without appropriate verification.
+
+Prefer the smallest relevant verification:
+
+- PHP syntax/lint for PHP-only changes.
+- Laravel tests for backend behavior.
+- TypeScript/ESLint/build checks for frontend changes.
+- Database migration status for migration work.
+- Browser/runtime verification for UI behavior when applicable.
+
+Do not run destructive commands unless explicitly requested or clearly required.
+
+## Git
+
+Treat commits as checkpoints.
+
+- Keep commits focused and atomic.
+- Do not commit unrelated changes.
+- Never use destructive Git commands to hide or discard user work.
+- Before committing, inspect `git status` and the relevant diff.
+- Do not modify unrelated files merely to make the working tree clean.
+
+## Communication
+
+Keep reports concise.
+
+For implementation tasks, report:
+
+1. What changed.
+2. Verification performed.
+3. Any remaining issue.
+
+If blocked by ambiguity, stop and ask rather than guessing.
