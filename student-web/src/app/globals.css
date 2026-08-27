@@ -1,1 +1,41 @@
 @import "tailwindcss";
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-from-bottom-4 {
+  from {
+    transform: translateY(1rem);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Support for requested entrance utility combo without external plugin */
+.animate-in {
+  animation: fade-in 700ms ease-out, slide-in-from-bottom-4 700ms ease-out;
+  animation-fill-mode: both;
+}
+
+.fade-in {
+  animation-name: fade-in;
+}
+
+.slide-in-from-bottom-4 {
+  animation-name: slide-in-from-bottom-4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-in,
+  .fade-in,
+  .slide-in-from-bottom-4 {
+    animation: none;
+  }
+}
