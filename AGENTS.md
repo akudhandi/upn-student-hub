@@ -14,6 +14,7 @@ UPN Student Hub is a solo-developer student platform consisting of:
 - `SYSTEM_ANALYSIS.md` is the authoritative architecture and scope document.
 - Do not contradict or silently reinterpret it.
 - If requirements conflict with `SYSTEM_ANALYSIS.md`, stop and ask for clarification.
+- Do not invent requirements that are not supported by the project documentation or current task.
 
 ## Architecture Guardrails
 
@@ -39,24 +40,31 @@ Before implementation:
 
 After implementation:
 
-1. Run appropriate verification.
+1. Run the smallest relevant verification.
 2. Report what changed and any remaining issues.
 3. Stop at the requested task or phase.
 
 Do not continue automatically into the next task.
 
-## Skills
+## Context & Skills
 
-Use the repository's Agent Skills when applicable.
+Use repository Agent Skills only when they directly apply to the current task.
 
-- Use `context-engineering` when determining what project context is necessary.
-- Use `incremental-implementation` for feature implementation.
-- Use `frontend-ui-engineering` for UI/frontend work.
-- Use `code-review-and-quality` before approving completed changes.
-- Use `git-workflow-and-versioning` for commits and checkpoints.
-- Use other available skills only when they directly apply to the current task.
+Preferred skills:
 
-Do not load unrelated skills or unnecessary project context.
+- `context-engineering` — determine the minimum project context required.
+- `incremental-implementation` — implement features incrementally.
+- `frontend-ui-engineering` — frontend and UI work.
+- `code-review-and-quality` — review completed implementation when requested or appropriate.
+- `git-workflow-and-versioning` — commits and checkpoints.
+
+Rules:
+
+- Do not load unrelated skills.
+- Do not load the same skill repeatedly if its guidance is already available in the current task context.
+- Do not inspect unrelated files merely for completeness.
+- Prefer targeted file inspection over reading the entire repository.
+- Keep implementation and verification proportional to the requested change.
 
 ## Backend Rules
 
@@ -67,18 +75,23 @@ Do not load unrelated skills or unnecessary project context.
 - Validate external input.
 - Do not add business logic outside the appropriate application layer.
 - Do not create abstractions without a concrete current use case.
+- Follow existing backend patterns before introducing new ones.
 
 ## Frontend Rules
 
 - Use the existing Next.js architecture and components before creating new patterns.
+- Inspect existing pages, layouts, components, `globals.css`, and `package.json` before creating new UI patterns.
 - Prefer reusable components when repetition is real.
+- Do not create duplicate components or styling systems.
 - Keep client-side JavaScript minimal.
 - Follow accessibility and responsive design principles.
+- Use Tailwind CSS and existing project conventions.
 - Do not introduce a UI library without approval.
+- Do not modify backend architecture for a frontend-only requirement unless explicitly necessary.
 
 ## UI/UX Guardrails
 
-Build for usability, not visual novelty.
+Build for usability, clarity, and consistency rather than visual novelty.
 
 Avoid generic AI-generated aesthetics, including:
 
@@ -89,7 +102,9 @@ Avoid generic AI-generated aesthetics, including:
 - glowing effects;
 - unnecessary animations;
 - decorative elements without functional purpose;
-- repetitive dashboard/card layouts when another layout communicates better.
+- repetitive dashboard/card layouts when another layout communicates better;
+- excessive badges, pills, or floating elements;
+- visually dense interfaces without clear hierarchy.
 
 Prefer:
 
@@ -99,11 +114,27 @@ Prefer:
 - consistent design tokens;
 - accessible contrast;
 - responsive layouts;
-- meaningful interaction states.
-
-Reuse existing design patterns once established.
+- meaningful interaction states;
+- restrained and purposeful visual styling;
+- layouts that prioritize the actual student workflows.
 
 Do not redesign an existing interface unless the task explicitly requests a redesign.
+
+Reuse established design patterns once they are approved.
+
+## Design Reference
+
+When the user provides a Google Stitch screenshot or design:
+
+- Treat the Stitch design as the primary visual reference for the requested UI.
+- Reproduce its visual direction, layout hierarchy, spacing, typography, color usage, navigation structure, and interaction patterns where appropriate.
+- Use the reference as design direction, not as generated code.
+- Do not blindly copy details that conflict with accessibility, responsiveness, project requirements, or existing architecture.
+- Do not invent additional decorative UI that is not supported by the design direction.
+- Do not replace functional requirements with visual elements merely because they appear in the reference.
+- Prefer production-ready implementation over unnecessary pixel-perfect complexity.
+- Preserve the project's existing technical architecture while adapting the UI.
+- If no Stitch or other explicit design reference is provided, follow the project's established UI patterns and the UI/UX guardrails above.
 
 ## Verification
 
@@ -113,11 +144,17 @@ Prefer the smallest relevant verification:
 
 - PHP syntax/lint for PHP-only changes.
 - Laravel tests for backend behavior.
-- TypeScript/ESLint/build checks for frontend changes.
+- TypeScript/ESLint for frontend changes.
+- Production build when routing, dependencies, configuration, or build-related code changes.
 - Database migration status for migration work.
 - Browser/runtime verification for UI behavior when applicable.
 
-Do not run destructive commands unless explicitly requested or clearly required.
+Rules:
+
+- Do not run destructive commands unless explicitly requested or clearly required.
+- Do not repeat expensive verification unnecessarily when no relevant files changed.
+- If a verification cannot run because of the environment, report the exact limitation.
+- Never hide a failed verification by calling the task complete.
 
 ## Git
 
@@ -128,6 +165,7 @@ Treat commits as checkpoints.
 - Never use destructive Git commands to hide or discard user work.
 - Before committing, inspect `git status` and the relevant diff.
 - Do not modify unrelated files merely to make the working tree clean.
+- Do not commit unless requested or the current workflow explicitly requires a checkpoint.
 
 ## Communication
 
@@ -139,4 +177,10 @@ For implementation tasks, report:
 2. Verification performed.
 3. Any remaining issue.
 
-If blocked by ambiguity, stop and ask rather than guessing.
+Additional rules:
+
+- Do not dump unnecessary file contents into the response.
+- Mention only files relevant to the task.
+- If blocked by ambiguity, stop and ask rather than guessing.
+- If an issue is unrelated to the requested task, report it but do not fix it automatically.
+- Stop after the requested scope is complete.
