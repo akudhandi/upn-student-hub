@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { register, ApiError } from "@/lib/api";
+import { setAuth } from "@/lib/auth";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -37,7 +38,9 @@ export default function RegisterPage() {
         password_confirmation: confirmPassword,
         nim: npm || undefined,
       });
-      console.log(res);
+      if (res.token && res.user) {
+        setAuth(res.token, res.user);
+      }
       router.push("/dashboard");
     } catch (err) {
       const apiError = err as ApiError;

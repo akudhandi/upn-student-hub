@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login, ApiError } from "@/lib/api";
+import { setAuth } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,7 +23,9 @@ export default function LoginPage() {
 
     try {
       const res = await login({ email, password });
-      console.log(res);
+      if (res.token && res.user) {
+        setAuth(res.token, res.user);
+      }
       router.push("/dashboard");
     } catch (err) {
       const apiError = err as ApiError;

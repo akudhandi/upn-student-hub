@@ -57,10 +57,12 @@ export type RegisterPayload = {
   nim?: string;
 };
 
+import type { AuthUser } from "./auth";
+
 export type AuthResponse = {
   message: string;
   token: string;
-  user: unknown;
+  user: AuthUser;
 };
 
 export function login(payload: LoginPayload): Promise<AuthResponse> {
