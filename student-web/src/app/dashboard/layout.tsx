@@ -8,14 +8,87 @@ import { getToken, clearAuth, getUser, type AuthUser } from "@/lib/auth";
 type NavItem = {
   label: string;
   href: string;
-  isLogout?: boolean;
+  icon: React.ReactNode;
 };
 
+function IconDashboard() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="1.5" y="1.5" width="5" height="5" rx="0.5" stroke="currentColor" strokeWidth="1.2" />
+      <rect x="9.5" y="1.5" width="5" height="5" rx="0.5" stroke="currentColor" strokeWidth="1.2" />
+      <rect x="1.5" y="9.5" width="5" height="5" rx="0.5" stroke="currentColor" strokeWidth="1.2" />
+      <rect x="9.5" y="9.5" width="5" height="5" rx="0.5" fill="currentColor" />
+    </svg>
+  );
+}
+function IconMarketplace() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M2 5.5L8 2L14 5.5V13H2V5.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M6 13V7H10V13" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IconServices() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M8 3.5L2.5 6L8 8.5L13.5 6L8 3.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M2.5 8L8 10.5L13.5 8" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M2.5 10L8 12.5L13.5 10" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IconKost() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M2 7L8 2L14 7V13H10V9.5H6V13H2V7Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IconLostFound() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="2.5" y="2.5" width="11" height="11" rx="1" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M5.5 7H10.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M5.5 10H9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <circle cx="11" cy="11" r="2.3" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M12.6 12.6L14 14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+function IconMessages() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="2" y="3" width="12" height="9" rx="1" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M2.5 4L8 8.2L13.5 4" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IconFavorites() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M8 13L3.2 8.8C1.9 7.6 1.9 5.6 3.2 4.3C4.4 3 6.4 3 7.7 4.3L8 4.6L8.3 4.3C9.6 3 11.6 3 12.8 4.3C14.1 5.6 14.1 7.6 12.8 8.8L8 13Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IconProfile() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M3 13C3 10.6 5 9 8 9C11 9 13 10.6 13 13" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Marketplace", href: "/marketplace" },
-  { label: "Services", href: "/services" },
-  { label: "Kost", href: "/kost" },
+  { label: "Dashboard", href: "/dashboard", icon: <IconDashboard /> },
+  { label: "Marketplace", href: "/marketplace", icon: <IconMarketplace /> },
+  { label: "Services", href: "/services", icon: <IconServices /> },
+  { label: "Kost", href: "/kost", icon: <IconKost /> },
+  { label: "Lost & Found", href: "/lost-found", icon: <IconLostFound /> },
+  { label: "Messages", href: "/messages", icon: <IconMessages /> },
+  { label: "Favorites", href: "/favorites", icon: <IconFavorites /> },
+  { label: "Profile", href: "/profile", icon: <IconProfile /> },
 ];
 
 export default function DashboardLayout({
@@ -45,11 +118,10 @@ export default function DashboardLayout({
     router.replace("/login");
   }
 
-  // Prevent flash of dashboard before auth check
   if (!checked) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <p className="text-sm text-gray-500">Checking session…</p>
+      <div className="flex min-h-screen items-center justify-center bg-[#F8F9FB]">
+        <p className="text-sm text-slate-500">Checking session…</p>
       </div>
     );
   }
@@ -59,42 +131,45 @@ export default function DashboardLayout({
       ? (user.profile as { name?: string }).name
       : null) || user?.name || "Student";
   const displayEmail = typeof user?.email === "string" ? user.email : "";
+  const initials = displayName
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F8F9FB]">
       {/* Mobile overlay */}
       {mobileOpen && (
         <button
           aria-label="Close navigation"
-          className="fixed inset-0 z-30 bg-gray-900/30 lg:hidden"
+          className="fixed inset-0 z-30 bg-slate-900/20 lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-[260px] flex-col border-r border-gray-200 bg-white transition-transform duration-200 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-[260px] flex-col border-r border-slate-200 bg-white transition-transform duration-200 lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* Sidebar header */}
-        <div className="flex h-14 items-center gap-3 border-b border-gray-200 px-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-900 text-xs font-bold tracking-tight text-white">
+        {/* Brand */}
+        <div className="flex h-[64px] items-center gap-3 border-b border-slate-200 px-5">
+          <div className="flex h-8 w-8 items-center justify-center rounded bg-[#002147] text-[11px] font-bold tracking-tight text-white">
             UPN
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold leading-none tracking-tight text-gray-900">
+            <p className="text-[13px] font-semibold leading-none tracking-tight text-slate-900">
               UPN Student Hub
             </p>
-            <p className="text-xs text-gray-500">Student Portal</p>
+            <p className="mt-0.5 text-[11px] font-medium tracking-wide text-slate-500">Academic Portal</p>
           </div>
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <p className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-            Menu
-          </p>
           <ul className="space-y-1">
             {NAV_ITEMS.map((item) => {
               const isActive = pathname === item.href;
@@ -103,13 +178,14 @@ export default function DashboardLayout({
                   <Link
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
-                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-medium transition-colors ${
                       isActive
-                        ? "bg-gray-900 text-white"
-                        : "text-gray-700 hover:bg-gray-100"
+                        ? "bg-[#E8EFF9] text-[#002147]"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                     }`}
                     aria-current={isActive ? "page" : undefined}
                   >
+                    <span className={isActive ? "text-[#002147]" : "text-slate-500"}>{item.icon}</span>
                     {item.label}
                   </Link>
                 </li>
@@ -117,61 +193,116 @@ export default function DashboardLayout({
             })}
           </ul>
 
-          <div className="mt-6 border-t border-gray-200 pt-4">
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+          <div className="mt-6">
+            <Link
+              href="/marketplace"
+              onClick={() => setMobileOpen(false)}
+              className="flex w-full items-center justify-center gap-2 rounded bg-[#002147] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-white hover:bg-[#001a38]"
             >
-              Logout
-            </button>
+              <span className="text-sm leading-none">+</span> Post Listing
+            </Link>
+            <p className="mt-2 text-center text-[11px] text-slate-400">Placeholder — marketplace action</p>
           </div>
         </nav>
 
         {/* User footer */}
-        <div className="border-t border-gray-200 px-4 py-4">
-          <p className="truncate text-sm font-medium text-gray-900">{displayName}</p>
-          {displayEmail && (
-            <p className="truncate text-xs text-gray-500">{displayEmail}</p>
-          )}
+        <div className="border-t border-slate-200 px-4 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-semibold text-slate-900">{displayName}</p>
+              {displayEmail && <p className="truncate text-xs text-slate-500">{displayEmail}</p>}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-3 flex w-full items-center justify-center rounded border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Logout
+          </button>
         </div>
       </aside>
 
       {/* Main */}
       <div className="lg:pl-[260px]">
         {/* Top header */}
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-gray-200 bg-white px-4 lg:px-6">
+        <header className="sticky top-0 z-20 flex h-[64px] items-center gap-3 border-b border-slate-200 bg-white px-4 lg:px-6">
           <button
             type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 lg:hidden"
+            className="inline-flex h-8 w-8 items-center justify-center rounded border border-slate-200 text-slate-700 hover:bg-slate-50 lg:hidden"
             aria-label="Open navigation"
             onClick={() => setMobileOpen((v) => !v)}
           >
             <span className="block h-3.5 w-3.5">
-              {/* simple hamburger lines */}
               <span className="block h-0.5 w-full bg-current" />
               <span className="mt-1 block h-0.5 w-full bg-current" />
               <span className="mt-1 block h-0.5 w-full bg-current" />
             </span>
           </button>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-sm font-semibold text-gray-900">Dashboard</h1>
-            <p className="hidden text-xs text-gray-500 sm:block">
-              Welcome back — manage your activity in UPN Student Hub
-            </p>
+
+          {/* Search */}
+          <div className="flex flex-1 items-center">
+            <label htmlFor="dashboard-search" className="sr-only">
+              Search
+            </label>
+            <div className="relative w-full max-w-[420px]">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.2" />
+                  <path d="M10.5 10.5L13 13" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                </svg>
+              </span>
+              <input
+                id="dashboard-search"
+                placeholder="Search resources, students, or listings..."
+                className="h-9 w-full rounded border border-slate-200 bg-[#F8F9FB] py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:bg-white focus:outline-none"
+              />
+            </div>
           </div>
-          <div className="hidden items-center gap-3 sm:flex">
-            <span className="max-w-[160px] truncate text-sm font-medium text-gray-700">
-              {displayName}
-            </span>
-            <span className="h-7 w-px bg-gray-200" aria-hidden="true" />
+
+          {/* Right actions */}
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               type="button"
-              onClick={handleLogout}
-              className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              aria-label="Notifications"
+              className="relative inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 hover:bg-slate-50 hover:text-slate-700"
             >
-              Logout
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M8 2.5C5.7 2.5 4 4 4 6V10L3 11.5H13L12 10V6C12 4 10.3 2.5 8 2.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                <path d="M6.5 13C6.5 13.8 7.1 14.5 8 14.5C8.9 14.5 9.5 13.8 9.5 13H6.5Z" stroke="currentColor" strokeWidth="1.2" />
+              </svg>
+              <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />
             </button>
+            <button
+              type="button"
+              aria-label="Help"
+              className="hidden h-8 w-8 items-center justify-center rounded text-slate-500 hover:bg-slate-50 hover:text-slate-700 sm:inline-flex"
+            >
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.2" />
+                <path d="M7.2 7.2C7.2 6.1 8.1 5.3 9.2 5.3C10.3 5.3 11 6 11 7C11 8.2 10 8.6 9.4 9.1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                <circle cx="8" cy="11.2" r="0.7" fill="currentColor" />
+              </svg>
+            </button>
+            <div className="hidden items-center gap-3 sm:flex">
+              <div className="h-6 w-px bg-slate-200" aria-hidden="true" />
+              <div className="flex items-center gap-2">
+                <div className="hidden text-right sm:block">
+                  <p className="text-xs font-semibold leading-none text-slate-900">{displayName}</p>
+                  <p className="mt-0.5 text-[11px] leading-none text-slate-500">{displayEmail || "Student"}</p>
+                </div>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
+                  {initials}
+                </div>
+              </div>
+            </div>
+            {/* Mobile user */}
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white sm:hidden">
+              {initials}
+            </div>
           </div>
         </header>
 
