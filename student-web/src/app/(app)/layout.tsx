@@ -91,7 +91,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Profile", href: "/profile", icon: <IconProfile /> },
 ];
 
-export default function DashboardLayout({
+export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;
