@@ -94,7 +94,7 @@ function formatRupiah(value: number): string {
 
 function ItemImagePlaceholder({ category }: { category: string }) {
   return (
-    <div className="relative flex h-[172px] items-center justify-center bg-[#EEF2F7]">
+    <div className="relative flex aspect-[4/3] items-center justify-center bg-[#EEF2F7]">
       <svg
         width="40"
         height="40"
@@ -107,7 +107,7 @@ function ItemImagePlaceholder({ category }: { category: string }) {
         <circle cx="9" cy="9" r="2" stroke="currentColor" strokeWidth="1.3" />
         <path d="M3 16L8.5 11L13 15.5L16 13L21 18" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round" />
       </svg>
-      <span className="absolute top-3 right-3 rounded-md bg-amber-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+      <span className="absolute right-3 top-3 rounded-md bg-amber-100/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-900 backdrop-blur-sm">
         {category}
       </span>
     </div>
@@ -151,7 +151,7 @@ export default function MarketplacePage() {
       </p>
 
       {/* Top row: Title Card (left) + Quick Filters (right) — aligned */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_260px] lg:items-start">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr] lg:items-start">
         {/* Title Card — must be bg-white border rounded-xl p-6 with thick accent top border */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 border-t-4 border-t-[#D4AF37]">
           <h1 className="text-[26px] font-bold tracking-tight text-slate-900">Marketplace</h1>
@@ -167,9 +167,9 @@ export default function MarketplacePage() {
                   type="button"
                   onClick={() => setActiveCategory(cat)}
                   aria-pressed={isActive}
-                  className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2 ${
+                  className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 ${
                     isActive
-                      ? "border-[#002147] bg-[#002147] text-white"
+                      ? "border-amber-200 bg-amber-50 text-amber-800"
                       : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                   }`}
                 >
@@ -257,13 +257,13 @@ export default function MarketplacePage() {
                 className="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-colors hover:border-slate-300 focus-within:ring-2 focus-within:ring-[#002147] focus-within:ring-offset-2"
               >
                 <ItemImagePlaceholder category={item.category} />
-                <div className="flex flex-1 flex-col p-4">
+                <div className="flex flex-1 flex-col px-4 py-3">
                   <h3 className="line-clamp-2 text-[13px] font-semibold leading-5 text-slate-900">
                     <a href="#" onClick={(e) => e.preventDefault()} className="hover:underline focus:outline-none">
                       {item.title}
                     </a>
                   </h3>
-                  <p className="mt-1 text-[15px] font-bold text-[#D4AF37]">{formatRupiah(item.price)}</p>
+                  <p className="mt-1 text-xl font-bold text-[#D4AF37]">{formatRupiah(item.price)}</p>
                   <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-slate-500">{item.description}</p>
                   <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
                     <span className="flex items-center gap-2">
