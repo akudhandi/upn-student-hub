@@ -21,41 +21,41 @@ type ServiceItem = {
 const PLACEHOLDER_SERVICES: ServiceItem[] = [
   {
     id: "1",
-    title: "Advanced Calculus Tutoring",
+    title: "Les Kalkulus Lanjut",
     price: 50000,
-    priceSuffix: "/hr",
-    category: "Tutoring",
-    description: "Struggling with limits or integrals? I offer patient, step-by-step guidance for Calc I & II. In-person near campus or via meet.",
+    priceSuffix: "/jam",
+    category: "Les Privat",
+    description: "Kesulitan dengan limit atau integral? Saya menawarkan bimbingan langkah demi langkah yang sabar untuk Kalkulus I & II. Tatap muka dekat kampus atau via meet.",
     provider: "Alex M.",
     rating: 4.9,
   },
   {
     id: "2",
-    title: "Presentation Design & Polish",
+    title: "Desain & Poles Presentasi",
     price: 75000,
-    priceSuffix: "/project",
-    category: "Design",
-    description: "Turn boring slides into compelling visual narratives. Specializing in pitch decks and thesis defense presentations.",
+    priceSuffix: "/proyek",
+    category: "Desain",
+    description: "Ubah slide membosankan menjadi cerita visual yang menarik. Spesialis pitch deck dan presentasi sidang skripsi.",
     provider: "Sarah T.",
     rating: 5.0,
   },
   {
     id: "3",
-    title: "Laptop Screen & Battery Repair",
+    title: "Servis Layar & Baterai Laptop",
     price: 100000,
-    priceSuffix: "/job",
-    category: "Repair",
-    description: "Quick turnaround laptop repairs on campus. Diagnostics free. Parts not included but sourced at student-friendly prices.",
+    priceSuffix: "/servis",
+    category: "Servis",
+    description: "Servis laptop cepat di kampus. Diagnosa gratis. Sparepart tidak termasuk, disediakan dengan harga ramah mahasiswa.",
     provider: "David K.",
     rating: 4.8,
   },
   {
     id: "4",
-    title: "English Conversation Coaching",
+    title: "Pelatihan Percakapan Bahasa Inggris",
     price: 40000,
-    priceSuffix: "/hr",
-    category: "Tutoring",
-    description: "Prepare for TOEFL/IELTS or simply gain confidence speaking. Native-level pronunciation feedback and role-play sessions.",
+    priceSuffix: "/jam",
+    category: "Les Privat",
+    description: "Persiapan TOEFL/IELTS atau sekadar melatih kepercayaan diri berbicara. Koreksi pelafalan dan sesi role-play.",
     provider: "Nadia P.",
     rating: 4.9,
   },
@@ -65,23 +65,23 @@ const PLACEHOLDER_SERVICES: ServiceItem[] = [
     price: 8000,
     priceSuffix: "/kg",
     category: "Laundry",
-    description: "Next-day return, clean and folded. Free pickup within 2km of campus. Ironing available + Rp 2.000/kg.",
+    description: "Kembali keesokan harinya, bersih dan terlipat. Antar-jemput gratis dalam 2 km dari kampus. Setrika tersedia + Rp 2.000/kg.",
     provider: "Riko H.",
     rating: 4.7,
   },
   {
     id: "6",
-    title: "Acoustic Photography for Events",
+    title: "Fotografi untuk Acara",
     price: 250000,
-    priceSuffix: "/session",
-    category: "Design",
-    description: "Graduation, club events, or profile shoots. Edited photos within 48 hours. 20+ edited shots per session.",
+    priceSuffix: "/sesi",
+    category: "Desain",
+    description: "Wisuda, acara klub, atau foto profil. Hasil edit maksimal 48 jam. 20+ foto edit per sesi.",
     provider: "Maya S.",
     rating: 5.0,
   },
 ];
 
-const CATEGORIES = ["All", "Tutoring", "Design", "Repair", "Laundry"] as const;
+const CATEGORIES = ["Semua", "Les Privat", "Desain", "Servis", "Laundry"] as const;
 
 function formatRupiah(value: number): string {
   return new Intl.NumberFormat("id-ID", {
@@ -108,7 +108,7 @@ function ProviderAvatar({ name }: { name: string }) {
 
 function CategoryGlyph({ category }: { category: string }) {
   // Small inline glyphs reused by pills and card icon squares. Pure SVG, no deps.
-  if (category === "Design") {
+  if (category === "Desain") {
     return (
       <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M3.5 11.5L8 3.5L12.5 11.5H3.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
@@ -117,7 +117,7 @@ function CategoryGlyph({ category }: { category: string }) {
       </svg>
     );
   }
-  if (category === "Repair") {
+  if (category === "Servis") {
     return (
       <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M10.5 2.5L13.5 5.5L6 13L2.5 13.5L3 10L10.5 2.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
@@ -133,7 +133,7 @@ function CategoryGlyph({ category }: { category: string }) {
       </svg>
     );
   }
-  if (category === "All") {
+  if (category === "Semua") {
     return (
       <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.4" />
@@ -164,11 +164,11 @@ function CategoryIcon({ category }: { category: string }) {
 }
 
 export default function ServicesPage() {
-  const [activeCategory, setActiveCategory] = useState<(typeof CATEGORIES)[number]>("All");
+  const [activeCategory, setActiveCategory] = useState<(typeof CATEGORIES)[number]>("Semua");
   const [query, setQuery] = useState("");
 
   const filtered = PLACEHOLDER_SERVICES.filter((s) => {
-    if (activeCategory !== "All" && s.category !== activeCategory) return false;
+    if (activeCategory !== "Semua" && s.category !== activeCategory) return false;
     const q = query.trim().toLowerCase();
     if (!q) return true;
     return (
@@ -179,26 +179,26 @@ export default function ServicesPage() {
   });
 
   function clearFilters() {
-    setActiveCategory("All");
+    setActiveCategory("Semua");
     setQuery("");
   }
 
   return (
     <div className="mx-auto max-w-[1180px]">
       <p className="mb-3 text-[11px] leading-4 text-slate-400">
-        Placeholder data — this grid uses a static array. Swap with{" "}
-        <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px]">GET /api/v1/services</code> when API is ready.
+        Data placeholder — grid ini memakai array statis. Ganti dengan{" "}
+        <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px]">GET /api/v1/services</code> saat API siap.
       </p>
 
       {/* Top section: title (left) + search (right) */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-[28px] font-bold tracking-tight text-slate-900">Student Services</h1>
-          <p className="mt-1 text-sm text-gray-500">Find skilled peers for tutoring, design, repairs, and more.</p>
+          <h1 className="text-[28px] font-bold tracking-tight text-slate-900">Jasa &amp; Layanan Mahasiswa</h1>
+          <p className="mt-1 text-sm text-gray-500">Temukan mahasiswa terampil untuk les, desain, servis, dan lainnya.</p>
         </div>
         <div className="relative w-full sm:w-[260px] sm:shrink-0 sm:pt-1">
           <label htmlFor="services-search" className="sr-only">
-            Search services
+            Cari jasa
           </label>
           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 sm:top-[calc(50%+2px)]">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -211,14 +211,14 @@ export default function ServicesPage() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search services..."
+            placeholder="Cari jasa..."
             className="h-9 w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-gray-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
           />
         </div>
       </div>
 
       {/* Category pills with icons */}
-      <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Filter by category">
+      <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Filter berdasarkan kategori">
         {CATEGORIES.map((cat) => {
           const isActive = activeCategory === cat;
           return (
@@ -234,7 +234,7 @@ export default function ServicesPage() {
               }`}
             >
               <CategoryGlyph category={cat} />
-              {cat === "All" ? "All Services" : cat === "Repair" ? "Tech Repair" : cat}
+              {cat === "Semua" ? "Semua Jasa" : cat === "Servis" ? "Servis Teknik" : cat}
             </button>
           );
         })}
@@ -244,14 +244,14 @@ export default function ServicesPage() {
       <div className="mt-6">
         {filtered.length === 0 ? (
           <div role="status" className="rounded-xl border border-gray-200 bg-white px-6 py-12 text-center">
-            <p className="text-sm font-medium text-slate-900">No services found</p>
-            <p className="mt-1 text-xs text-gray-500">Try a different search or category.</p>
+            <p className="text-sm font-medium text-slate-900">Tidak ada jasa ditemukan</p>
+            <p className="mt-1 text-xs text-gray-500">Coba kata kunci atau kategori lain.</p>
             <button
               type="button"
               onClick={clearFilters}
               className="mt-4 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
             >
-              Clear filters
+              Hapus filter
             </button>
           </div>
         ) : (
@@ -286,12 +286,12 @@ export default function ServicesPage() {
                       <span className="flex items-center gap-2">
                         <ProviderAvatar name={item.provider} />
                         <span className="flex flex-col">
-                          <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Provider</span>
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Penyedia</span>
                           <span className="text-xs font-medium text-slate-700">{item.provider}</span>
                         </span>
                       </span>
                       <span className="text-right">
-                        <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400">Starting at</span>
+                        <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400">Mulai dari</span>
                         <span className="text-[14px] font-bold text-slate-900">
                           {formatRupiah(item.price)}
                           <span className="text-[11px] font-medium text-gray-400">{item.priceSuffix}</span>

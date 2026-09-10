@@ -13,22 +13,22 @@ type ModuleCard = {
 const MODULES: ModuleCard[] = [
   {
     title: "Marketplace",
-    description: "Buy & sell textbooks, electronics, and supplies.",
+    description: "Jual beli buku kuliah, elektronik, dan perlengkapan.",
     href: "/marketplace",
   },
   {
     title: "Services",
-    description: "Tutoring, design, tech repair by peers.",
+    description: "Les privat, desain, dan servis oleh sesama mahasiswa.",
     href: "/services",
   },
   {
     title: "Kost",
-    description: "Find off-campus housing and roommates.",
+    description: "Temukan kost dan teman sekamar di sekitar kampus.",
     href: "/kost",
   },
   {
     title: "Lost & Found",
-    description: "Report or locate missing items on campus.",
+    description: "Laporkan atau temukan barang hilang di kampus.",
     href: "/lost-found",
   },
 ];
@@ -130,9 +130,9 @@ export default function DashboardPage() {
 
   const greeting = (() => {
     const h = new Date().getHours();
-    if (h < 12) return "Good Morning";
-    if (h < 18) return "Good Afternoon";
-    return "Good Evening";
+    if (h < 12) return "Selamat Pagi";
+    if (h < 18) return "Selamat Siang";
+    return "Selamat Malam";
   })();
 
   const studentMeta = (() => {
@@ -146,7 +146,7 @@ export default function DashboardPage() {
         ? (user.profile as { nim?: string | null }).nim
         : null;
     const parts: string[] = [];
-    if (nim) parts.push(`ID: ${nim}`);
+    if (nim) parts.push(`NIM: ${nim}`);
     if (faculty) parts.push(faculty);
     if (parts.length === 0 && user.email) parts.push(user.email);
     return parts.join("  ·  ");
@@ -161,18 +161,18 @@ export default function DashboardPage() {
         </h1>
         {studentMeta ? (
           <p className="mt-1 text-xs font-medium tracking-wide text-slate-500">
-            {studentMeta} <span className="mx-1.5 text-slate-300">·</span> Academic Portal
+            {studentMeta} <span className="mx-1.5 text-slate-300">·</span> Portal Mahasiswa
           </p>
         ) : (
-          <p className="mt-1 max-w-[560px] text-sm leading-5 text-slate-500">Your campus activity at a glance — marketplace, housing, and community updates.</p>
+          <p className="mt-1 max-w-[560px] text-sm leading-5 text-slate-500">Aktivitas kampusmu sekilas — marketplace, kost, dan kabar komunitas.</p>
         )}
-        <p className="mt-1.5 max-w-[560px] text-xs leading-5 text-slate-500 sm:text-[13px]">Browse modules below. Your recent activity and messages will appear once backend modules are connected.</p>
+        <p className="mt-1.5 max-w-[560px] text-xs leading-5 text-slate-500 sm:text-[13px]">Jelajahi modul di bawah. Aktivitas terbaru dan pesanmu akan muncul setelah modul backend terhubung.</p>
       </section>
 
       {/* Quick access / module cards */}
       <section aria-labelledby="quick-access-heading">
         <h2 id="quick-access-heading" className="sr-only">
-          Quick access
+          Akses cepat
         </h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
           {MODULES.map((m) => (
@@ -185,7 +185,7 @@ export default function DashboardPage() {
               <h3 className="mt-3 text-[13px] font-semibold text-slate-900">{m.title}</h3>
               <p className="mt-1 flex-1 text-xs leading-5 text-slate-500">{m.description}</p>
               <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[#002147] group-hover:underline">
-                Open
+                Buka
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="text-slate-400 group-hover:text-[#002147]">
                   <path d="M6 3L11 8L6 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -200,41 +200,41 @@ export default function DashboardPage() {
         {/* Recent Community Activity */}
         <div className="rounded-lg border border-slate-200 bg-white">
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3.5 sm:px-5">
-            <h2 className="text-[13px] font-semibold text-slate-900">Recent Community Activity</h2>
+            <h2 className="text-[13px] font-semibold text-slate-900">Aktivitas Komunitas Terbaru</h2>
             <Link
               href="/marketplace"
               className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2 rounded-sm px-1"
             >
-              View all
+              Lihat semua
             </Link>
           </div>
 
           {/* Empty state — no fake listings */}
           <div className="flex flex-col items-center px-6 py-10 text-center sm:py-12">
             <EmptyActivityIllustration />
-            <h3 className="mt-4 text-sm font-semibold text-slate-900">No community activity yet</h3>
+            <h3 className="mt-4 text-sm font-semibold text-slate-900">Belum ada aktivitas komunitas</h3>
             <p className="mt-1.5 max-w-[360px] text-xs leading-5 text-slate-500">
-              New listings from Marketplace, Kost, and Lost &amp; Found will appear here once modules are connected to the API.
+              Iklan terbaru dari Marketplace, Kost, dan Lost &amp; Found akan muncul di sini setelah modul terhubung ke API.
             </p>
             <div className="mt-5 flex flex-wrap justify-center gap-2">
               <Link
                 href="/marketplace"
                 className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
               >
-                Browse Marketplace
+                Jelajahi Marketplace
               </Link>
               <Link
                 href="/kost"
                 className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
               >
-                Find Kost
+                Cari Kost
               </Link>
             </div>
           </div>
 
           <div className="border-t border-slate-100 bg-[#F8F9FB] px-4 py-2.5 sm:px-5">
             <p className="text-[11px] leading-4 text-slate-500">
-              Placeholder state — this feed is ready for real data. No mock transactions are displayed as real activity.
+              Data placeholder — feed ini siap untuk data asli. Tidak ada transaksi tiruan yang ditampilkan sebagai aktivitas nyata.
             </p>
           </div>
         </div>
@@ -244,10 +244,10 @@ export default function DashboardPage() {
           {/* Recent Messages */}
           <div className="rounded-lg border border-slate-200 bg-white">
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3.5 sm:px-5">
-              <h2 className="text-[13px] font-semibold text-slate-900">Recent Messages</h2>
+              <h2 className="text-[13px] font-semibold text-slate-900">Pesan Terbaru</h2>
               <Link
                 href="/messages"
-                aria-label="Open messages"
+                aria-label="Buka pesan"
                 className="inline-flex h-7 w-7 items-center justify-center rounded text-slate-400 hover:bg-slate-50 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147]"
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -258,25 +258,25 @@ export default function DashboardPage() {
 
             <div className="flex flex-col items-center px-6 py-8 text-center">
               <EmptyMessagesIllustration />
-              <h3 className="mt-3 text-sm font-semibold text-slate-900">No messages yet</h3>
-              <p className="mt-1 max-w-[260px] text-xs leading-5 text-slate-500">Your 1-on-1 conversations will appear here when chat is available.</p>
+              <h3 className="mt-3 text-sm font-semibold text-slate-900">Belum ada pesan</h3>
+              <p className="mt-1 max-w-[260px] text-xs leading-5 text-slate-500">Percakapan pribadimu akan muncul di sini setelah fitur chat tersedia.</p>
               <Link
                 href="/messages"
                 className="mt-4 text-xs font-medium text-[#002147] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] rounded-sm"
               >
-                Go to Messages
+                Buka Pesan
               </Link>
             </div>
 
             <div className="border-t border-slate-100 bg-[#F8F9FB] px-4 py-2.5 sm:px-5">
-              <p className="text-[11px] leading-4 text-slate-500">Placeholder — messages will appear when chat is implemented.</p>
+              <p className="text-[11px] leading-4 text-slate-500">Placeholder — pesan akan muncul setelah fitur chat diimplementasikan.</p>
             </div>
           </div>
 
           {/* Quick Shortcuts */}
           <div className="rounded-lg border border-slate-200 bg-white">
             <div className="border-b border-slate-200 px-4 py-3.5 sm:px-5">
-              <h2 className="text-[13px] font-semibold text-slate-900">Quick Shortcuts</h2>
+              <h2 className="text-[13px] font-semibold text-slate-900">Pintasan Cepat</h2>
             </div>
             <div className="space-y-2 p-3">
               <Link
@@ -290,7 +290,7 @@ export default function DashboardPage() {
                     <path d="M5 9.5H9" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
                   </svg>
                 </span>
-                Exam Schedule
+                Jadwal Ujian
                 <span className="ml-auto text-slate-400" aria-hidden="true">
                   ›
                 </span>
@@ -306,7 +306,7 @@ export default function DashboardPage() {
                     <path d="M5 12C5 10.3 6.3 9 8 9C9.7 9 11 10.3 11 12" stroke="currentColor" strokeWidth="1.1" />
                   </svg>
                 </span>
-                Digital ID
+                ID Digital
                 <span className="ml-auto text-slate-400" aria-hidden="true">
                   ›
                 </span>
@@ -322,8 +322,8 @@ export default function DashboardPage() {
                     <path d="M4 8H12" stroke="currentColor" strokeWidth="1.1" />
                   </svg>
                 </span>
-                Campus Map
-                <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide border border-slate-200 bg-white px-1.5 py-0.5 rounded">Soon</span>
+                Peta Kampus
+                <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide border border-slate-200 bg-white px-1.5 py-0.5 rounded">Segera</span>
               </div>
             </div>
           </div>

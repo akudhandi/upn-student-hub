@@ -27,55 +27,55 @@ const LOST_ITEMS: LostFoundItem[] = [
   {
     id: "1",
     status: "lost",
-    title: "Set of Keys with Red Lanyard",
-    location: "Near Faculty of Engineering Building A",
+    title: "Sekumpulan Kunci dengan Lanyard Merah",
+    location: "Dekat Gedung A Fakultas Teknik",
     description:
-      "I left my keys on the bench outside the main entrance. It has 3 keys and a small UPN logo keychain attached to a bright red lanyard. Please let me know if you've seen it!",
+      "Saya meninggalkan kunci di bangku depan pintu masuk utama. Ada 3 kunci dan gantungan kunci logo UPN pada lanyard merah terang. Tolong kabari saya jika melihatnya!",
     reporter: "Alex Johnson",
-    time: "2 hours ago",
-    category: "Keys",
+    time: "2 jam lalu",
+    category: "Kunci",
     hasPhoto: true,
     photoTone: "bg-[#E7EBF0]",
   },
   {
     id: "2",
     status: "found",
-    title: "Casio Scientific Calculator",
-    location: "Library, 2nd Floor Study Area",
+    title: "Kalkulator Scientific Casio",
+    location: "Perpustakaan, Area Belajar Lantai 2",
     description:
-      "Found a black Casio fx-991EX calculator left on a desk near the windows. I've handed it over to the Library front desk. You can claim it there.",
+      "Menemukan kalkulator Casio fx-991EX hitam yang tertinggal di meja dekat jendela. Sudah saya titipkan ke meja depan perpustakaan. Bisa diambil di sana.",
     reporter: "Sarah M.",
-    time: "Yesterday, 14:30",
-    category: "Electronics",
-    dropOff: "At Front Desk",
+    time: "Kemarin, 14:30",
+    category: "Elektronik",
+    dropOff: "Di Meja Depan",
     hasPhoto: true,
     photoTone: "bg-[#EFE8DC]",
   },
   {
     id: "3",
     status: "lost",
-    title: "Student ID Card",
-    location: "Campus Shuttle Route A",
+    title: "Kartu Tanda Mahasiswa",
+    location: "Bus Kampus Rute A",
     description:
-      "Lost my Student ID (Name: Budi Santoso) somewhere on the morning shuttle bus. Need it urgently for midterms next week.",
+      "KTM hilang (Nama: Budi Santoso) di bus shuttle pagi. Dibutuhkan segera untuk UTS minggu depan.",
     reporter: "Budi Santoso",
-    time: "Oct 24, 09:15",
-    category: "ID & Cards",
+    time: "24 Okt, 09:15",
+    category: "KTM & Kartu",
     hasPhoto: false,
     photoTone: "bg-slate-50",
   },
 ];
 
 const STATUS_FILTERS = [
-  { value: "all", label: "All Items", dot: "bg-[#002147]" },
-  { value: "lost", label: "Lost", dot: "bg-red-600" },
-  { value: "found", label: "Found", dot: "bg-blue-700" },
-  { value: "resolved", label: "Resolved", dot: "bg-green-600" },
+  { value: "all", label: "Semua", dot: "bg-[#002147]" },
+  { value: "lost", label: "Hilang", dot: "bg-red-600" },
+  { value: "found", label: "Ditemukan", dot: "bg-blue-700" },
+  { value: "resolved", label: "Selesai", dot: "bg-green-600" },
 ] as const;
 
 type StatusFilter = (typeof STATUS_FILTERS)[number]["value"];
 
-const CATEGORIES = ["Electronics", "ID & Cards", "Keys", "Clothing", "Books"] as const;
+const CATEGORIES = ["Elektronik", "KTM & Kartu", "Kunci", "Pakaian", "Buku"] as const;
 
 const STATUS_ACCENT: Record<LostFoundStatus, string> = {
   lost: "border-l-red-600",
@@ -106,7 +106,7 @@ function StatusBadge({ status }: { status: LostFoundStatus }) {
           <path d="M8 6.5V9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
           <circle cx="8" cy="11.3" r="0.8" fill="currentColor" />
         </svg>
-        Lost
+        Hilang
       </span>
     );
   }
@@ -123,7 +123,7 @@ function StatusBadge({ status }: { status: LostFoundStatus }) {
             strokeLinejoin="round"
           />
         </svg>
-        Found
+        Ditemukan
       </span>
     );
   }
@@ -138,7 +138,7 @@ function StatusBadge({ status }: { status: LostFoundStatus }) {
           strokeLinejoin="round"
         />
       </svg>
-      Resolved
+      Selesai
     </span>
   );
 }
@@ -149,7 +149,7 @@ function ItemPhoto({ item }: { item: LostFoundItem }) {
       <div
         className="relative flex h-40 w-full shrink-0 items-center justify-center bg-slate-50 sm:h-auto sm:w-44"
         role="img"
-        aria-label={`No photo available for ${item.title}`}
+        aria-label={`Tidak ada foto untuk ${item.title}`}
       >
         <svg
           width="36"
@@ -174,7 +174,7 @@ function ItemPhoto({ item }: { item: LostFoundItem }) {
     <div
       className={`relative flex h-40 w-full shrink-0 items-center justify-center sm:h-auto sm:w-44 ${item.photoTone}`}
       role="img"
-      aria-label={`Photo placeholder for ${item.title}`}
+      aria-label={`Placeholder foto untuk ${item.title}`}
     >
       <svg
         width="36"
@@ -219,9 +219,9 @@ export default function LostAndFoundPage() {
   return (
     <div className="mx-auto max-w-[1180px]">
       <p className="mb-3 text-[11px] leading-4 text-slate-400">
-        Placeholder data — this feed uses a static array. Swap with{" "}
+        Data placeholder — feed ini memakai array statis. Ganti dengan{" "}
         <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px]">GET /api/v1/lost-found</code>{" "}
-        when API is ready.
+        saat API siap.
       </p>
 
       {/* Header: title left, report actions right */}
@@ -229,7 +229,7 @@ export default function LostAndFoundPage() {
         <div>
           <h1 className="text-[22px] font-semibold tracking-tight text-slate-900">Lost &amp; Found</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Report missing items or help reunite others with their belongings.
+            Laporkan barang hilang atau bantu kembalikan barang milik orang lain.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -241,7 +241,7 @@ export default function LostAndFoundPage() {
               <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.3" />
               <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
             </svg>
-            Report Lost
+            Lapor Hilang
           </button>
           <button
             type="button"
@@ -256,7 +256,7 @@ export default function LostAndFoundPage() {
               />
               <circle cx="6" cy="6" r="1.2" stroke="currentColor" strokeWidth="1.1" />
             </svg>
-            Report Found
+            Lapor Temuan
           </button>
         </div>
       </div>
@@ -264,7 +264,7 @@ export default function LostAndFoundPage() {
       {/* Layout: sidebar filters + feed */}
       <div className="mt-5 grid grid-cols-1 items-start gap-5 lg:grid-cols-[240px_1fr]">
         {/* Sidebar */}
-        <aside className="space-y-4" aria-label="Lost and found filters">
+        <aside className="space-y-4" aria-label="Filter barang hilang dan temuan">
           <section className="rounded-lg border border-slate-200 bg-white p-4">
             <h2 id="filter-status-heading" className="text-[13px] font-semibold text-slate-900">
               Filter Status
@@ -296,7 +296,7 @@ export default function LostAndFoundPage() {
 
           <section className="rounded-lg border border-slate-200 bg-white p-4">
             <h2 id="categories-heading" className="text-[13px] font-semibold text-slate-900">
-              Categories
+              Kategori
             </h2>
             <div className="mt-3 flex flex-wrap gap-2" role="group" aria-labelledby="categories-heading">
               {CATEGORIES.map((cat) => {
@@ -324,22 +324,22 @@ export default function LostAndFoundPage() {
         {/* Feed */}
         <div>
           <p className="text-xs text-slate-500" aria-live="polite" role="status">
-            Showing {filtered.length} of {LOST_ITEMS.length} reports
-            {activeCategory ? ` in ${activeCategory}` : ""}
+            Menampilkan {filtered.length} dari {LOST_ITEMS.length} laporan
+            {activeCategory ? ` di ${activeCategory}` : ""}
           </p>
 
           {filtered.length === 0 ? (
             <div className="mt-3 rounded-lg border border-slate-200 bg-white px-6 py-12 text-center">
-              <p className="text-sm font-medium text-slate-900">No reports found</p>
+              <p className="text-sm font-medium text-slate-900">Tidak ada laporan ditemukan</p>
               <p className="mt-1 text-xs text-slate-500">
-                Try adjusting the status or category filters.
+                Coba ubah filter status atau kategori.
               </p>
               <button
                 type="button"
                 onClick={clearFilters}
                 className="mt-4 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
               >
-                Clear filters
+                Hapus filter
               </button>
             </div>
           ) : (
@@ -418,7 +418,7 @@ export default function LostAndFoundPage() {
                         ) : (
                           <button
                             type="button"
-                            aria-label={`Contact ${item.reporter} about ${item.title}`}
+                            aria-label={`Hubungi ${item.reporter} tentang ${item.title}`}
                             className="inline-flex shrink-0 items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-[#002147] hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
                           >
                             <svg
@@ -444,7 +444,7 @@ export default function LostAndFoundPage() {
                                 strokeLinejoin="round"
                               />
                             </svg>
-                            Contact
+                            Hubungi
                           </button>
                         )}
                       </div>

@@ -27,63 +27,63 @@ const KOST_LISTINGS: KostListing[] = [
     id: "1",
     name: "Kost Mawar Putih",
     pricePerMonth: 1500000,
-    priceLabel: "Rp 1.5M / month",
-    distanceLabel: "400m from UPN (5 min walk)",
+    priceLabel: "Rp 1,5 jt / bulan",
+    distanceLabel: "400m dari UPN (5 mnt jalan)",
     distanceKm: 0.4,
     rating: 4.8,
     roomsLeft: 2,
-    availabilityLabel: "Available (2 rooms)",
+    availabilityLabel: "Tersedia (2 kamar)",
     availabilityTone: "ok",
-    facilities: ["AC", "Free WiFi", "Private Bathroom"],
+    facilities: ["AC", "WiFi Gratis", "Kamar Mandi Dalam"],
     imageTone: "#E7ECF2",
   },
   {
     id: "2",
     name: "Griya Mahasiswa Premium",
     pricePerMonth: 1800000,
-    priceLabel: "Rp 1.8M / month",
-    distanceLabel: "800m from UPN (10 min walk)",
+    priceLabel: "Rp 1,8 jt / bulan",
+    distanceLabel: "800m dari UPN (10 mnt jalan)",
     distanceKm: 0.8,
     rating: 4.9,
     roomsLeft: 1,
-    availabilityLabel: "1 room left",
+    availabilityLabel: "Sisa 1 kamar",
     availabilityTone: "low",
-    facilities: ["AC", "Free WiFi", "Private Bathroom", "Parking Area"],
+    facilities: ["AC", "WiFi Gratis", "Kamar Mandi Dalam", "Area Parkir"],
     imageTone: "#EFE9DF",
   },
   {
     id: "3",
     name: "Kost Melati Asri",
     pricePerMonth: 950000,
-    priceLabel: "Rp 950K / month",
-    distanceLabel: "1.5 km from UPN (7 min ride)",
+    priceLabel: "Rp 950 rb / bulan",
+    distanceLabel: "1,5 km dari UPN (7 mnt naik motor)",
     distanceKm: 1.5,
     rating: 4.6,
     roomsLeft: 3,
-    availabilityLabel: "Available (3 rooms)",
+    availabilityLabel: "Tersedia (3 kamar)",
     availabilityTone: "ok",
-    facilities: ["Free WiFi", "Kitchen Access", "Parking Area"],
+    facilities: ["WiFi Gratis", "Dapur Bersama", "Area Parkir"],
     imageTone: "#E8F0E9",
   },
   {
     id: "4",
     name: "Wisma Cendekia Putra",
     pricePerMonth: 1200000,
-    priceLabel: "Rp 1.2M / month",
-    distanceLabel: "2.4 km from UPN (10 min ride)",
+    priceLabel: "Rp 1,2 jt / bulan",
+    distanceLabel: "2,4 km dari UPN (10 mnt naik motor)",
     distanceKm: 2.4,
     rating: 4.7,
     roomsLeft: 4,
-    availabilityLabel: "Available (4 rooms)",
+    availabilityLabel: "Tersedia (4 kamar)",
     availabilityTone: "ok",
-    facilities: ["AC", "Kitchen Access", "Parking Area"],
+    facilities: ["AC", "Dapur Bersama", "Area Parkir"],
     imageTone: "#E9EAF3",
   },
 ];
 
 const DISTANCE_OPTIONS = [
-  { value: "near", label: "< 1 km (Walking)", short: "< 1 km" },
-  { value: "mid", label: "1 - 3 km (Bike/Motor)", short: "1 - 3 km" },
+  { value: "near", label: "< 1 km (Jalan kaki)", short: "< 1 km" },
+  { value: "mid", label: "1 - 3 km (Sepeda/Motor)", short: "1 - 3 km" },
   { value: "far", label: "> 3 km", short: "> 3 km" },
 ] as const;
 
@@ -91,10 +91,10 @@ type DistanceValue = (typeof DISTANCE_OPTIONS)[number]["value"] | "any";
 
 const FACILITY_OPTIONS = [
   "AC",
-  "Free WiFi",
-  "Private Bathroom",
-  "Kitchen Access",
-  "Parking Area",
+  "WiFi Gratis",
+  "Kamar Mandi Dalam",
+  "Dapur Bersama",
+  "Area Parkir",
 ] as const;
 
 function matchesDistance(km: number, distance: DistanceValue): boolean {
@@ -114,7 +114,7 @@ function FacilityGlyph({ facility }: { facility: string }) {
       </svg>
     );
   }
-  if (facility === "Free WiFi") {
+  if (facility === "WiFi Gratis") {
     return (
       <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M2.5 6.5C5 4 11 4 13.5 6.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
@@ -124,7 +124,7 @@ function FacilityGlyph({ facility }: { facility: string }) {
       </svg>
     );
   }
-  if (facility === "Private Bathroom") {
+  if (facility === "Kamar Mandi Dalam") {
     return (
       <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M4 3H12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
@@ -134,7 +134,7 @@ function FacilityGlyph({ facility }: { facility: string }) {
       </svg>
     );
   }
-  if (facility === "Kitchen Access") {
+  if (facility === "Dapur Bersama") {
     return (
       <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M5 2.5V7C5 8 5.8 8.5 6.5 8.5V13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
@@ -143,7 +143,7 @@ function FacilityGlyph({ facility }: { facility: string }) {
       </svg>
     );
   }
-  // Parking Area
+  // Area Parkir
   return (
     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <rect x="2.5" y="2.5" width="11" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
@@ -158,7 +158,7 @@ function RoomPlaceholder({ tone, name }: { tone: string; name: string }) {
       className="flex aspect-[16/10] items-center justify-center"
       style={{ backgroundColor: tone }}
       role="img"
-      aria-label={`Photo placeholder for ${name}`}
+      aria-label={`Placeholder foto untuk ${name}`}
     >
       <svg width="44" height="44" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-slate-500/70">
         <rect x="3" y="7" width="18" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
@@ -177,7 +177,7 @@ export default function KostPage() {
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [distance, setDistance] = useState<DistanceValue>("near");
-  const [facilities, setFacilities] = useState<string[]>(["AC", "Free WiFi"]);
+  const [facilities, setFacilities] = useState<string[]>(["AC", "WiFi Gratis"]);
   const [favorites, setFavorites] = useState<string[]>([]);
 
   function toggleFacility(facility: string) {
@@ -212,24 +212,24 @@ export default function KostPage() {
   return (
     <div className="mx-auto max-w-[1180px]">
       <p className="mb-3 text-[11px] leading-4 text-slate-400">
-        Placeholder data — this grid uses a static array. Swap with{" "}
-        <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px]">GET /api/v1/kost</code> when API is ready.
+        Data placeholder — grid ini memakai array statis. Ganti dengan{" "}
+        <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px]">GET /api/v1/kost</code> saat API siap.
       </p>
 
       {/* Header: title left, List/Map toggle right */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-[22px] font-semibold tracking-tight text-slate-900">
-            Discover Kost near UPN
+            Jelajahi Kost di sekitar UPN
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Find your ideal student housing within walking distance of campus.
+            Temukan hunian mahasiswa ideal dalam jarak jalan kaki dari kampus.
           </p>
         </div>
         <div
           className="inline-flex w-fit items-center rounded-lg border border-gray-200 bg-white p-1"
           role="group"
-          aria-label="Change display mode"
+          aria-label="Ubah mode tampilan"
         >
           <button
             type="button"
@@ -247,7 +247,7 @@ export default function KostPage() {
               <rect x="2" y="9" width="5" height="5" rx="0.5" stroke="currentColor" strokeWidth="1.3" />
               <rect x="9" y="9" width="5" height="5" rx="0.5" stroke="currentColor" strokeWidth="1.3" />
             </svg>
-            List
+            Daftar
           </button>
           <button
             type="button"
@@ -263,7 +263,7 @@ export default function KostPage() {
               <path d="M5.5 3L2 4.5V13L5.5 11.5L10.5 13L14 11.5V3L10.5 4.5L5.5 3Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
               <path d="M5.5 3V11.5M10.5 4.5V13" stroke="currentColor" strokeWidth="1.2" />
             </svg>
-            Map
+            Peta
           </button>
         </div>
       </div>
@@ -283,7 +283,7 @@ export default function KostPage() {
             <path d="M2.5 11.5H13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
             <circle cx="10" cy="11.5" r="1.5" fill="white" stroke="currentColor" strokeWidth="1.2" />
           </svg>
-          {filtersOpen ? "Hide filters" : "Show filters"}
+          {filtersOpen ? "Sembunyikan filter" : "Tampilkan filter"}
         </button>
       </div>
 
@@ -292,25 +292,25 @@ export default function KostPage() {
         {/* Filters sidebar */}
         <aside
           id="kost-filters"
-          aria-label="Kost filters"
+          aria-label="Filter kost"
           className={`rounded-lg border border-gray-200 bg-white p-5 ${filtersOpen ? "block" : "hidden"} lg:block`}
         >
           <div className="flex items-center justify-between">
-            <h2 className="text-[15px] font-semibold text-[#002147]">Filters</h2>
+            <h2 className="text-[15px] font-semibold text-[#002147]">Filter</h2>
             <button
               type="button"
               onClick={resetFilters}
               className="rounded-sm text-xs font-semibold text-green-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
             >
-              Reset
+              Atur Ulang
             </button>
           </div>
 
           <div className="mt-5">
             <label className="text-xs font-semibold text-[#002147]">
-              Monthly Price (Rp)
+              Harga Bulanan (Rp)
               <span className="mt-2 flex items-center gap-2 font-normal">
-                <span className="sr-only">Minimum price</span>
+                <span className="sr-only">Harga minimum</span>
                 <input
                   type="number"
                   inputMode="numeric"
@@ -318,21 +318,21 @@ export default function KostPage() {
                   value={minPrice}
                   onChange={(e) => setMinPrice(e.target.value)}
                   placeholder="Min"
-                  aria-label="Minimum monthly price in rupiah"
+                  aria-label="Harga bulanan minimum dalam rupiah"
                   className="h-9 w-full rounded-md border border-gray-200 bg-slate-100 px-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-green-600 focus:bg-white focus:outline-none"
                 />
                 <span aria-hidden="true" className="text-slate-300">
                   –
                 </span>
-                <span className="sr-only">Maximum price</span>
+                <span className="sr-only">Harga maksimum</span>
                 <input
                   type="number"
                   inputMode="numeric"
                   min={0}
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
-                  placeholder="Max"
-                  aria-label="Maximum monthly price in rupiah"
+                  placeholder="Maks"
+                  aria-label="Harga bulanan maksimum dalam rupiah"
                   className="h-9 w-full rounded-md border border-gray-200 bg-slate-100 px-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-green-600 focus:bg-white focus:outline-none"
                 />
               </span>
@@ -340,7 +340,7 @@ export default function KostPage() {
           </div>
 
           <fieldset className="mt-5">
-            <legend className="text-xs font-semibold text-[#002147]">Distance to Campus</legend>
+            <legend className="text-xs font-semibold text-[#002147]">Jarak ke Kampus</legend>
             <div className="mt-2.5 space-y-2">
               {DISTANCE_OPTIONS.map((opt) => (
                 <label key={opt.value} className="flex cursor-pointer items-center gap-2.5 text-[13px] text-slate-700">
@@ -359,7 +359,7 @@ export default function KostPage() {
           </fieldset>
 
           <fieldset className="mt-5">
-            <legend className="text-xs font-semibold text-[#002147]">Facilities</legend>
+            <legend className="text-xs font-semibold text-[#002147]">Fasilitas</legend>
             <div className="mt-2.5 space-y-2">
               {FACILITY_OPTIONS.map((facility) => (
                 <label key={facility} className="flex cursor-pointer items-center gap-2.5 text-[13px] text-slate-700">
@@ -380,7 +380,7 @@ export default function KostPage() {
             onClick={() => setFiltersOpen(false)}
             className="mt-6 w-full rounded-md bg-green-700 px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
           >
-            Apply Filters
+            Terapkan Filter
           </button>
         </aside>
 
@@ -397,28 +397,28 @@ export default function KostPage() {
                   <path d="M5.5 3V11.5M10.5 4.5V13" stroke="currentColor" strokeWidth="1.2" />
                 </svg>
               </span>
-              <h2 className="mt-4 text-sm font-semibold text-slate-900">Map view is not available in this preview</h2>
+              <h2 className="mt-4 text-sm font-semibold text-slate-900">Tampilan peta tidak tersedia di pratinjau ini</h2>
               <p className="mt-1 max-w-[380px] text-xs leading-5 text-slate-500">
-                The production map uses Leaflet.js + OpenStreetMap. Switch back to List to browse kost cards.
+                Peta produksi memakai Leaflet.js + OpenStreetMap. Kembali ke Daftar untuk melihat kartu kost.
               </p>
               <button
                 type="button"
                 onClick={() => setView("list")}
                 className="mt-4 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
               >
-                Back to List
+                Kembali ke Daftar
               </button>
             </div>
           ) : (
             <>
               {/* Active filter chips */}
               {(activeDistance || facilities.length > 0) && (
-                <div className="flex flex-wrap gap-2" aria-label="Active filters">
+                <div className="flex flex-wrap gap-2" aria-label="Filter aktif">
                   {activeDistance && (
                     <button
                       type="button"
                       onClick={() => setDistance("any")}
-                      aria-label={`Remove distance filter ${activeDistance.short}`}
+                      aria-label={`Hapus filter jarak ${activeDistance.short}`}
                       className="inline-flex items-center gap-1.5 rounded-md bg-green-100 px-2.5 py-1 text-xs font-medium text-green-900 hover:bg-green-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
                     >
                       {activeDistance.short}
@@ -432,7 +432,7 @@ export default function KostPage() {
                       key={facility}
                       type="button"
                       onClick={() => toggleFacility(facility)}
-                      aria-label={`Remove facility filter ${facility}`}
+                      aria-label={`Hapus filter fasilitas ${facility}`}
                       className="inline-flex items-center gap-1.5 rounded-md bg-green-100 px-2.5 py-1 text-xs font-medium text-green-900 hover:bg-green-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
                     >
                       {facility}
@@ -447,14 +447,14 @@ export default function KostPage() {
               {/* Kost cards grid */}
               {filtered.length === 0 ? (
                 <div role="status" className="mt-4 rounded-lg border border-gray-200 bg-white px-6 py-12 text-center">
-                  <p className="text-sm font-medium text-slate-900">No kost found</p>
-                  <p className="mt-1 text-xs text-slate-500">Try widening the price range or removing a facility filter.</p>
+                  <p className="text-sm font-medium text-slate-900">Tidak ada kost ditemukan</p>
+                  <p className="mt-1 text-xs text-slate-500">Coba perluas rentang harga atau hapus filter fasilitas.</p>
                   <button
                     type="button"
                     onClick={resetFilters}
                     className="mt-4 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
                   >
-                    Reset filters
+                    Atur ulang filter
                   </button>
                 </div>
               ) : (
@@ -472,7 +472,7 @@ export default function KostPage() {
                             type="button"
                             onClick={() => toggleFavorite(kost.id)}
                             aria-pressed={isFavorite}
-                            aria-label={isFavorite ? `Remove ${kost.name} from favorites` : `Save ${kost.name} to favorites`}
+                            aria-label={isFavorite ? `Hapus ${kost.name} dari favorit` : `Simpan ${kost.name} ke favorit`}
                             className="absolute right-2.5 top-2.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-500 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147]"
                           >
                             <svg
@@ -524,7 +524,7 @@ export default function KostPage() {
                           </p>
 
                           <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-                            <span className="flex items-center gap-1.5" aria-label={`Facilities: ${kost.facilities.join(", ")}`}>
+                            <span className="flex items-center gap-1.5" aria-label={`Fasilitas: ${kost.facilities.join(", ")}`}>
                               {kost.facilities.slice(0, 4).map((facility) => (
                                 <span
                                   key={facility}
@@ -551,10 +551,10 @@ export default function KostPage() {
               )}
 
               {/* Pagination (visual only for UI preview) */}
-              <nav aria-label="Kost pages" className="mt-6 flex items-center justify-center gap-1.5">
+              <nav aria-label="Halaman kost" className="mt-6 flex items-center justify-center gap-1.5">
                 <button
                   type="button"
-                  aria-label="Previous page"
+                  aria-label="Halaman sebelumnya"
                   className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-xs text-slate-500 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147]"
                 >
                   <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -565,7 +565,7 @@ export default function KostPage() {
                   <button
                     key={page}
                     type="button"
-                    aria-label={`Page ${page}`}
+                    aria-label={`Halaman ${page}`}
                     aria-current={page === "1" ? "page" : undefined}
                     className={`inline-flex h-7 w-7 items-center justify-center rounded-md border text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] ${
                       page === "1"
@@ -578,7 +578,7 @@ export default function KostPage() {
                 ))}
                 <button
                   type="button"
-                  aria-label="Next page"
+                  aria-label="Halaman berikutnya"
                   className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-xs text-slate-500 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147]"
                 >
                   <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
