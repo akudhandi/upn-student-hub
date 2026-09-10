@@ -9,6 +9,7 @@ type NavItem = {
   label: string;
   href: string;
   icon: React.ReactNode;
+  badge?: string;
 };
 
 function IconDashboard() {
@@ -59,15 +60,24 @@ function IconLostFound() {
 function IconMessages() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <rect x="2" y="3" width="12" height="9" rx="1" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M2.5 4L8 8.2L13.5 4" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path
+        d="M2.5 3.5H13.5C13.78 3.5 14 3.72 14 4V10C14 10.28 13.78 10.5 13.5 10.5H8L5.5 13V10.7L2.7 10.6C2.42 10.6 2.2 10.38 2.2 10.1V4C2.2 3.72 2.42 3.5 2.7 3.5H2.5Z"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 function IconFavorites() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M8 13L3.2 8.8C1.9 7.6 1.9 5.6 3.2 4.3C4.4 3 6.4 3 7.7 4.3L8 4.6L8.3 4.3C9.6 3 11.6 3 12.8 4.3C14.1 5.6 14.1 7.6 12.8 8.8L8 13Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path
+        d="M4.5 2.5H11.5C11.78 2.5 12 2.72 12 3V13.5L8 11L4 13.5V3C4 2.72 4.22 2.5 4.5 2.5Z"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -79,17 +89,63 @@ function IconProfile() {
     </svg>
   );
 }
+function IconPlus() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
 
-const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: <IconDashboard /> },
+const MAIN_NAV_ITEMS: NavItem[] = [
+  { label: "Beranda", href: "/dashboard", icon: <IconDashboard /> },
   { label: "Marketplace", href: "/marketplace", icon: <IconMarketplace /> },
-  { label: "Services", href: "/services", icon: <IconServices /> },
-  { label: "Kost", href: "/kost", icon: <IconKost /> },
-  { label: "Lost & Found", href: "/lost-found", icon: <IconLostFound /> },
-  { label: "Messages", href: "/messages", icon: <IconMessages /> },
-  { label: "Favorites", href: "/favorites", icon: <IconFavorites /> },
-  { label: "Profile", href: "/profile", icon: <IconProfile /> },
+  { label: "Jasa & Layanan", href: "/services", icon: <IconServices /> },
+  { label: "Info Kost", href: "/kost", icon: <IconKost /> },
+  { label: "Barang Hilang", href: "/lost-found", icon: <IconLostFound /> },
 ];
+
+const ACTIVITY_NAV_ITEMS: NavItem[] = [
+  { label: "Pesan", href: "/messages", icon: <IconMessages />, badge: "2" },
+  { label: "Tersimpan", href: "/favorites", icon: <IconFavorites /> },
+  { label: "Profil Saya", href: "/profile", icon: <IconProfile /> },
+];
+
+function NavLink({
+  item,
+  isActive,
+  onNavigate,
+}: {
+  item: NavItem;
+  isActive: boolean;
+  onNavigate: () => void;
+}) {
+  return (
+    <Link
+      href={item.href}
+      onClick={onNavigate}
+      className={`flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-medium transition-colors ${
+        isActive
+          ? "bg-slate-100 text-slate-900"
+          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+      }`}
+      aria-current={isActive ? "page" : undefined}
+    >
+      <span className={isActive ? "text-slate-900" : "text-slate-500"}>{item.icon}</span>
+      <span className="flex-1">{item.label}</span>
+      {item.badge && (
+        <span
+          className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold ${
+            isActive ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"
+          }`}
+          aria-label={`${item.badge} pesan belum dibaca`}
+        >
+          {item.badge}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 export default function AppLayout({
   children,
@@ -121,7 +177,7 @@ export default function AppLayout({
   if (!checked) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F8F9FB]">
-        <p className="text-sm text-slate-500">Checking session…</p>
+        <p className="text-sm text-slate-500">Memeriksa sesi…</p>
       </div>
     );
   }
@@ -129,7 +185,11 @@ export default function AppLayout({
   const displayName =
     (user?.profile && typeof user.profile === "object" && "name" in user.profile
       ? (user.profile as { name?: string }).name
-      : null) || user?.name || "Student";
+      : null) || user?.name || "Alex Rivera";
+  const displayFaculty =
+    (user?.profile && typeof user.profile === "object" && "faculty" in user.profile
+      ? (user.profile as { faculty?: string | null }).faculty
+      : null) || "Informatika '21";
   const displayEmail = typeof user?.email === "string" ? user.email : "";
   const initials = displayName
     .split(" ")
@@ -143,7 +203,7 @@ export default function AppLayout({
       {/* Mobile overlay */}
       {mobileOpen && (
         <button
-          aria-label="Close navigation"
+          aria-label="Tutup navigasi"
           className="fixed inset-0 z-30 bg-slate-900/20 lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
@@ -157,63 +217,66 @@ export default function AppLayout({
       >
         {/* Brand */}
         <div className="flex h-[64px] items-center gap-3 border-b border-slate-200 px-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded bg-[#002147] text-[11px] font-bold tracking-tight text-white">
-            UPN
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-sm font-bold text-white">
+            U
           </div>
           <div className="min-w-0">
             <p className="text-[13px] font-semibold leading-none tracking-tight text-slate-900">
-              UPN Student Hub
+              UPN Hub
             </p>
-            <p className="mt-0.5 text-[11px] font-medium tracking-wide text-slate-500">Academic Portal</p>
+            <p className="mt-0.5 text-[11px] font-medium tracking-wide text-slate-500">Portal Mahasiswa</p>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Navigasi utama">
+          <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Menu Utama
+          </p>
           <ul className="space-y-1">
-            {NAV_ITEMS.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={`flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-medium transition-colors ${
-                      isActive
-                        ? "bg-[#E8EFF9] text-[#002147]"
-                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                    }`}
-                    aria-current={isActive ? "page" : undefined}
-                  >
-                    <span className={isActive ? "text-[#002147]" : "text-slate-500"}>{item.icon}</span>
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
+            {MAIN_NAV_ITEMS.map((item) => (
+              <li key={item.href}>
+                <NavLink
+                  item={item}
+                  isActive={pathname === item.href}
+                  onNavigate={() => setMobileOpen(false)}
+                />
+              </li>
+            ))}
           </ul>
 
-          <div className="mt-6">
-            <Link
-              href="/marketplace"
-              onClick={() => setMobileOpen(false)}
-              className="flex w-full items-center justify-center gap-2 rounded bg-[#002147] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-white hover:bg-[#001a38]"
-            >
-              <span className="text-sm leading-none">+</span> Post Listing
-            </Link>
-            <p className="mt-2 text-center text-[11px] text-slate-400">Placeholder — marketplace action</p>
-          </div>
+          <p className="px-3 pb-2 pt-6 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Aktivitas Saya
+          </p>
+          <ul className="space-y-1">
+            {ACTIVITY_NAV_ITEMS.map((item) => (
+              <li key={item.href}>
+                <NavLink
+                  item={item}
+                  isActive={pathname === item.href}
+                  onNavigate={() => setMobileOpen(false)}
+                />
+              </li>
+            ))}
+          </ul>
         </nav>
 
-        {/* User footer */}
+        {/* Bottom CTA + user summary */}
         <div className="border-t border-slate-200 px-4 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
+          <Link
+            href="/marketplace"
+            onClick={() => setMobileOpen(false)}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
+          >
+            <IconPlus /> Pasang Iklan
+          </Link>
+          <div className="mt-3 flex items-center gap-3 px-1">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
               {initials}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[13px] font-semibold text-slate-900">{displayName}</p>
-              {displayEmail && <p className="truncate text-xs text-slate-500">{displayEmail}</p>}
+              <p className="truncate text-xs text-slate-500">{displayFaculty}</p>
             </div>
           </div>
           <button
@@ -221,7 +284,7 @@ export default function AppLayout({
             onClick={handleLogout}
             className="mt-3 flex w-full items-center justify-center rounded border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
           >
-            Logout
+            Keluar
           </button>
         </div>
       </aside>
@@ -233,7 +296,7 @@ export default function AppLayout({
           <button
             type="button"
             className="inline-flex h-8 w-8 items-center justify-center rounded border border-slate-200 text-slate-700 hover:bg-slate-50 lg:hidden"
-            aria-label="Open navigation"
+            aria-label="Buka navigasi"
             onClick={() => setMobileOpen((v) => !v)}
           >
             <span className="block h-3.5 w-3.5">
@@ -246,7 +309,7 @@ export default function AppLayout({
           {/* Search */}
           <div className="flex flex-1 items-center">
             <label htmlFor="dashboard-search" className="sr-only">
-              Search
+              Cari
             </label>
             <div className="relative w-full max-w-[420px]">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
@@ -257,8 +320,8 @@ export default function AppLayout({
               </span>
               <input
                 id="dashboard-search"
-                placeholder="Search resources, students, or listings..."
-                className="h-9 w-full rounded border border-slate-200 bg-[#F8F9FB] py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:bg-white focus:outline-none"
+                placeholder="Cari buku, kost, jasa skripsi..."
+                className="h-9 w-full rounded border border-slate-200 bg-[#F8F9FB] py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
               />
             </div>
           </div>
@@ -267,7 +330,7 @@ export default function AppLayout({
           <div className="flex items-center gap-2 sm:gap-3">
             <button
               type="button"
-              aria-label="Notifications"
+              aria-label="Notifikasi"
               className="relative inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 hover:bg-slate-50 hover:text-slate-700"
             >
               <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -278,7 +341,7 @@ export default function AppLayout({
             </button>
             <button
               type="button"
-              aria-label="Help"
+              aria-label="Bantuan"
               className="hidden h-8 w-8 items-center justify-center rounded text-slate-500 hover:bg-slate-50 hover:text-slate-700 sm:inline-flex"
             >
               <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -292,7 +355,7 @@ export default function AppLayout({
               <div className="flex items-center gap-2">
                 <div className="hidden text-right sm:block">
                   <p className="text-xs font-semibold leading-none text-slate-900">{displayName}</p>
-                  <p className="mt-0.5 text-[11px] leading-none text-slate-500">{displayEmail || "Student"}</p>
+                  <p className="mt-0.5 text-[11px] leading-none text-slate-500">{displayEmail || displayFaculty}</p>
                 </div>
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
                   {initials}
