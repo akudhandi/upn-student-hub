@@ -18,6 +18,7 @@ class MarketplaceListing extends Model
         'title',
         'description',
         'price',
+        'condition',
         'status',
     ];
 
