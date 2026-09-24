@@ -19,6 +19,12 @@ class ServiceController extends Controller
             'category_id' => 'required|exists:categories,id',
             'price_min' => 'required|numeric|min:0',
             'price_max' => 'nullable|numeric|min:0|gte:price_min',
+            'pricing_type' => 'nullable|in:fixed,per_hour,starting_from,negotiable',
+            'estimated_time' => 'nullable|string|max:255',
+            'payment_method' => 'nullable|in:dp,full,flexible',
+            'whatsapp_number' => 'nullable|string|max:20',
+            'target_faculties' => 'nullable|array',
+            'target_faculties.*' => 'string|max:255',
             'description' => 'required|string',
         ]);
 

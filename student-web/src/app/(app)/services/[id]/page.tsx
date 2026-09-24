@@ -7,9 +7,7 @@ import { apiFetch, type ApiError } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // API types — shape of GET /api/v1/services/{id} (standard { message, data }
-// JSON envelope, detail of a single service listing). pricing_type is
-// optional: the backend schema (SYSTEM_ANALYSIS §10.2) stores price_min /
-// price_max, so the pricing-model badge falls back to the price shape.
+// JSON envelope, detail of a single service listing).
 // ---------------------------------------------------------------------------
 type ApiServiceDetail = {
   id: number;
@@ -18,6 +16,10 @@ type ApiServiceDetail = {
   price_min: number | string;
   price_max: number | string | null;
   pricing_type?: string | null;
+  estimated_time?: string | null;
+  payment_method?: string | null;
+  whatsapp_number?: string | null;
+  target_faculties?: string[] | null;
   status: string;
   created_at: string;
   user?: { id: number; name: string } | null;
@@ -40,10 +42,16 @@ type ServiceListResponse = {
 };
 
 const PRICING_TYPE_LABELS: Record<string, string> = {
-  fixed: "Tetap",
+  fixed: "Tarif Tetap",
   per_hour: "Per Jam",
   starting_from: "Mulai dari",
   negotiable: "Negosiasi",
+};
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  dp: "DP (Uang Muka)",
+  full: "Bayar Lunas Selesai",
+  flexible: "Fleksibel",
 };
 
 function formatRupiah(value: number | string): string {
@@ -76,7 +84,20 @@ function pricingModelLabel(item: ApiServiceDetail): string {
   if (item.pricing_type && PRICING_TYPE_LABELS[item.pricing_type]) {
     return PRICING_TYPE_LABELS[item.pricing_type];
   }
-  return hasPriceRange(item.price_min, item.price_max) ? "Mulai dari" : "Tetap";
+  return hasPriceRange(item.price_min, item.price_max) ? "Mulai dari" : "Tarif Tetap";
+}
+
+function priceHeadline(item: ApiServiceDetail): { amount: string; suffix: string } {
+  if (item.pricing_type === "per_hour") {
+    return { amount: formatRupiah(item.price_min), suffix: "/ jam" };
+  }
+  if (item.pricing_type === "negotiable") {
+    return { amount: formatPriceRange(item.price_min, item.price_max), suffix: "• Nego" };
+  }
+  if (item.pricing_type === "fixed" || !hasPriceRange(item.price_min, item.price_max)) {
+    return { amount: formatRupiah(item.price_min), suffix: "Tarif Tetap" };
+  }
+  return { amount: formatPriceRange(item.price_min, item.price_max), suffix: "Mulai dari" };
 }
 
 function formatTimeAgo(isoDate: string): string {
@@ -106,31 +127,35 @@ function ownerInitials(name: string): string {
     .toUpperCase();
 }
 
-function ServiceHeroIcon({ category }: { category: string }) {
-  const name = category.toLowerCase();
-  const path = name.includes("desain") || name.includes("media") || name.includes("foto") ? (
-    <>
-      <path d="M14 34L32 10L50 34H14Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-      <path d="M24 34H40" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </>
-  ) : name.includes("servis") || name.includes("service") || name.includes("laptop") ? (
-    <path d="M38 10L46 18L22 42L12 44L14 34L38 10Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-  ) : (
-    <>
-      <path d="M32 12L12 20L32 28L52 20L32 12Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-      <path d="M14 34L32 43L50 34" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M20 24V34" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </>
-  );
+// Normalize an Indonesian WA number to a wa.me-compatible digit string.
+function normalizeWaNumber(raw: string): string | null {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length < 9) return null;
+  if (digits.startsWith("0")) return `62${digits.slice(1)}`;
+  if (digits.startsWith("62")) return digits;
+  return null;
+}
+
+function ServiceCover({ category, title }: { category: string; title: string }) {
   return (
     <div
-      className="flex aspect-[16/8] items-center justify-center bg-teal-50"
+      className="relative flex aspect-[16/7] items-center justify-center overflow-hidden bg-teal-700"
       role="img"
-      aria-label={`Ilustrasi jasa ${category}`}
+      aria-label={`Sampul portofolio ${title}`}
     >
-      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true" className="text-teal-600">
-        {path}
+      <svg width="72" height="72" viewBox="0 0 64 64" fill="none" aria-hidden="true" className="text-teal-100/70">
+        <path d="M32 12L12 20L32 28L52 20L32 12Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M14 34L32 43L50 34" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M20 24V34" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       </svg>
+      <div className="absolute left-3 top-3 flex gap-1.5">
+        <span className="rounded-md bg-white/95 px-2 py-1 text-[11px] font-bold text-teal-800">
+          ✓ Jasa Terverifikasi
+        </span>
+        <span className="rounded-md bg-teal-950/60 px-2 py-1 text-[11px] font-bold text-white">
+          {category}
+        </span>
+      </div>
     </div>
   );
 }
@@ -144,16 +169,16 @@ function DetailSkeleton() {
       className="mx-auto max-w-[1180px]"
     >
       <div className="h-3 w-72 animate-pulse rounded bg-slate-100" />
+      <div className="mt-4 aspect-[16/7] animate-pulse rounded-xl bg-slate-100" />
+      <div className="mt-4 h-7 w-2/3 animate-pulse rounded bg-slate-100" />
       <div className="mt-5 grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_300px]">
         <div className="min-w-0 space-y-3 rounded-xl border border-gray-200 bg-white p-5">
           <div className="h-4 w-40 animate-pulse rounded bg-slate-100" />
-          <div className="h-6 w-2/3 animate-pulse rounded bg-slate-100" />
-          <div className="h-7 w-48 animate-pulse rounded bg-slate-100" />
           <div className="h-3 w-full animate-pulse rounded bg-slate-100" />
           <div className="h-3 w-3/4 animate-pulse rounded bg-slate-100" />
         </div>
         <div className="min-w-0 rounded-xl border border-gray-200 bg-white p-5">
-          <div className="h-10 w-10 animate-pulse rounded-full bg-slate-100" />
+          <div className="h-7 w-40 animate-pulse rounded bg-slate-100" />
           <div className="mt-3 h-4 w-32 animate-pulse rounded bg-slate-100" />
           <div className="mt-4 h-10 w-full animate-pulse rounded-md bg-slate-100" />
           <div className="mt-2 h-10 w-full animate-pulse rounded-md bg-slate-100" />
@@ -285,178 +310,261 @@ export default function ServiceDetailPage() {
   const providerName = item.user?.name ?? "Mahasiswa UPN";
   const isAvailable = item.status === "active";
   const modelLabel = pricingModelLabel(item);
+  const price = priceHeadline(item);
+  const estimatedTime = item.estimated_time?.trim() || null;
+  const paymentLabel = (item.payment_method && PAYMENT_METHOD_LABELS[item.payment_method]) || null;
+  const faculties = (item.target_faculties ?? []).filter(Boolean);
+  const waNumber = item.whatsapp_number?.trim()
+    ? normalizeWaNumber(item.whatsapp_number.trim())
+    : null;
   const descriptionParagraphs = (item.description ?? "")
     .split(/\n\s*\n/)
     .map((p) => p.trim())
     .filter(Boolean);
+  const postedYear = new Date(item.created_at).getFullYear();
+  const serviceCode = Number.isNaN(postedYear)
+    ? `SRV-${item.id}`
+    : `SRV-${postedYear}-${String(item.id).padStart(4, "0")}`;
 
   return (
     <div className="mx-auto max-w-[1180px]">
-      {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb">
-        <ol className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
-          <li>
-            <Link href="/dashboard" className="hover:text-slate-800 hover:underline">
-              Beranda
-            </Link>
-          </li>
-          <li aria-hidden="true" className="text-slate-300">/</li>
-          <li>
-            <Link href="/services" className="hover:text-slate-800 hover:underline">
-              Jasa &amp; Layanan
-            </Link>
-          </li>
-          <li aria-hidden="true" className="text-slate-300">/</li>
-          <li>
-            <span className="hover:text-slate-800">{categoryName}</span>
-          </li>
-          <li aria-hidden="true" className="text-slate-300">/</li>
-          <li>
-            <span aria-current="page" className="max-w-[280px] truncate font-medium text-slate-700">
-              {item.title}
+      {/* Breadcrumb + status */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <nav aria-label="Breadcrumb">
+          <ol className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+            <li>
+              <Link href="/dashboard" className="hover:text-slate-800 hover:underline">
+                Beranda
+              </Link>
+            </li>
+            <li aria-hidden="true" className="text-slate-300">/</li>
+            <li>
+              <Link href="/services" className="hover:text-slate-800 hover:underline">
+                Jasa &amp; Layanan
+              </Link>
+            </li>
+            <li aria-hidden="true" className="text-slate-300">/</li>
+            <li>
+              <span aria-current="page" className="max-w-[280px] truncate font-medium text-slate-700">
+                {item.title}
+              </span>
+            </li>
+          </ol>
+        </nav>
+        <p className="flex items-center gap-3 text-[11px] text-slate-400">
+          {isAvailable && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+              Menerima Sesi Baru
             </span>
-          </li>
-        </ol>
-      </nav>
+          )}
+          <span>ID: {serviceCode}</span>
+        </p>
+      </div>
 
-      <div className="mt-4 grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_300px]">
+      {/* Hero header card */}
+      <section aria-labelledby="jasa-title" className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
+        <ServiceCover category={categoryName} title={item.title} />
+        <div className="p-5 sm:p-6">
+          <p className="text-[11px] font-medium text-slate-500">
+            <span className="font-bold text-teal-700">{categoryName}</span>
+            <span className="mx-1.5 text-slate-300">•</span>
+            Target: {faculties.length > 0 ? faculties.join(", ") : "Semua Fakultas"}
+          </p>
+          <h1 id="jasa-title" className="mt-1.5 text-xl font-bold leading-7 tracking-tight text-slate-900 sm:text-2xl">
+            {item.title}
+          </h1>
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-slate-500">
+            <span className={`inline-flex items-center gap-1 font-semibold ${isAvailable ? "text-green-700" : "text-slate-500"}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${isAvailable ? "bg-green-600" : "bg-slate-400"}`} aria-hidden="true" />
+              {isAvailable ? "Tersedia" : "Tidak Aktif"}
+            </span>
+            {estimatedTime && (
+              <span className="inline-flex items-center gap-1">
+                <span aria-hidden="true">⚡</span> {estimatedTime}
+              </span>
+            )}
+            <span>Dipasang {formatTimeAgo(item.created_at) || "-"}</span>
+          </p>
+        </div>
+      </section>
+
+      <div className="mt-5 grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_300px]">
         {/* Main column */}
-        <div className="min-w-0">
-          <section aria-labelledby="jasa-title" className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-            <div className="relative">
-              <ServiceHeroIcon category={categoryName} />
-              <div className="absolute left-3 top-3 flex gap-1.5">
-                <span
-                  className={`rounded-md px-2 py-1 text-[11px] font-bold ${
-                    isAvailable ? "bg-green-100 text-green-800" : "bg-slate-200 text-slate-600"
-                  }`}
-                >
-                  {isAvailable ? "Tersedia" : "Tidak Aktif"}
-                </span>
-                <span className="rounded-md bg-teal-100 px-2 py-1 text-[11px] font-bold text-teal-800">
-                  {categoryName}
-                </span>
+        <div className="min-w-0 space-y-5">
+          {/* Ringkasan Layanan */}
+          <section aria-labelledby="ringkasan-heading" className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
+            <h2 id="ringkasan-heading" className="text-[15px] font-bold text-slate-900">Ringkasan Layanan</h2>
+            <div className="mt-2 space-y-3">
+              {descriptionParagraphs.length > 0 ? (
+                <p className="text-[13px] leading-6 text-slate-600">{descriptionParagraphs[0]}</p>
+              ) : (
+                <p className="text-[13px] leading-6 text-slate-500">
+                  Penyedia belum menambahkan deskripsi untuk layanan ini.
+                </p>
+              )}
+            </div>
+            <dl className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              {[
+                { label: "Model Tarif", value: modelLabel },
+                { label: "Estimasi", value: estimatedTime ?? "-" },
+                { label: "Pembayaran", value: paymentLabel ?? "-" },
+                { label: "Kategori", value: categoryName },
+              ].map((spec) => (
+                <div key={spec.label} className="rounded-lg bg-slate-50 px-3 py-2.5 text-center ring-1 ring-inset ring-slate-100">
+                  <dt className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{spec.label}</dt>
+                  <dd className="mt-1 truncate text-[12px] font-bold text-slate-900">{spec.value}</dd>
+                </div>
+              ))}
+            </dl>
+            {faculties.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-1.5" aria-label="Target fakultas">
+                {faculties.map((f) => (
+                  <span key={f} className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
+                    {f}
+                  </span>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Skema Tarif & Jadwal */}
+          <section aria-labelledby="skema-heading" className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
+            <h2 id="skema-heading" className="text-[15px] font-bold text-slate-900">Skema Tarif &amp; Jadwal Sesi</h2>
+            <p className="mt-0.5 text-[12px] text-slate-500">Sifat: {modelLabel} / {paymentLabel ?? "Sesuai kesepakatan"}</p>
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="rounded-lg bg-slate-50 p-4 ring-1 ring-inset ring-slate-100">
+                <p className="text-[12px] font-bold text-slate-900">Skema Tarif Transparan</p>
+                <p className="mt-1.5 text-[12px] leading-5 text-slate-600">
+                  {price.amount} {price.suffix === "Tarif Tetap" ? "" : price.suffix}
+                  {paymentLabel ? ` — pembayaran ${paymentLabel.toLowerCase()}.` : "."}
+                </p>
+              </div>
+              <div className="rounded-lg bg-slate-50 p-4 ring-1 ring-inset ring-slate-100">
+                <p className="text-[12px] font-bold text-slate-900">Estimasi Pengerjaan</p>
+                <p className="mt-1.5 text-[12px] leading-5 text-slate-600">
+                  {estimatedTime
+                    ? `${estimatedTime}. Konfirmasi jadwal spesifik via chat atau WhatsApp sebelum memesan.`
+                    : "Fleksibel — konfirmasi jadwal via chat atau WhatsApp sebelum memesan."}
+                </p>
               </div>
             </div>
-            <div className="p-5 sm:p-6">
-              <h1 id="jasa-title" className="text-xl font-bold leading-7 tracking-tight text-slate-900 sm:text-[22px]">
-                {item.title}
-              </h1>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <p className="text-[22px] font-bold tracking-tight text-slate-900">
-                  {formatPriceRange(item.price_min, item.price_max)}
-                </p>
-                <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-700">
-                  {modelLabel}
-                </span>
-              </div>
+          </section>
 
-              {/* Spec grid */}
-              <dl className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                {[
-                  { label: "Kategori", value: categoryName },
-                  { label: "Model Harga", value: modelLabel },
-                  { label: "Penyedia", value: providerName },
-                  { label: "Dipasang", value: formatTimeAgo(item.created_at) || "-" },
-                ].map((spec) => (
-                  <div key={spec.label} className="rounded-lg bg-slate-50 px-3 py-2.5 text-center ring-1 ring-inset ring-slate-100">
-                    <dt className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{spec.label}</dt>
-                    <dd className="mt-1 truncate text-[12px] font-bold text-slate-900">{spec.value}</dd>
-                  </div>
-                ))}
-              </dl>
-
-              {/* Description */}
-              <h2 className="mt-6 text-[14px] font-bold text-slate-900">Deskripsi Layanan</h2>
-              <div className="mt-2 space-y-3">
-                {descriptionParagraphs.length > 0 ? (
-                  descriptionParagraphs.map((paragraph, i) => (
-                    <p key={i} className="text-[13px] leading-6 text-slate-600">
-                      {paragraph}
-                    </p>
-                  ))
-                ) : (
-                  <p className="text-[13px] leading-6 text-slate-500">
-                    Penyedia belum menambahkan deskripsi untuk layanan ini.
+          {/* Deskripsi Lengkap + Catatan */}
+          <section aria-labelledby="deskripsi-heading" className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
+            <h2 id="deskripsi-heading" className="text-[15px] font-bold text-slate-900">Detail Layanan &amp; Ketentuan</h2>
+            <div className="mt-2 space-y-3">
+              {descriptionParagraphs.length > 1 ? (
+                descriptionParagraphs.slice(1).map((paragraph, i) => (
+                  <p key={i} className="text-[13px] leading-6 text-slate-600">
+                    {paragraph}
                   </p>
-                )}
-              </div>
-
-              {/* Ordering note */}
-              <h2 className="mt-6 text-[14px] font-bold text-slate-900">Cara Pemesanan</h2>
-              <div className="mt-2 flex items-start gap-2 rounded-lg bg-slate-50 px-3 py-2.5 text-[12px] leading-5 text-slate-600 ring-1 ring-inset ring-slate-100">
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="mt-1 shrink-0 text-slate-400">
-                  <path d="M8 1.8C4.7 1.8 2 4.4 2 7.6C2 8.9 2.5 10 3.2 11L2.5 14L5.6 13.3C6.3 13.7 7.1 13.9 8 13.9C11.3 13.9 14 11.3 14 8C14 4.7 11.3 1.8 8 1.8Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-                </svg>
-                Hubungi penyedia via chat untuk menyepakati lingkup pekerjaan, jadwal pengerjaan, dan lokasi (online / sekitar kampus UPN) sebelum memesan.
-              </div>
+                ))
+              ) : descriptionParagraphs.length === 1 ? (
+                <p className="text-[13px] leading-6 text-slate-600">{descriptionParagraphs[0]}</p>
+              ) : (
+                <p className="text-[13px] leading-6 text-slate-500">
+                  Penyedia belum menambahkan deskripsi untuk layanan ini.
+                </p>
+              )}
+            </div>
+            <div className="mt-4 rounded-lg bg-slate-50 px-3 py-2.5 text-[12px] leading-5 text-slate-600 ring-1 ring-inset ring-slate-100">
+              <span className="font-bold text-slate-900">Catatan pemesanan: </span>
+              Tarif {modelLabel.toLowerCase()} {formatPriceRange(item.price_min, item.price_max)}
+              {paymentLabel ? ` dengan pembayaran ${paymentLabel.toLowerCase()}` : ""}
+              {estimatedTime ? `, estimasi ${estimatedTime.toLowerCase()}` : ""}. Sepakati lingkup
+              pekerjaan sebelum pembayaran.
             </div>
           </section>
         </div>
 
-        {/* Provider card */}
-        <aside aria-label="Profil penyedia jasa" className="min-w-0 rounded-xl border border-gray-200 bg-white p-5 lg:sticky lg:top-24">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white" aria-hidden="true">
-              {ownerInitials(providerName)}
-            </span>
-            <span className="min-w-0">
-              <span className="flex items-center gap-1 text-sm font-semibold text-slate-900">
-                <span className="truncate">{providerName}</span>
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0 text-sky-500">
-                  <circle cx="8" cy="8" r="6.5" fill="currentColor" opacity="0.15" />
-                  <path d="M5.5 8.2L7.3 10L10.6 6.3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-              <span className="block truncate text-xs text-slate-500">Penyedia Jasa • Mahasiswa UPN</span>
+        {/* Tarif + provider card */}
+        <aside aria-label="Tarif dan penyedia jasa" className="min-w-0 rounded-xl border border-gray-200 bg-white p-5 lg:sticky lg:top-24">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tarif Sesi</p>
+              <p className="mt-0.5 text-[22px] font-bold tracking-tight text-slate-900">
+                {price.amount}{" "}
+                <span className="text-[12px] font-semibold text-slate-500">{price.suffix}</span>
+              </p>
+            </div>
+            <span className={`shrink-0 rounded-md px-2 py-1 text-[11px] font-bold ${isAvailable ? "bg-green-100 text-green-800" : "bg-slate-200 text-slate-600"}`}>
+              {isAvailable ? "Tersedia" : "Tidak Aktif"}
             </span>
           </div>
-          <div className="mt-4 space-y-2.5">
-            <button
-              type="button"
-              onClick={() => setChatNotice(true)}
-              className="w-full rounded-lg bg-teal-600 px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-teal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
-            >
-              Chat &amp; Pesan Jasa
-            </button>
-            {chatNotice && (
-              <p role="status" className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-500">
-                Fitur chat 1-on-1 segera hadir. Simpan layanan ke favorit sementara waktu.
-              </p>
-            )}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setIsFavorite((v) => !v)}
-                aria-pressed={isFavorite}
-                aria-label={isFavorite ? `Hapus ${item.title} dari favorit` : `Simpan ${item.title} ke favorit`}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
-              >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill={isFavorite ? "currentColor" : "none"} aria-hidden="true" className={isFavorite ? "text-red-600" : ""}>
-                  <path d="M8 13.2L3.4 8.9C2.1 7.7 2.1 5.7 3.4 4.4C4.6 3.1 6.5 3.1 7.7 4.4L8 4.7L8.3 4.4C9.5 3.1 11.4 3.1 12.6 4.4C13.9 5.7 13.9 7.7 12.6 8.9L8 13.2Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-                </svg>
-                {isFavorite ? "Tersimpan" : "Favorit"}
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleShare()}
-                aria-label={`Bagikan ${item.title}`}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
-              >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="3.5" r="1.8" stroke="currentColor" strokeWidth="1.2" />
-                  <circle cx="4" cy="8" r="1.8" stroke="currentColor" strokeWidth="1.2" />
-                  <circle cx="12" cy="12.5" r="1.8" stroke="currentColor" strokeWidth="1.2" />
-                  <path d="M5.6 7.1L10.4 4.3M5.6 8.9L10.4 11.7" stroke="currentColor" strokeWidth="1.2" />
-                </svg>
-                Bagikan
-              </button>
+
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white" aria-hidden="true">
+                {ownerInitials(providerName)}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold text-slate-900">{providerName}</span>
+                <span className="block truncate text-xs text-slate-500">Penyedia Jasa • Mahasiswa UPN</span>
+              </span>
             </div>
-            {shareNotice && (
-              <p role="status" className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-500">
-                {shareNotice}
-              </p>
-            )}
+            <div className="mt-4 space-y-2.5">
+              {waNumber ? (
+                <a
+                  href={`https://wa.me/${waNumber}?text=${encodeURIComponent(`Halo, saya tertarik dengan jasa "${item.title}" di UPN Student Hub.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#16a34a] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
+                >
+                  Hubungi via WhatsApp
+                </a>
+              ) : (
+                <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-500">
+                  Penyedia tidak mencantumkan nomor WhatsApp. Gunakan chat untuk menghubungi.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => setChatNotice(true)}
+                className="w-full rounded-lg bg-[#0A2342] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#12325e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
+              >
+                Chat Penyedia Jasa
+              </button>
+              {chatNotice && (
+                <p role="status" className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-500">
+                  Fitur chat 1-on-1 segera hadir. Simpan layanan ke favorit sementara waktu.
+                </p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsFavorite((v) => !v)}
+                  aria-pressed={isFavorite}
+                  aria-label={isFavorite ? `Hapus ${item.title} dari favorit` : `Simpan ${item.title} ke favorit`}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill={isFavorite ? "currentColor" : "none"} aria-hidden="true" className={isFavorite ? "text-red-600" : ""}>
+                    <path d="M8 13.2L3.4 8.9C2.1 7.7 2.1 5.7 3.4 4.4C4.6 3.1 6.5 3.1 7.7 4.4L8 4.7L8.3 4.4C9.5 3.1 11.4 3.1 12.6 4.4C13.9 5.7 13.9 7.7 12.6 8.9L8 13.2Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                  </svg>
+                  {isFavorite ? "Tersimpan" : "Simpan"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleShare()}
+                  aria-label={`Bagikan ${item.title}`}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="3.5" r="1.8" stroke="currentColor" strokeWidth="1.2" />
+                    <circle cx="4" cy="8" r="1.8" stroke="currentColor" strokeWidth="1.2" />
+                    <circle cx="12" cy="12.5" r="1.8" stroke="currentColor" strokeWidth="1.2" />
+                    <path d="M5.6 7.1L10.4 4.3M5.6 8.9L10.4 11.7" stroke="currentColor" strokeWidth="1.2" />
+                  </svg>
+                  Bagikan
+                </button>
+              </div>
+              {shareNotice && (
+                <p role="status" className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-500">
+                  {shareNotice}
+                </p>
+              )}
+            </div>
           </div>
         </aside>
       </div>

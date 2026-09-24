@@ -19,6 +19,11 @@ class ServiceListing extends Model
         'description',
         'price_min',
         'price_max',
+        'pricing_type',
+        'estimated_time',
+        'payment_method',
+        'whatsapp_number',
+        'target_faculties',
         'status',
     ];
 
@@ -27,6 +32,7 @@ class ServiceListing extends Model
         return [
             'price_min' => 'decimal:2',
             'price_max' => 'decimal:2',
+            'target_faculties' => 'array',
         ];
     }
 

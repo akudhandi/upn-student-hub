@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
@@ -15,6 +15,11 @@ type ApiServiceItem = {
   description: string | null;
   price_min: number | string;
   price_max: number | string | null;
+  pricing_type?: string | null;
+  estimated_time?: string | null;
+  payment_method?: string | null;
+  whatsapp_number?: string | null;
+  target_faculties?: string[] | null;
   status: string;
   created_at: string;
   user?: { id: number; name: string } | null;
@@ -41,8 +46,42 @@ const EMPTY_FORM = {
   category_id: "",
   price_min: "",
   price_max: "",
+  estimated_time: "1-2 Hari Kerja",
+  whatsapp_number: "",
   description: "",
 };
+
+const TARGET_FAKULTAS_OPTIONS = [
+  "Fakultas Kedokteran",
+  "Fakultas Ekonomi & Bisnis",
+  "Fakultas Teknik",
+  "Fakultas Ilmu Komputer",
+  "Fakultas Pertanian",
+  "Fakultas Ilmu Sosial & Politik",
+  "Fakultas Arsitektur & Desain",
+  "Fakultas Hukum",
+] as const;
+
+const PRICING_MODELS = [
+  { value: "starting_from", label: "Mulai Dari" },
+  { value: "fixed", label: "Tarif Tetap" },
+  { value: "per_hour", label: "Per Jam" },
+  { value: "negotiable", label: "Negosiasi" },
+] as const;
+
+const PAYMENT_METHODS = [
+  { value: "dp", label: "DP (Uang Muka)" },
+  { value: "full", label: "Bayar Lunas Selesai" },
+  { value: "flexible", label: "Fleksibel" },
+] as const;
+
+const ESTIMASI_OPTIONS = [
+  "< 1 Hari",
+  "1-2 Hari Kerja",
+  "3-5 Hari Kerja",
+  "1 Minggu+",
+  "Fleksibel / Sesuai Kesepakatan",
+] as const;
 
 function formatRupiah(value: number | string): string {
   return new Intl.NumberFormat("id-ID", {
@@ -161,6 +200,11 @@ function ServicesContent() {
   const [query, setQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
+  const [pricingType, setPricingType] = useState<string>("starting_from");
+  const [paymentMethod, setPaymentMethod] = useState<string>("flexible");
+  const [targetFakultas, setTargetFakultas] = useState<string[]>([...TARGET_FAKULTAS_OPTIONS]);
+  const [photos, setPhotos] = useState<{ id: number; url: string }[]>([]);
+  const photoIdRef = useRef(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const router = useRouter();
@@ -217,6 +261,51 @@ function ServicesContent() {
     setFormData((prev) => ({ ...prev, [key]: value }));
   }
 
+  function toggleFakultas(name: string) {
+    setTargetFakultas((prev) =>
+      prev.includes(name) ? prev.filter((f) => f !== name) : [...prev, name]
+    );
+  }
+
+  function toggleAllFakultas() {
+    setTargetFakultas((prev) =>
+      prev.length === TARGET_FAKULTAS_OPTIONS.length ? [] : [...TARGET_FAKULTAS_OPTIONS]
+    );
+  }
+
+  function addPhotos(files: FileList | null) {
+    if (!files) return;
+    const next = Array.from(files).map((file) => {
+      photoIdRef.current += 1;
+      return { id: photoIdRef.current, url: URL.createObjectURL(file) };
+    });
+    setPhotos((prev) => [...prev, ...next].slice(0, 6));
+  }
+
+  function removePhoto(id: number) {
+    setPhotos((prev) => {
+      const target = prev.find((p) => p.id === id);
+      if (target) URL.revokeObjectURL(target.url);
+      return prev.filter((p) => p.id !== id);
+    });
+  }
+
+  function clearPhotos() {
+    setPhotos((prev) => {
+      prev.forEach((p) => URL.revokeObjectURL(p.url));
+      return [];
+    });
+  }
+
+  const allFakultasSelected = targetFakultas.length === TARGET_FAKULTAS_OPTIONS.length;
+  const fakultasSummary = allFakultasSelected
+    ? "Semua Fakultas"
+    : targetFakultas.length === 0
+      ? "Belum ada target"
+      : targetFakultas.length <= 2
+        ? targetFakultas.join(", ")
+        : `${targetFakultas.slice(0, 2).join(", ")} +${targetFakultas.length - 2}`;
+
   const clearCreateParam = useCallback(() => {
     if (searchParams.get("action") === "create") {
       router.replace("/services");
@@ -227,6 +316,10 @@ function ServicesContent() {
     if (isSubmitting) return;
     setIsModalOpen(false);
     setSubmitError(null);
+    setPhotos((prev) => {
+      prev.forEach((p) => URL.revokeObjectURL(p.url));
+      return [];
+    });
     clearCreateParam();
   }, [isSubmitting, clearCreateParam]);
 
@@ -268,11 +361,21 @@ function ServicesContent() {
           category_id: Number(formData.category_id),
           price_min: priceMin,
           price_max: priceMax,
+          pricing_type: pricingType,
+          estimated_time: formData.estimated_time.trim() === "" ? null : formData.estimated_time.trim(),
+          payment_method: paymentMethod,
+          whatsapp_number:
+            formData.whatsapp_number.trim() === "" ? null : formData.whatsapp_number.trim(),
+          target_faculties: targetFakultas,
           description: formData.description.trim(),
         }),
       });
       setIsModalOpen(false);
       setFormData(EMPTY_FORM);
+      setPricingType("starting_from");
+      setPaymentMethod("flexible");
+      setTargetFakultas([...TARGET_FAKULTAS_OPTIONS]);
+      clearPhotos();
       clearCreateParam();
       await loadServices();
     } catch (err) {
@@ -292,7 +395,15 @@ function ServicesContent() {
     formData.price_max.trim() !== "" && Number(formData.price_max) > Number(formData.price_min);
   const previewPrice = formData.price_min
     ? formatPriceRange(formData.price_min, previewHasRange ? formData.price_max : null)
-    : "Rp 50.000";
+    : "Rp 75.000";
+  const previewModelLabel =
+    PRICING_MODELS.find((m) => m.value === pricingType)?.label ?? "Mulai Dari";
+  const previewPriceLine =
+    pricingType === "per_hour" && formData.price_min
+      ? `${formatRupiah(formData.price_min)} / jam`
+      : pricingType === "negotiable"
+        ? `${previewPrice} • Nego`
+        : previewPrice;
 
   const filtered = items.filter((item) => {
     const categoryName = item.category?.name ?? "";
@@ -477,13 +588,13 @@ function ServicesContent() {
             aria-modal="true"
             aria-labelledby="pasang-jasa-title"
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[92vh] w-full max-w-[920px] overflow-y-auto rounded-2xl border border-gray-200 bg-[#F4F5F7]"
+            className="max-h-[92vh] w-full max-w-[960px] overflow-y-auto rounded-2xl border border-gray-200 bg-[#F4F5F7]"
           >
             <div className="px-5 pt-5 sm:px-7 sm:pt-6">
               <div className="flex items-start justify-between gap-3">
                 <p className="text-[11px] text-slate-400">
-                  Beranda <span className="mx-1">/</span> Jasa &amp; Layanan <span className="mx-1">/</span>{" "}
-                  <span className="font-semibold text-slate-700">Pasang Iklan Jasa</span>
+                  Beranda <span className="mx-1">/</span> Jasa &amp; Servis <span className="mx-1">/</span>{" "}
+                  <span className="font-semibold text-slate-700">Tawarkan Jasa Mahasiswa</span>
                 </p>
                 <button
                   type="button"
@@ -496,10 +607,11 @@ function ServicesContent() {
                 </button>
               </div>
               <h2 id="pasang-jasa-title" className="mt-1.5 text-[22px] font-bold tracking-tight text-slate-900">
-                Pasang Iklan Jasa
+                Pasang Iklan Jasa &amp; Layanan
               </h2>
-              <p className="mt-0.5 text-[13px] text-slate-500">
-                Tawarkan keahlianmu kepada sesama mahasiswa UPN — les, desain, servis, dan lainnya.
+              <p className="mt-0.5 max-w-[620px] text-[13px] leading-5 text-slate-500">
+                Tampilkan keahlian akademik, servis teknis, atau kreativitas Anda untuk mahasiswa
+                se-kampus UPN.
               </p>
             </div>
 
@@ -507,105 +619,283 @@ function ServicesContent() {
               <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[1fr_250px]">
                 {/* Main form card */}
                 <div className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
-                  <div>
-                    <label htmlFor="jasa-title" className="text-[12px] font-semibold text-slate-900">
-                      Judul Layanan / Jasa
-                    </label>
-                    <input
-                      id="jasa-title"
-                      type="text"
-                      required
-                      maxLength={255}
-                      value={formData.title}
-                      onChange={(e) => updateForm("title", e.target.value)}
-                      placeholder="Jasa Print & Jilid Antar Kampus"
-                      className="mt-1.5 w-full rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-600/15"
-                    />
-                  </div>
-
-                  <div className="mt-4">
-                    <label htmlFor="jasa-category" className="text-[12px] font-semibold text-slate-900">
-                      Kategori Layanan
-                    </label>
-                    <select
-                      id="jasa-category"
-                      required
-                      value={formData.category_id}
-                      onChange={(e) => updateForm("category_id", e.target.value)}
-                      disabled={categoryOptions.length === 0}
-                      className="mt-1.5 w-full appearance-none rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-700 focus:border-teal-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-600/15 disabled:opacity-60"
-                    >
-                      <option value="">Pilih kategori</option>
-                      {categoryOptions.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </option>
-                      ))}
-                    </select>
-                    {categoryOptions.length === 0 && (
-                      <p className="mt-1 text-[11px] text-slate-400">
-                        Kategori belum tersedia. Tunggu data jasa dimuat.
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <label htmlFor="jasa-price-min" className="text-[12px] font-semibold text-slate-900">
-                        Harga Minimal (Rp)
+                  {/* Informasi Layanan */}
+                  <section aria-labelledby="jasa-info-heading">
+                    <h3 id="jasa-info-heading" className="text-[14px] font-bold text-slate-900">Informasi Layanan</h3>
+                    <div className="mt-3">
+                      <label htmlFor="jasa-title" className="text-[12px] font-semibold text-slate-900">
+                        Judul Jasa / Layanan <span className="text-red-500">*</span>
                       </label>
-                      <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 focus-within:border-teal-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-600/15">
-                        <span className="text-[13px] font-semibold text-slate-500">Rp</span>
-                        <input
-                          id="jasa-price-min"
-                          type="number"
+                      <input
+                        id="jasa-title"
+                        type="text"
+                        required
+                        maxLength={255}
+                        value={formData.title}
+                        onChange={(e) => updateForm("title", e.target.value)}
+                        placeholder="Tutor Pendamping Kalkulus & Aljabar Linear"
+                        className="mt-1.5 w-full rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-600/15"
+                      />
+                      <p className="mt-1 text-[11px] text-slate-400">
+                        Gunakan judul spesifik dan jelas agar mudah ditemukan di pencarian.
+                      </p>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <label htmlFor="jasa-category" className="text-[12px] font-semibold text-slate-900">
+                          Kategori Layanan <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          id="jasa-category"
                           required
-                          min={0}
-                          step="any"
-                          value={formData.price_min}
-                          onChange={(e) => updateForm("price_min", e.target.value)}
-                          placeholder="50000"
-                          className="w-full bg-transparent text-[13px] font-semibold text-slate-900 placeholder:font-normal placeholder:text-slate-400 focus:outline-none"
-                        />
+                          value={formData.category_id}
+                          onChange={(e) => updateForm("category_id", e.target.value)}
+                          disabled={categoryOptions.length === 0}
+                          className="mt-1.5 w-full appearance-none rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-700 focus:border-teal-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-600/15 disabled:opacity-60"
+                        >
+                          <option value="">Pilih kategori</option>
+                          {categoryOptions.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </option>
+                          ))}
+                        </select>
+                        {categoryOptions.length === 0 && (
+                          <p className="mt-1 text-[11px] text-slate-400">
+                            Kategori belum tersedia. Tunggu data jasa dimuat.
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label htmlFor="jasa-estimasi" className="text-[12px] font-semibold text-slate-900">
+                          Estimasi Waktu Pengerjaan
+                        </label>
+                        <select
+                          id="jasa-estimasi"
+                          value={formData.estimated_time}
+                          onChange={(e) => updateForm("estimated_time", e.target.value)}
+                          className="mt-1.5 w-full appearance-none rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-700 focus:border-teal-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-600/15"
+                        >
+                          {ESTIMASI_OPTIONS.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
-                    <div>
-                      <label htmlFor="jasa-price-max" className="text-[12px] font-semibold text-slate-900">
-                        Harga Maksimal (Rp) <span className="font-normal text-slate-400">(opsional)</span>
-                      </label>
-                      <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 focus-within:border-teal-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-600/15">
-                        <span className="text-[13px] font-semibold text-slate-500">Rp</span>
-                        <input
-                          id="jasa-price-max"
-                          type="number"
-                          min={0}
-                          step="any"
-                          value={formData.price_max}
-                          onChange={(e) => updateForm("price_max", e.target.value)}
-                          placeholder="150000"
-                          className="w-full bg-transparent text-[13px] font-semibold text-slate-900 placeholder:font-normal placeholder:text-slate-400 focus:outline-none"
-                        />
-                      </div>
-                      <p className="mt-1 text-[11px] text-slate-400">
-                        Kosongkan jika tarif tunggal (tidak ada kisaran).
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="mt-4">
-                    <label htmlFor="jasa-description" className="text-[12px] font-semibold text-slate-900">
-                      Deskripsi Layanan
-                    </label>
-                    <textarea
-                      id="jasa-description"
-                      required
-                      rows={5}
-                      value={formData.description}
-                      onChange={(e) => updateForm("description", e.target.value)}
-                      placeholder="Jelaskan layanan yang ditawarkan, estimasi pengerjaan, dan cara pemesanan…"
-                      className="mt-1.5 w-full rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] leading-5 text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-600/15"
-                    />
-                  </div>
+                    <fieldset className="mt-4">
+                      <legend className="text-[12px] font-semibold text-slate-900">
+                        Target Fakultas / Jurusan
+                      </legend>
+                      <div className="mt-1.5 grid grid-cols-1 gap-1.5 rounded-lg border border-slate-200 bg-[#F1F3F5] p-2.5 sm:grid-cols-2" role="group" aria-label="Target fakultas">
+                        <label className="flex cursor-pointer items-center gap-2 rounded-md bg-white px-2.5 py-2 text-[12px] font-semibold text-slate-900 ring-1 ring-inset ring-slate-200">
+                          <input
+                            type="checkbox"
+                            checked={allFakultasSelected}
+                            onChange={toggleAllFakultas}
+                            className="h-3.5 w-3.5 shrink-0 accent-teal-700"
+                          />
+                          Semua Fakultas
+                        </label>
+                        {TARGET_FAKULTAS_OPTIONS.map((f) => (
+                          <label
+                            key={f}
+                            className="flex cursor-pointer items-center gap-2 rounded-md bg-white px-2.5 py-2 text-[12px] text-slate-600 ring-1 ring-inset ring-slate-200 hover:ring-slate-300"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={targetFakultas.includes(f)}
+                              onChange={() => toggleFakultas(f)}
+                              className="h-3.5 w-3.5 shrink-0 accent-teal-700"
+                            />
+                            {f}
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                  </section>
+
+                  {/* Tarif & Pembayaran */}
+                  <section aria-labelledby="jasa-tarif-heading" className="mt-6 border-t border-slate-100 pt-5">
+                    <h3 id="jasa-tarif-heading" className="text-[14px] font-bold text-slate-900">Skema Tarif &amp; Pelaksanaan</h3>
+                    <fieldset className="mt-3">
+                      <legend className="text-[12px] font-semibold text-slate-900">Model Tarif</legend>
+                      <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Model tarif">
+                        {PRICING_MODELS.map((opt) => {
+                          const checked = pricingType === opt.value;
+                          return (
+                            <label
+                              key={opt.value}
+                              className={`flex cursor-pointer items-center justify-center rounded-lg border px-2 py-2.5 text-center text-[12px] transition-colors ${
+                                checked
+                                  ? "border-teal-300 bg-teal-50 font-semibold text-teal-800"
+                                  : "border-slate-200 bg-[#F1F3F5] text-slate-500 hover:bg-slate-100"
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="jasa-pricing"
+                                value={opt.value}
+                                checked={checked}
+                                onChange={() => setPricingType(opt.value)}
+                                className="sr-only"
+                              />
+                              {opt.label}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </fieldset>
+
+                    <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <label htmlFor="jasa-price-min" className="text-[12px] font-semibold text-slate-900">
+                          Nominal Harga (Rp) <span className="text-red-500">*</span>
+                        </label>
+                        <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 focus-within:border-teal-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-600/15">
+                          <span className="text-[13px] font-semibold text-slate-500">Rp</span>
+                          <input
+                            id="jasa-price-min"
+                            type="number"
+                            required
+                            min={0}
+                            step="any"
+                            value={formData.price_min}
+                            onChange={(e) => updateForm("price_min", e.target.value)}
+                            placeholder="75.000"
+                            className="w-full bg-transparent text-[13px] font-semibold text-slate-900 placeholder:font-normal placeholder:text-slate-400 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label htmlFor="jasa-price-max" className="text-[12px] font-semibold text-slate-900">
+                          Harga Maksimal (Rp) <span className="font-normal text-slate-400">(opsional)</span>
+                        </label>
+                        <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 focus-within:border-teal-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-600/15">
+                          <span className="text-[13px] font-semibold text-slate-500">Rp</span>
+                          <input
+                            id="jasa-price-max"
+                            type="number"
+                            min={0}
+                            step="any"
+                            value={formData.price_max}
+                            onChange={(e) => updateForm("price_max", e.target.value)}
+                            placeholder="150.000"
+                            className="w-full bg-transparent text-[13px] font-semibold text-slate-900 placeholder:font-normal placeholder:text-slate-400 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <fieldset className="mt-4">
+                      <legend className="text-[12px] font-semibold text-slate-900">Metode Pembayaran</legend>
+                      <div className="mt-1.5 grid grid-cols-1 gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Metode pembayaran">
+                        {PAYMENT_METHODS.map((opt) => {
+                          const checked = paymentMethod === opt.value;
+                          return (
+                            <label
+                              key={opt.value}
+                              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-[12px] ${
+                                checked
+                                  ? "border-teal-300 bg-teal-50 font-semibold text-teal-800"
+                                  : "border-slate-200 bg-[#F1F3F5] text-slate-500 hover:bg-slate-100"
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="jasa-payment"
+                                value={opt.value}
+                                checked={checked}
+                                onChange={() => setPaymentMethod(opt.value)}
+                                className="h-3.5 w-3.5 shrink-0 accent-teal-700"
+                              />
+                              {opt.label}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </fieldset>
+                  </section>
+
+                  {/* Deskripsi & Kontak */}
+                  <section aria-labelledby="jasa-deskripsi-heading" className="mt-6 border-t border-slate-100 pt-5">
+                    <h3 id="jasa-deskripsi-heading" className="text-[14px] font-bold text-slate-900">Deskripsi &amp; Kontak</h3>
+                    <div className="mt-3">
+                      <label htmlFor="jasa-description" className="text-[12px] font-semibold text-slate-900">
+                        Deskripsi Layanan <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        id="jasa-description"
+                        required
+                        rows={5}
+                        value={formData.description}
+                        onChange={(e) => updateForm("description", e.target.value)}
+                        placeholder="Jelaskan layanan, materi, estimasi pengerjaan, dan cara pemesanan…"
+                        className="mt-1.5 w-full rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] leading-5 text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-600/15"
+                      />
+                    </div>
+
+                    <div className="mt-4">
+                      <span id="jasa-photos-label" className="text-[12px] font-semibold text-slate-900">
+                        Foto Sampul / Portofolio <span className="font-normal text-slate-400">(opsional)</span>
+                      </span>
+                      <div className="mt-1.5 flex flex-wrap gap-2" role="group" aria-labelledby="jasa-photos-label">
+                        {photos.map((photo, i) => (
+                          <span key={photo.id} className="relative h-16 w-16">
+                            {/* eslint-disable-next-line @next/next/no-img-element -- local object URLs for instant upload preview only */}
+                            <img
+                              src={photo.url}
+                              alt={`Foto portofolio ${i + 1}`}
+                              className="h-16 w-16 rounded-lg border border-slate-200 object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removePhoto(photo.id)}
+                              aria-label={`Hapus foto portofolio ${i + 1}`}
+                              className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[11px] font-bold leading-none text-white hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                        <label className="flex h-16 min-w-[120px] flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-slate-300 bg-[#F1F3F5] px-3 text-slate-500 hover:border-slate-400 hover:bg-slate-100 focus-within:outline-none focus-within:ring-2 focus-within:ring-teal-600 focus-within:ring-offset-2">
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M8 10.5V2.5M8 2.5L5 5.5M8 2.5L11 5.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M2.5 10.5V12.5C2.5 13.3 3.2 14 4 14H12C12.8 14 13.5 13.3 13.5 12.5V10.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                          </svg>
+                          <span className="text-center text-[10px] font-medium">Unggah foto (Maks. 5 MB)</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            aria-label="Unggah foto sampul atau portofolio"
+                            className="sr-only"
+                            onChange={(e) => {
+                              addPhotos(e.target.files);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      <label htmlFor="jasa-wa" className="text-[12px] font-semibold text-slate-900">
+                        Nomor WhatsApp / Fast Response
+                      </label>
+                      <input
+                        id="jasa-wa"
+                        type="tel"
+                        value={formData.whatsapp_number}
+                        onChange={(e) => updateForm("whatsapp_number", e.target.value)}
+                        placeholder="0812-3456-7890"
+                        className="mt-1.5 w-full rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-600/15"
+                      />
+                    </div>
+                  </section>
 
                   {submitError && (
                     <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
@@ -627,7 +917,7 @@ function ServicesContent() {
                       disabled={isSubmitting}
                       className="rounded-lg bg-[#0A2342] px-5 py-2 text-[13px] font-semibold text-white hover:bg-[#12325e] disabled:opacity-60"
                     >
-                      {isSubmitting ? "Menyimpan…" : "Terbitkan Iklan"}
+                      {isSubmitting ? "Menyimpan…" : "Terbitkan Layanan"}
                     </button>
                   </div>
                 </div>
@@ -636,29 +926,41 @@ function ServicesContent() {
                 <aside aria-label="Pratinjau kartu jasa" className="rounded-xl border border-gray-200 bg-white p-3 lg:sticky lg:top-0">
                   <div className="flex items-center justify-between">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Pratinjau Kartu</p>
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
-                      Live Preview
+                    <span className="rounded-md bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-700">
+                      Etalase Jasa
                     </span>
                   </div>
-                  <div className="mt-2 overflow-hidden rounded-lg border border-slate-100 p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <CategoryIcon category={previewCategory} />
-                      <span className="max-w-[55%] truncate rounded-md border border-teal-100 bg-teal-50 px-2 py-1 text-[11px] font-semibold text-teal-700">
+                  <div className="mt-2 overflow-hidden rounded-lg border border-slate-100">
+                    <div className="flex items-center gap-2 bg-teal-600 p-3">
+                      <span className="rounded bg-white/15 px-2 py-1 text-[10px] font-bold leading-4 text-white">
                         {previewCategory}
                       </span>
+                      <span className="text-[10px] font-medium leading-4 text-teal-50">
+                        {fakultasSummary}
+                      </span>
                     </div>
-                    <p className="mt-3 line-clamp-2 text-[12px] font-bold leading-5 text-slate-900">
-                      {formData.title || "Jasa Print & Jilid Antar Kampus"}
-                    </p>
-                    <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-slate-500">
-                      {formData.description || "Deskripsi layanan akan tampil di sini."}
-                    </p>
-                    <div className="mt-3 border-t border-slate-100 pt-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                        {previewHasRange ? "Kisaran" : "Harga"}
+                    <div className="p-3">
+                      <p className="line-clamp-2 text-[12px] font-bold leading-5 text-slate-900">
+                        {formData.title || "Tutor Pendamping Kalkulus & Aljabar Linear"}
                       </p>
-                      <p className="text-[15px] font-bold text-slate-900">{previewPrice}</p>
+                      <p className="mt-1.5 text-[13px] font-bold text-slate-900">
+                        {previewPriceLine}{" "}
+                        <span className="text-[10px] font-semibold text-teal-700">{previewModelLabel}</span>
+                      </p>
+                      <p className="mt-1.5 flex items-center gap-1 text-[10px] text-slate-500">
+                        <span aria-hidden="true">⚡</span> {formData.estimated_time || "1-2 Hari Kerja"}
+                      </p>
+                      <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-500">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[8px] font-bold text-white">
+                          AR
+                        </span>
+                        Penyedia Jasa <span className="text-slate-300">|</span> Mahasiswa UPN
+                      </p>
+                      {formData.whatsapp_number.trim() !== "" && (
+                        <p className="mt-1.5 truncate text-[10px] font-medium text-emerald-700">
+                          WA: {formData.whatsapp_number.trim()}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </aside>
