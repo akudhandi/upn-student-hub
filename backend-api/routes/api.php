@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AdminAuthController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\KostController;
 use App\Http\Controllers\Api\V1\MarketplaceController;
+use App\Http\Controllers\Api\V1\ServiceController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -26,6 +27,11 @@ Route::prefix('v1')->group(function () {
     Route::get('/kost', [KostController::class, 'index']);
     Route::post('/kost', [KostController::class, 'store']);
     Route::get('/kost/{id}', [KostController::class, 'show']);
+
+    // Service Routes
+    Route::get('/services', [ServiceController::class, 'index']);
+    Route::post('/services', [ServiceController::class, 'store']);
+    Route::get('/services/{id}', [ServiceController::class, 'show']);
 
     // Admin Authentication Routes
     Route::prefix('admin/auth')->group(function () {

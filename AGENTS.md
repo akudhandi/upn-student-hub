@@ -167,6 +167,12 @@ Treat commits as checkpoints.
 - Do not modify unrelated files merely to make the working tree clean.
 - Do not commit unless requested or the current workflow explicitly requires a checkpoint.
 
+## AUTOMATED GIT WORKFLOW
+At the very end of EVERY task (after verification passes):
+1. Run `git add .`
+2. Run `git commit -m "feat(<phase-number>): <short description of changes>"`
+3. Run `git push origin <current-branch>`
+
 ## Communication
 
 Keep reports concise.
