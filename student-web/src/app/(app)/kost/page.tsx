@@ -165,7 +165,8 @@ function KostContent() {
   const [jarakKampus, setJarakKampus] = useState("450 meter (Kampus 1 UPN Babar");
   const [waktuTempuh, setWaktuTempuh] = useState("5 menit jalan kaki santai");
   const [periodeBayar, setPeriodeBayar] = useState("Per Bulan");
-  const [statusListrik, setStatusListrik] = useState<"termasuk" | "token">("termasuk");
+  const [statusAir, setStatusAir] = useState<"include" | "exclude">("include");
+  const [statusListrik, setStatusListrik] = useState<"include" | "token" | "tagihan">("include");
   const [dimensiKamar, setDimensiKamar] = useState("3 × 4 Meter (Ukuran Standar Lega)");
   const [fasilitasInput, setFasilitasInput] = useState("");
   const [catatanTambahan] = useState(
@@ -1046,16 +1047,42 @@ function KostContent() {
                       </div>
                     </div>
                     <fieldset className="mt-4">
-                      <legend className="text-[12px] font-semibold text-slate-900">Status Biaya Listrik &amp; Air</legend>
-                      <div className="mt-1.5 grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Status biaya listrik dan air">
-                        <label className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-[12px] ${statusListrik === "termasuk" ? "border-slate-300 bg-slate-50 font-semibold text-slate-900" : "border-slate-200 bg-[#F1F3F5] text-slate-500"}`}>
-                          <input type="radio" name="kost-listrik" checked={statusListrik === "termasuk"} onChange={() => setStatusListrik("termasuk")} className="h-3.5 w-3.5 accent-emerald-700" />
-                          Termasuk Listrik &amp; Air (Free)
-                        </label>
-                        <label className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-[12px] ${statusListrik === "token" ? "border-slate-300 bg-slate-50 font-semibold text-slate-900" : "border-slate-200 bg-[#F1F3F5] text-slate-500"}`}>
-                          <input type="radio" name="kost-listrik" checked={statusListrik === "token"} onChange={() => setStatusListrik("token")} className="h-3.5 w-3.5 accent-emerald-700" />
-                          Listrik Token Mandiri
-                        </label>
+                      <legend className="text-[12px] font-semibold text-slate-900">Status Biaya Air</legend>
+                      <div className="mt-1.5 grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Status biaya air">
+                        {(
+                          [
+                            { value: "include", label: "Include / Gratis (Sudah termasuk harga sewa)" },
+                            { value: "exclude", label: "Exclude / Bayar Sendiri (Ada biaya tambahan bulanan)" },
+                          ] as const
+                        ).map((opt) => (
+                          <label
+                            key={opt.value}
+                            className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-[12px] ${statusAir === opt.value ? "border-slate-300 bg-slate-50 font-semibold text-slate-900" : "border-slate-200 bg-[#F1F3F5] text-slate-500"}`}
+                          >
+                            <input type="radio" name="kost-air" checked={statusAir === opt.value} onChange={() => setStatusAir(opt.value)} className="h-3.5 w-3.5 shrink-0 accent-emerald-700" />
+                            {opt.label}
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                    <fieldset className="mt-4">
+                      <legend className="text-[12px] font-semibold text-slate-900">Status Biaya Listrik</legend>
+                      <div className="mt-1.5 grid grid-cols-1 gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Status biaya listrik">
+                        {(
+                          [
+                            { value: "include", label: "Include / Gratis (Sudah termasuk harga sewa)" },
+                            { value: "token", label: "Token Mandiri (Penghuni beli token sendiri per kamar)" },
+                            { value: "tagihan", label: "Tagihan Bulanan (Meteran biasa, ditagih di akhir bulan)" },
+                          ] as const
+                        ).map((opt) => (
+                          <label
+                            key={opt.value}
+                            className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-[12px] ${statusListrik === opt.value ? "border-slate-300 bg-slate-50 font-semibold text-slate-900" : "border-slate-200 bg-[#F1F3F5] text-slate-500"}`}
+                          >
+                            <input type="radio" name="kost-listrik" checked={statusListrik === opt.value} onChange={() => setStatusListrik(opt.value)} className="h-3.5 w-3.5 shrink-0 accent-emerald-700" />
+                            {opt.label}
+                          </label>
+                        ))}
                       </div>
                     </fieldset>
                   </section>
