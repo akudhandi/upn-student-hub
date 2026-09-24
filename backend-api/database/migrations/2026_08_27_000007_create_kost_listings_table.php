@@ -15,13 +15,15 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('title');
+            $table->string('slug')->unique();
             $table->text('description')->nullable();
             $table->text('address');
             $table->decimal('latitude', 10, 8);
             $table->decimal('longitude', 11, 8);
-            $table->decimal('price', 12, 2);
+            $table->unsignedInteger('price'); // monthly rate in IDR
             $table->json('facilities')->nullable();
-            $table->string('status')->default('active'); // active, full, inactive
+            $table->string('gender_type')->default('campur'); // putra, putri, campur
+            $table->string('status')->default('available'); // available, full, inactive
             $table->timestamps();
             $table->softDeletes();
         });

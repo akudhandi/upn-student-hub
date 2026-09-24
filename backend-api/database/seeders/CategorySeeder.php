@@ -31,6 +31,34 @@ class CategorySeeder extends Seeder
                 'name' => 'Perlengkapan Kost',
                 'type' => 'marketplace',
             ],
+            [
+                'name' => 'Buku & Catatan',
+                'type' => 'marketplace',
+            ],
+            [
+                'name' => 'Elektronik & Gadget',
+                'type' => 'marketplace',
+            ],
+            [
+                'name' => 'Perlengkapan Kuliah',
+                'type' => 'marketplace',
+            ],
+            [
+                'name' => 'Pakaian & Aksesori',
+                'type' => 'marketplace',
+            ],
+            [
+                'name' => 'Hobi & Olahraga',
+                'type' => 'marketplace',
+            ],
+            [
+                'name' => 'Peralatan Kamar/Kost',
+                'type' => 'marketplace',
+            ],
+            [
+                'name' => 'Lainnya',
+                'type' => 'marketplace',
+            ],
 
             // Service Categories
             [

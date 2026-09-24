@@ -174,6 +174,17 @@ export default function AppLayout({
     router.replace("/login");
   }
 
+  function handleCreateClick() {
+    setMobileOpen(false);
+    if (pathname?.startsWith("/services")) {
+      router.push("/services?action=create");
+    } else if (pathname?.startsWith("/kost")) {
+      router.push("/kost?action=create");
+    } else {
+      router.push("/marketplace?action=create");
+    }
+  }
+
   if (!checked) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F8F9FB]">
@@ -263,13 +274,13 @@ export default function AppLayout({
 
         {/* Bottom CTA + user summary */}
         <div className="border-t border-slate-200 px-4 py-4">
-          <Link
-            href="/marketplace"
-            onClick={() => setMobileOpen(false)}
+          <button
+            type="button"
+            onClick={handleCreateClick}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
           >
             <IconPlus /> Pasang Iklan
-          </Link>
+          </button>
           <div className="mt-3 flex items-center gap-3 px-1">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
               {initials}

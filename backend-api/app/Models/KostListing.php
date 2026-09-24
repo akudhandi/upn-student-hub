@@ -15,12 +15,14 @@ class KostListing extends Model
     protected $fillable = [
         'user_id',
         'title',
+        'slug',
         'description',
         'address',
         'latitude',
         'longitude',
         'price',
         'facilities',
+        'gender_type',
         'status',
     ];
 
@@ -29,7 +31,7 @@ class KostListing extends Model
         return [
             'latitude' => 'decimal:8',
             'longitude' => 'decimal:8',
-            'price' => 'decimal:2',
+            'price' => 'integer',
             'facilities' => 'array',
         ];
     }
