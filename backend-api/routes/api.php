@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AdminAuthController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\KostController;
 use App\Http\Controllers\Api\V1\LostFoundController;
 use App\Http\Controllers\Api\V1\MarketplaceController;
@@ -38,6 +39,11 @@ Route::prefix('v1')->group(function () {
     Route::get('/lost-found', [LostFoundController::class, 'index']);
     Route::post('/lost-found', [LostFoundController::class, 'store']);
     Route::get('/lost-found/{id}', [LostFoundController::class, 'show']);
+
+    // Event & Informasi Kampus Routes
+    Route::get('/events', [EventController::class, 'index']);
+    Route::post('/events', [EventController::class, 'store']);
+    Route::get('/events/{id}', [EventController::class, 'show']);
 
     // Admin Authentication Routes
     Route::prefix('admin/auth')->group(function () {

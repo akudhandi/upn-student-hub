@@ -75,6 +75,11 @@ class User extends Authenticatable
         return $this->hasMany(LostFoundReport::class);
     }
 
+    public function events(): HasMany
+    {
+        return $this->hasMany(Event::class);
+    }
+
     public function favorites(): HasMany
     {
         return $this->hasMany(Favorite::class);

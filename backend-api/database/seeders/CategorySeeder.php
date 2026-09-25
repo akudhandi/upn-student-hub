@@ -150,6 +150,28 @@ class CategorySeeder extends Seeder
                 'slug' => 'lainnya-lf',
                 'type' => 'lost_found',
             ],
+
+            // Event & Informasi Kampus Categories
+            [
+                'name' => 'Akademik',
+                'type' => 'event',
+            ],
+            [
+                'name' => 'Seminar',
+                'type' => 'event',
+            ],
+            [
+                'name' => 'UKM',
+                'type' => 'event',
+            ],
+            [
+                'name' => 'Kompetisi',
+                'type' => 'event',
+            ],
+            [
+                'name' => 'Festival',
+                'type' => 'event',
+            ],
         ];
 
         foreach ($categories as $category) {

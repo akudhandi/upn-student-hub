@@ -30,4 +30,9 @@ class Category extends Model
     {
         return $this->hasMany(LostFoundReport::class);
     }
+
+    public function events(): HasMany
+    {
+        return $this->hasMany(Event::class);
+    }
 }
