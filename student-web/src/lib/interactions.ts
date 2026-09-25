@@ -97,6 +97,84 @@ export async function submitReview(
   });
 }
 
+export type ChatContext = {
+  type: string | null;
+  id: number | null;
+  title: string | null;
+};
+
+export type ConversationItem = {
+  id: number;
+  recipient: { id: number; name: string } | null;
+  last_message: { body: string; sender_id: number; created_at: string } | null;
+  unread_count: number;
+  context: ChatContext | null;
+  updated_at: string;
+};
+
+export type ChatMessageItem = {
+  id: number;
+  body: string;
+  sender_id: number;
+  sender_name?: string | null;
+  created_at: string;
+};
+
+export async function fetchConversations(): Promise<ConversationItem[]> {
+  const res = await apiFetch<{ message: string; data: ConversationItem[] }>("/v1/conversations");
+  return res.data;
+}
+
+export async function fetchConversation(
+  id: number | string
+): Promise<{ conversation: ConversationItem; messages: ChatMessageItem[]; recipient: ConversationItem["recipient"]; context: ChatContext | null }> {
+  const res = await apiFetch<{
+    message: string;
+    data: {
+      id: number;
+      recipient: ConversationItem["recipient"];
+      last_message: ConversationItem["last_message"];
+      unread_count: number;
+      context: ChatContext | null;
+      updated_at: string;
+      messages: ChatMessageItem[];
+    };
+  }>(`/v1/conversations/${encodeURIComponent(String(id))}`);
+  const { messages, ...conversation } = res.data;
+  return { conversation, messages, recipient: res.data.recipient, context: res.data.context };
+}
+
+export async function startConversation(
+  recipientId: number,
+  listingType?: InteractableType,
+  listingId?: number | string,
+  message?: string
+): Promise<number> {
+  const res = await apiFetch<{ message: string; data: { id: number } }>("/v1/conversations", {
+    method: "POST",
+    body: JSON.stringify({
+      recipient_id: recipientId,
+      listing_type: listingType ?? null,
+      listing_id: listingId !== undefined ? Number(listingId) : null,
+      message: message ?? null,
+    }),
+  });
+  return res.data.id;
+}
+
+export async function sendChatMessage(id: number | string, body: string): Promise<void> {
+  await apiFetch(`/v1/conversations/${encodeURIComponent(String(id))}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+}
+
+export async function markConversationRead(id: number | string): Promise<void> {
+  await apiFetch(`/v1/conversations/${encodeURIComponent(String(id))}/read`, {
+    method: "PATCH",
+  });
+}
+
 // Optimistic favorite toggle for detail pages. Reverts on API failure.
 export function useFavorite(type: InteractableType, id: number | string | undefined) {
   const [isFavorite, setIsFavorite] = useState(false);

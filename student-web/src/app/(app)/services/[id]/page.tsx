@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
 import { useFavorite } from "@/lib/interactions";
+import ChatButton from "@/components/ChatButton";
 import ReportModal from "@/components/ReportModal";
 import ReviewsSection from "@/components/ReviewsSection";
 
@@ -203,7 +204,6 @@ export default function ServiceDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const { isFavorite, toggle: toggleFavorite } = useFavorite("service", id);
   const [reportOpen, setReportOpen] = useState(false);
-  const [chatNotice, setChatNotice] = useState(false);
   const [shareNotice, setShareNotice] = useState<string | null>(null);
 
   const loadDetail = useCallback(async (itemId: string, signal?: AbortSignal) => {
@@ -527,18 +527,15 @@ export default function ServiceDetailPage() {
                   Penyedia tidak mencantumkan nomor WhatsApp. Gunakan chat untuk menghubungi.
                 </p>
               )}
-              <button
-                type="button"
-                onClick={() => setChatNotice(true)}
-                className="w-full rounded-lg bg-[#0A2342] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#12325e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
+              <ChatButton
+                recipientId={item.user?.id}
+                listingType="service"
+                listingId={item.id}
+                ariaLabel={`Chat penyedia ${providerName}`}
+                className="w-full rounded-lg bg-[#0A2342] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#12325e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2 disabled:opacity-60"
               >
                 Chat Penyedia Jasa
-              </button>
-              {chatNotice && (
-                <p role="status" className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-500">
-                  Fitur chat 1-on-1 segera hadir. Simpan layanan ke favorit sementara waktu.
-                </p>
-              )}
+              </ChatButton>
               <div className="flex gap-2">
                 <button
                   type="button"

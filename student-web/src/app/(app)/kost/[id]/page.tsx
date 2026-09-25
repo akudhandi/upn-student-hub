@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
 import { useFavorite } from "@/lib/interactions";
+import ChatButton from "@/components/ChatButton";
 import ReportModal from "@/components/ReportModal";
 
 // ---------------------------------------------------------------------------
@@ -173,6 +174,15 @@ function PricingCard({ kost }: { kost: ApiKostDetail }) {
           </svg>
           Hubungi via WhatsApp
         </a>
+        <ChatButton
+          recipientId={kost.user?.id}
+          listingType="kost"
+          listingId={kost.id}
+          ariaLabel={`Chat pemilik ${ownerName}`}
+          className="flex w-full items-center justify-center gap-2 rounded-md bg-[#002147] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0a2f5c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2 disabled:opacity-60"
+        >
+          Chat Pemilik Kost
+        </ChatButton>
         <a
           href="#survei"
           className="flex w-full items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"

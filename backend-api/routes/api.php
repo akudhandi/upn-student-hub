@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AdminAuthController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\FavoriteController;
 use App\Http\Controllers\Api\V1\KostController;
@@ -54,6 +55,13 @@ Route::prefix('v1')->group(function () {
     Route::get('/reviews', [ReviewController::class, 'index']);
     Route::post('/reviews', [ReviewController::class, 'store']);
     Route::post('/reports', [ReportController::class, 'store']);
+
+    // 1-on-1 Chat (facade over chat_rooms / chat_participants / chat_messages)
+    Route::get('/conversations', [ChatController::class, 'index']);
+    Route::post('/conversations', [ChatController::class, 'store']);
+    Route::get('/conversations/{id}', [ChatController::class, 'show']);
+    Route::post('/conversations/{id}/messages', [ChatController::class, 'sendMessage']);
+    Route::patch('/conversations/{id}/read', [ChatController::class, 'markAsRead']);
 
     // Admin Authentication Routes
     Route::prefix('admin/auth')->group(function () {

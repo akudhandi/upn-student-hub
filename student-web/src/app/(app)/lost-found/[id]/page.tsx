@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
 import { useFavorite } from "@/lib/interactions";
+import ChatButton from "@/components/ChatButton";
 import ReportModal from "@/components/ReportModal";
 
 // ---------------------------------------------------------------------------
@@ -487,6 +488,17 @@ export default function LostFoundDetailPage() {
                 Fitur klaim online segera hadir. Sementara waktu, hubungi kontak di bawah untuk koordinasi.
               </p>
             )}
+            <div className="mt-2">
+              <ChatButton
+                recipientId={item.user?.id}
+                listingType="lostfound"
+                listingId={item.id}
+                ariaLabel={`Chat ${item.type === "lost" ? "pelapor" : "penemu"} ${reporterName}`}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#002147] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#001a38] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2 disabled:opacity-60"
+              >
+                {item.type === "lost" ? "Chat Pelapor" : "Chat Penemu"}
+              </ChatButton>
+            </div>
             {waNumber ? (
               <a
                 href={`https://wa.me/${waNumber}?text=${encodeURIComponent(`Halo, saya menanggapi laporan "${item.title}" di UPN Student Hub.`)}`}

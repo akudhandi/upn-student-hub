@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
 import { useFavorite } from "@/lib/interactions";
+import ChatButton from "@/components/ChatButton";
 import ReportModal from "@/components/ReportModal";
 import ReviewsSection from "@/components/ReviewsSection";
 
@@ -152,7 +153,6 @@ export default function MarketplaceDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const { isFavorite, toggle: toggleFavorite } = useFavorite("marketplace", id);
   const [reportOpen, setReportOpen] = useState(false);
-  const [chatNotice, setChatNotice] = useState(false);
 
   const loadDetail = useCallback(async (itemId: string, signal?: AbortSignal) => {
     try {
@@ -389,18 +389,15 @@ export default function MarketplaceDetailPage() {
             </span>
           </div>
           <div className="mt-4 space-y-2.5">
-            <button
-              type="button"
-              onClick={() => setChatNotice(true)}
-              className="w-full rounded-lg bg-[#0A2342] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#12325e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
+            <ChatButton
+              recipientId={item.user?.id}
+              listingType="marketplace"
+              listingId={item.id}
+              ariaLabel={`Chat penjual ${sellerName}`}
+              className="w-full rounded-lg bg-[#0A2342] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#12325e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2 disabled:opacity-60"
             >
               Chat &amp; Tawar Harga
-            </button>
-            {chatNotice && (
-              <p role="status" className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-500">
-                Fitur chat 1-on-1 segera hadir. Simpan barang ke favorit lalu atur COD dengan penjual.
-              </p>
-            )}
+            </ChatButton>
             <button
               type="button"
               onClick={() => void toggleFavorite()}
