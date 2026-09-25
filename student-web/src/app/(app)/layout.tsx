@@ -57,6 +57,15 @@ function IconLostFound() {
     </svg>
   );
 }
+function IconEvent() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M2 6.5H14M5.5 1.8V3.5M10.5 1.8V3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M5.5 9.5L7 11L10.5 7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 function IconMessages() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -103,6 +112,7 @@ const MAIN_NAV_ITEMS: NavItem[] = [
   { label: "Jasa & Layanan", href: "/services", icon: <IconServices /> },
   { label: "Info Kost", href: "/kost", icon: <IconKost /> },
   { label: "Barang Hilang", href: "/lost-found", icon: <IconLostFound /> },
+  { label: "Event & Info", href: "/events/create", icon: <IconEvent /> },
 ];
 
 const ACTIVITY_NAV_ITEMS: NavItem[] = [
@@ -182,6 +192,8 @@ export default function AppLayout({
       router.push("/kost?action=create");
     } else if (pathname?.startsWith("/lost-found") || pathname?.startsWith("/lost-and-found")) {
       router.push("/lost-found?action=create");
+    } else if (pathname?.startsWith("/events")) {
+      router.push("/events/create");
     } else {
       router.push("/marketplace?action=create");
     }

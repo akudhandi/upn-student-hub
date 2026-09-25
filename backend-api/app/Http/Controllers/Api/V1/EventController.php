@@ -20,8 +20,23 @@ class EventController extends Controller
             'category_id' => 'nullable|exists:categories,id',
             'organizer_name' => 'required|string|max:255',
             'event_date' => 'required|date',
+            'event_time' => 'nullable|string|max:50',
             'location' => 'required|string|max:255',
             'registration_link' => 'nullable|url|max:2048',
+            'speakers' => 'nullable|array',
+            'speakers.*.name' => 'required|string|max:255',
+            'speakers.*.role' => 'nullable|string|max:50',
+            'speakers.*.organization' => 'nullable|string|max:255',
+            'speakers.*.topic' => 'nullable|string|max:500',
+            'benefits' => 'nullable|array',
+            'benefits.*' => 'string|max:255',
+            'contact_pics' => 'nullable|array',
+            'contact_pics.*.name' => 'required|string|max:255',
+            'contact_pics.*.whatsapp' => 'nullable|string|max:20',
+            'contact_pics.*.email' => 'nullable|string|max:255',
+            'documents' => 'nullable|array',
+            'documents.*.name' => 'required|string|max:255',
+            'documents.*.meta' => 'nullable|string|max:255',
             'description' => 'required|string',
         ]);
 
@@ -30,6 +45,11 @@ class EventController extends Controller
             'user_id' => $request->user()?->id ?? 1,
             'slug' => Str::slug($request->title).'-'.Str::lower(Str::random(5)),
             'status' => 'published',
+        ]);
+
+        // Deterministic, unique event code derived from the new id.
+        $event->update([
+            'event_code' => sprintf('EVT-%s-%04d', $event->created_at->format('Y'), $event->id),
         ]);
 
         $event->load([

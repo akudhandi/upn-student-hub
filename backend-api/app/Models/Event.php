@@ -16,11 +16,17 @@ class Event extends Model
         'user_id',
         'title',
         'slug',
+        'event_code',
         'category_id',
         'organizer_name',
         'event_date',
+        'event_time',
         'location',
         'registration_link',
+        'speakers',
+        'benefits',
+        'contact_pics',
+        'documents',
         'description',
         'status',
     ];
@@ -29,6 +35,10 @@ class Event extends Model
     {
         return [
             'event_date' => 'datetime',
+            'speakers' => 'array',
+            'benefits' => 'array',
+            'contact_pics' => 'array',
+            'documents' => 'array',
         ];
     }
 
