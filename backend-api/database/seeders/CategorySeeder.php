@@ -92,13 +92,62 @@ class CategorySeeder extends Seeder
                 'type' => 'kost',
             ],
 
-            // Lost & Found Categories
+            // Lost & Found Categories (jenis barang, bukan jenis laporan)
+            // NOTE: slugs must stay globally unique (slug column is unique),
+            // so L&F names that overlap other modules get an -lf suffix.
             [
-                'name' => 'Kehilangan',
+                'name' => 'Dokumen',
+                'slug' => 'dokumen',
                 'type' => 'lost_found',
             ],
             [
-                'name' => 'Ditemukan',
+                'name' => 'Kartu & KTM',
+                'slug' => 'kartu-ktm',
+                'type' => 'lost_found',
+            ],
+            [
+                'name' => 'Kunci',
+                'slug' => 'kunci',
+                'type' => 'lost_found',
+            ],
+            [
+                'name' => 'Karcis Parkir',
+                'slug' => 'karcis-parkir',
+                'type' => 'lost_found',
+            ],
+            [
+                'name' => 'Elektronik',
+                'slug' => 'elektronik-lf',
+                'type' => 'lost_found',
+            ],
+            [
+                'name' => 'Pakaian & Jaket',
+                'slug' => 'pakaian-jaket',
+                'type' => 'lost_found',
+            ],
+            [
+                'name' => 'Tumbler & Botol Minum',
+                'slug' => 'tumbler-botol-minum',
+                'type' => 'lost_found',
+            ],
+            [
+                'name' => 'Payung',
+                'slug' => 'payung',
+                'type' => 'lost_found',
+            ],
+            [
+                'name' => 'Helm',
+                'slug' => 'helm',
+                'type' => 'lost_found',
+            ],
+            [
+                'name' => 'Tas & Dompet',
+                'slug' => 'tas-dompet',
+                'type' => 'lost_found',
+            ],
+            [
+                'name' => 'Lainnya',
+                'slug' => 'lainnya-lf',
                 'type' => 'lost_found',
             ],
         ];
@@ -106,7 +155,7 @@ class CategorySeeder extends Seeder
         foreach ($categories as $category) {
             Category::updateOrCreate(
                 [
-                    'slug' => Str::slug($category['name']),
+                    'slug' => $category['slug'] ?? Str::slug($category['name']),
                 ],
                 [
                     'name' => $category['name'],

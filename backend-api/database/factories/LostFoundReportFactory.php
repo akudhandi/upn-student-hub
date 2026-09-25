@@ -53,14 +53,34 @@ class LostFoundReportFactory extends Factory
 
         $report = $this->faker->randomElement($reports);
 
+        // Map title keywords to item categories (jenis barang).
+        $categoryByKeyword = [
+            'Kunci' => 'Kunci',
+            'KTM' => 'Kartu & KTM',
+            'Kartu' => 'Kartu & KTM',
+            'Tumbler' => 'Tumbler & Botol Minum',
+            'Jaket' => 'Pakaian & Jaket',
+            'Helm' => 'Helm',
+        ];
+        $categoryName = 'Lainnya';
+        foreach ($categoryByKeyword as $keyword => $name) {
+            if (str_contains($report['title'], $keyword)) {
+                $categoryName = $name;
+                break;
+            }
+        }
+
         return [
             'user_id' => User::factory(),
             'type' => $this->faker->randomElement(['lost', 'found']),
             'title' => $report['title'],
-            'category_id' => Category::query()->where('type', 'lost_found')->inRandomOrder()->value('id')
+            'category_id' => Category::query()
+                ->where('type', 'lost_found')
+                ->where('name', $categoryName)
+                ->value('id')
                 ?? Category::query()->firstOrCreate(
-                    ['slug' => 'kehilangan'],
-                    ['name' => 'Kehilangan', 'type' => 'lost_found']
+                    ['slug' => 'lainnya-lf'],
+                    ['name' => 'Lainnya', 'type' => 'lost_found']
                 )->id,
             'description' => $report['description'],
             'location' => $report['location'],
