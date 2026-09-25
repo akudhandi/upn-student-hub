@@ -183,7 +183,7 @@ export default function EventsPage() {
       </nav>
 
       {/* Header */}
-      <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mt-2">
         <div>
           <h1 className="text-[22px] font-bold tracking-tight text-slate-900 sm:text-[26px]">
             Event &amp; Informasi Kampus
@@ -192,12 +192,6 @@ export default function EventsPage() {
             Temukan kegiatan mahasiswa, seminar, lomba, dan pengumuman resmi UPN Veteran Jawa Timur.
           </p>
         </div>
-        <Link
-          href="/events/create"
-          className="inline-flex w-fit shrink-0 items-center gap-1.5 rounded-lg bg-[#0A2342] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#12325e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
-        >
-          <span aria-hidden="true">+</span> Ajukan Event
-        </Link>
       </div>
 
       {/* Search */}

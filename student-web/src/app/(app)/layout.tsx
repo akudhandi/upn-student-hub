@@ -112,7 +112,7 @@ const MAIN_NAV_ITEMS: NavItem[] = [
   { label: "Jasa & Layanan", href: "/services", icon: <IconServices /> },
   { label: "Info Kost", href: "/kost", icon: <IconKost /> },
   { label: "Barang Hilang", href: "/lost-found", icon: <IconLostFound /> },
-  { label: "Event & Info", href: "/events/create", icon: <IconEvent /> },
+  { label: "Event & Info", href: "/events", icon: <IconEvent /> },
 ];
 
 const ACTIVITY_NAV_ITEMS: NavItem[] = [
@@ -293,7 +293,7 @@ export default function AppLayout({
             onClick={handleCreateClick}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
           >
-            <IconPlus /> Pasang Iklan
+            <IconPlus /> {pathname?.startsWith("/events") ? "Ajukan Event" : "Pasang Iklan"}
           </button>
           <div className="mt-3 flex items-center gap-3 px-1">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">

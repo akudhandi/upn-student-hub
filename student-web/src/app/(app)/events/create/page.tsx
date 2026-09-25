@@ -95,7 +95,7 @@ export default function EventCreatePage() {
   const [activityType, setActivityType] = useState<string>("seminar");
   const [categoryOptions, setCategoryOptions] = useState<{ id: number; name: string }[]>([]);
   const [eventDate, setEventDate] = useState("");
-  const [eventTime, setEventTime] = useState("08.30 WIB");
+  const [eventTime, setEventTime] = useState("08:30");
   const [location, setLocation] = useState("");
   const [speakers, setSpeakers] = useState<SpeakerForm[]>([]);
   const [benefits, setBenefits] = useState<string[]>([...DEFAULT_BENEFITS]);
@@ -191,12 +191,22 @@ export default function EventCreatePage() {
     setPosterUrl(URL.createObjectURL(files[0]));
   }
 
-  function addDoc() {
-    setDocs((prev) => [...prev, { localId: nextLocalId(), name: "", meta: "" }]);
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  function updateDoc(id: number, patch: Partial<DocForm>) {
-    setDocs((prev) => prev.map((d) => (d.localId === id ? { ...d, ...patch } : d)));
+  function addDocFiles(files: FileList | null) {
+    if (!files) return;
+    const next = Array.from(files)
+      .filter((file) => file.size <= 5 * 1024 * 1024)
+      .map((file) => ({
+        localId: nextLocalId(),
+        name: file.name,
+        meta: formatFileSize(file.size),
+      }));
+    setDocs((prev) => [...prev, ...next].slice(0, 5));
   }
 
   function removeDoc(id: number) {
@@ -382,12 +392,10 @@ export default function EventCreatePage() {
               </label>
               <input
                 id="event-time"
-                type="text"
+                type="time"
                 required
-                maxLength={50}
                 value={eventTime}
                 onChange={(e) => setEventTime(e.target.value)}
-                placeholder="08.30 WIB"
                 className={inputClass}
               />
             </div>
@@ -627,39 +635,33 @@ export default function EventCreatePage() {
                     <path d="M4 1.5H10L13 4.5V14.5H4V1.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
                     <path d="M10 1.5V4.5H13" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
                   </svg>
-                  <input
-                    type="text"
-                    value={doc.name}
-                    onChange={(e) => updateDoc(doc.localId, { name: e.target.value })}
-                    placeholder="TOR_Kegiatan_Seminar2025.pdf"
-                    aria-label="Nama berkas lampiran"
-                    className="w-full bg-transparent text-[12px] text-slate-900 placeholder:text-slate-400 focus:outline-none"
-                  />
-                  <input
-                    type="text"
-                    value={doc.meta}
-                    onChange={(e) => updateDoc(doc.localId, { meta: e.target.value })}
-                    placeholder="1.8 MB"
-                    aria-label="Ukuran berkas lampiran"
-                    className="w-20 shrink-0 bg-transparent text-right text-[11px] text-slate-500 placeholder:text-slate-400 focus:outline-none"
-                  />
+                  <span className="w-full truncate text-[12px] text-slate-900">{doc.name}</span>
+                  <span className="shrink-0 text-[11px] text-slate-500">{doc.meta}</span>
                   <button
                     type="button"
                     onClick={() => removeDoc(doc.localId)}
-                    aria-label={`Hapus lampiran ${doc.name || "baru"}`}
+                    aria-label={`Hapus lampiran ${doc.name}`}
                     className="shrink-0 rounded px-1 text-slate-400 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
                   >
                     🗑
                   </button>
                 </div>
               ))}
-              <button
-                type="button"
-                onClick={addDoc}
-                className="w-full rounded-lg border-2 border-dashed border-slate-300 px-3 py-2.5 text-[12px] font-semibold text-slate-500 hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147]"
-              >
+              <label className="block w-full cursor-pointer rounded-lg border-2 border-dashed border-slate-300 px-3 py-2.5 text-center text-[12px] font-semibold text-slate-500 hover:border-slate-400 hover:bg-slate-50 focus-within:outline-none focus-within:ring-2 focus-within:ring-[#002147]">
                 + Tambah Berkas / File Lampiran
-              </button>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx"
+                  aria-label="Pilih berkas lampiran (PDF/DOCX, maks 5MB per berkas)"
+                  className="sr-only"
+                  onChange={(e) => {
+                    addDocFiles(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              <p className="text-[10px] text-slate-400">Maks. 5 berkas, masing-masing maks. 5MB.</p>
             </div>
           </div>
         </SectionCard>
@@ -689,9 +691,11 @@ export default function EventCreatePage() {
                     <input
                       type="tel"
                       required
+                      inputMode="numeric"
+                      maxLength={15}
                       value={pic.whatsapp}
-                      onChange={(e) => updatePic(pic.localId, { whatsapp: e.target.value })}
-                      placeholder="0813-9876-5432"
+                      onChange={(e) => updatePic(pic.localId, { whatsapp: e.target.value.replace(/\D/g, "") })}
+                      placeholder="081398765432"
                       className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[12px] text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:outline-none"
                     />
                   </label>
