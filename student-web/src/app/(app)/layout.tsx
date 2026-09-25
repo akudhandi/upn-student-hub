@@ -180,6 +180,8 @@ export default function AppLayout({
       router.push("/services?action=create");
     } else if (pathname?.startsWith("/kost")) {
       router.push("/kost?action=create");
+    } else if (pathname?.startsWith("/lost-found") || pathname?.startsWith("/lost-and-found")) {
+      router.push("/lost-found?action=create");
     } else {
       router.push("/marketplace?action=create");
     }

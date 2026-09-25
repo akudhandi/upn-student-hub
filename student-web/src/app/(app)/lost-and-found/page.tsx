@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
+import { apiFetch, type ApiError } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // API types — shape of GET /api/v1/lost-found (Laravel paginator wrapped in
@@ -31,6 +32,23 @@ type LostFoundListResponse = {
     total: number;
     data: ApiLostFoundItem[];
   };
+};
+
+type LostFoundCreateResponse = {
+  message: string;
+  data: ApiLostFoundItem;
+};
+
+type ReportType = "lost" | "found";
+
+const EMPTY_FORM = {
+  title: "",
+  category_id: "",
+  location: "",
+  date_event: "",
+  reward: "",
+  description: "",
+  contact_info: "",
 };
 
 type TypeFilter = "all" | "lost" | "found";
@@ -165,13 +183,23 @@ function ReportCardSkeleton() {
   );
 }
 
-export default function LostAndFoundPage() {
+export function LostAndFoundContent() {
   const [items, setItems] = useState<ApiLostFoundItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [reportType, setReportType] = useState<ReportType>("lost");
+  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [photos, setPhotos] = useState<{ id: number; url: string }[]>([]);
+  const photoIdRef = useRef(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const createRequested = searchParams.get("action") === "create";
 
   const loadReports = useCallback(async (type: TypeFilter, signal?: AbortSignal) => {
     try {
@@ -209,6 +237,134 @@ export default function LostAndFoundPage() {
     }
     return [...names];
   }, [items]);
+
+  const categoryOptions = useMemo(() => {
+    const byId = new Map<number, string>();
+    for (const item of items) {
+      if (item.category?.id && item.category?.name) {
+        byId.set(item.category.id, item.category.name);
+      }
+    }
+    return [...byId.entries()].map(([id, name]) => ({ id, name }));
+  }, [items]);
+
+  function updateForm<K extends keyof typeof EMPTY_FORM>(key: K, value: string) {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function addPhotos(files: FileList | null) {
+    if (!files) return;
+    const next = Array.from(files).map((file) => {
+      photoIdRef.current += 1;
+      return { id: photoIdRef.current, url: URL.createObjectURL(file) };
+    });
+    setPhotos((prev) => [...prev, ...next].slice(0, 3));
+  }
+
+  function removePhoto(id: number) {
+    setPhotos((prev) => {
+      const target = prev.find((p) => p.id === id);
+      if (target) URL.revokeObjectURL(target.url);
+      return prev.filter((p) => p.id !== id);
+    });
+  }
+
+  const clearCreateParam = useCallback(() => {
+    if (searchParams.get("action") === "create") {
+      router.replace("/lost-and-found");
+    }
+  }, [router, searchParams]);
+
+  const closeModal = useCallback(() => {
+    if (isSubmitting) return;
+    setIsModalOpen(false);
+    setSubmitError(null);
+    setPhotos((prev) => {
+      prev.forEach((p) => URL.revokeObjectURL(p.url));
+      return [];
+    });
+    clearCreateParam();
+  }, [isSubmitting, clearCreateParam]);
+
+  function openModal(type: ReportType) {
+    setReportType(type);
+    setSubmitError(null);
+    setIsModalOpen(true);
+  }
+
+  // Close modal on Escape for keyboard users.
+  useEffect(() => {
+    if (!isModalOpen) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") closeModal();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isModalOpen, closeModal]);
+
+  // Open the modal when navigated via sidebar CTA (?action=create).
+  useEffect(() => {
+    if (createRequested) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- URL-driven modal must sync state when the search param appears
+      setSubmitError(null);
+      setIsModalOpen(true);
+    }
+  }, [createRequested]);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const rewardRaw = formData.reward.trim();
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      await apiFetch<LostFoundCreateResponse>("/v1/lost-found", {
+        method: "POST",
+        body: JSON.stringify({
+          type: reportType,
+          title: formData.title.trim(),
+          category_id: formData.category_id === "" ? null : Number(formData.category_id),
+          location: formData.location.trim(),
+          date_event: formData.date_event === "" ? null : formData.date_event,
+          reward:
+            rewardRaw === ""
+              ? null
+              : `Rp ${Number(rewardRaw).toLocaleString("id-ID")}`,
+          description: formData.description.trim(),
+          contact_info: formData.contact_info.trim(),
+        }),
+      });
+      const createdType = reportType;
+      setIsModalOpen(false);
+      setFormData(EMPTY_FORM);
+      setPhotos((prev) => {
+        prev.forEach((p) => URL.revokeObjectURL(p.url));
+        return [];
+      });
+      clearCreateParam();
+      // Switch the list filter to the new report's type so it appears immediately.
+      setTypeFilter(createdType);
+      setActiveCategory(null);
+      await loadReports(createdType);
+    } catch (err) {
+      const apiError = err as ApiError;
+      const fieldErrors = apiError.errors
+        ? Object.values(apiError.errors).flat().join(" ")
+        : null;
+      setSubmitError(fieldErrors || apiError.message || "Gagal mempublikasikan laporan. Coba lagi.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  const previewCategory =
+    categoryOptions.find((c) => String(c.id) === formData.category_id)?.name ?? "Kategori Barang";
+  const previewDate = formData.date_event
+    ? new Date(`${formData.date_event}T00:00:00`).toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : "Tanggal kejadian";
 
   const filtered = items.filter((item) => {
     if (activeCategory && (item.category?.name ?? "") !== activeCategory) return false;
@@ -260,6 +416,7 @@ export default function LostAndFoundPage() {
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
+              onClick={() => openModal("lost")}
               className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
             >
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -270,6 +427,7 @@ export default function LostAndFoundPage() {
             </button>
             <button
               type="button"
+              onClick={() => openModal("found")}
               className="inline-flex items-center gap-1.5 rounded-md bg-[#002147] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#001a38] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
             >
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -498,6 +656,399 @@ export default function LostAndFoundPage() {
           )}
         </div>
       </div>
+
+      {isModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+          onClick={closeModal}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="lapor-barang-title"
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[92vh] w-full max-w-[960px] overflow-y-auto rounded-2xl border border-gray-200 bg-[#F4F5F7]"
+          >
+            <div className="px-5 pt-5 sm:px-7 sm:pt-6">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-[11px] text-slate-400">
+                  Beranda <span className="mx-1">/</span> Lost &amp; Found <span className="mx-1">/</span>{" "}
+                  <span className="font-semibold text-slate-700">Buat Laporan Barang</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  disabled={isSubmitting}
+                  aria-label="Tutup modal"
+                  className="rounded-md px-2 py-0.5 text-xl leading-none text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 disabled:opacity-50"
+                >
+                  ×
+                </button>
+              </div>
+              <h2 id="lapor-barang-title" className="mt-1.5 text-[22px] font-bold tracking-tight text-slate-900">
+                {reportType === "lost" ? "Lapor Barang Hilang (Dicari)" : "Lapor Barang Hilang & Temu"}
+              </h2>
+              <p className="mt-0.5 max-w-[620px] text-[13px] leading-5 text-slate-500">
+                {reportType === "lost"
+                  ? "Laporkan barang Anda yang tertinggal atau hilang di area kampus UPN agar rekan mahasiswa dan satpam dapat membantu proses pencarian."
+                  : "Laporkan barang hilang atau ditemukan di kampus UPN untuk membantu proses serah terima."}
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="px-5 pb-6 pt-4 sm:px-7">
+              <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[1fr_250px]">
+                {/* Main form card */}
+                <div className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
+                  {/* Jenis Pelaporan */}
+                  <fieldset>
+                    <legend className="text-[12px] font-semibold text-slate-900">
+                      Jenis Pelaporan <span className="text-red-500">*</span>
+                    </legend>
+                    <div className="mt-1.5 grid grid-cols-2 gap-1 rounded-xl bg-[#F1F3F5] p-1" role="radiogroup" aria-label="Jenis pelaporan">
+                      {(
+                        [
+                          { value: "found", label: "Barang Ditemukan" },
+                          { value: "lost", label: "Barang Hilang" },
+                        ] as const
+                      ).map((opt) => {
+                        const checked = reportType === opt.value;
+                        return (
+                          <label
+                            key={opt.value}
+                            className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[12px] transition-colors ${
+                              checked
+                                ? opt.value === "lost"
+                                  ? "bg-white font-bold text-amber-700 shadow-sm ring-1 ring-inset ring-amber-200"
+                                  : "bg-white font-bold text-emerald-700 shadow-sm ring-1 ring-inset ring-emerald-200"
+                                : "text-slate-500 hover:text-slate-700"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="laporan-jenis"
+                              value={opt.value}
+                              checked={checked}
+                              onChange={() => setReportType(opt.value)}
+                              className="sr-only"
+                            />
+                            {opt.label}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+
+                  {/* Informasi Barang */}
+                  <section aria-labelledby="laporan-info-heading" className="mt-5 border-t border-slate-100 pt-5">
+                    <h3 id="laporan-info-heading" className="text-[14px] font-bold text-slate-900">Informasi Barang</h3>
+                    <div className="mt-3">
+                      <label htmlFor="laporan-title" className="text-[12px] font-semibold text-slate-900">
+                        Nama Barang <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        id="laporan-title"
+                        type="text"
+                        required
+                        maxLength={255}
+                        value={formData.title}
+                        onChange={(e) => updateForm("title", e.target.value)}
+                        placeholder={reportType === "lost" ? "Tumbler Corkcicle Biru Navy 500ml" : "Gantungan Kunci Honda + Lanyard UPN Merah"}
+                        className="mt-1.5 w-full rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#002147]/15"
+                      />
+                    </div>
+                    <div className="mt-4">
+                      <label htmlFor="laporan-category" className="text-[12px] font-semibold text-slate-900">
+                        Kategori <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        id="laporan-category"
+                        required
+                        value={formData.category_id}
+                        onChange={(e) => updateForm("category_id", e.target.value)}
+                        disabled={categoryOptions.length === 0}
+                        className="mt-1.5 w-full appearance-none rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-700 focus:border-[#002147] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#002147]/15 disabled:opacity-60"
+                      >
+                        <option value="">Pilih kategori</option>
+                        {categoryOptions.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                      {categoryOptions.length === 0 && (
+                        <p className="mt-1 text-[11px] text-slate-400">
+                          Kategori belum tersedia. Tunggu data laporan dimuat.
+                        </p>
+                      )}
+                    </div>
+                    <div className="mt-4">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <label htmlFor="laporan-description" className="text-[12px] font-semibold text-slate-900">
+                          Deskripsi &amp; Ciri Khusus <span className="text-red-500">*</span>
+                        </label>
+                        <span className="text-[10px] text-slate-400">{formData.description.length} / 2000</span>
+                      </div>
+                      <textarea
+                        id="laporan-description"
+                        required
+                        rows={4}
+                        maxLength={2000}
+                        value={formData.description}
+                        onChange={(e) => updateForm("description", e.target.value)}
+                        placeholder="Warna, ukuran, stiker, lecet, isi, dan ciri lain yang memudahkan identifikasi…"
+                        className="mt-1.5 w-full rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] leading-5 text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#002147]/15"
+                      />
+                    </div>
+                    <div className="mt-4">
+                      <span id="laporan-photos-label" className="text-[12px] font-semibold text-slate-900">
+                        {reportType === "lost" ? "Foto Referensi Barang" : "Dokumentasi Foto"}{" "}
+                        <span className="font-normal text-slate-400">(Maks. 3 foto)</span>
+                      </span>
+                      <div className="mt-1.5 flex flex-wrap gap-2" role="group" aria-labelledby="laporan-photos-label">
+                        {photos.map((photo, i) => (
+                          <span key={photo.id} className="relative h-20 w-20">
+                            {/* eslint-disable-next-line @next/next/no-img-element -- local object URLs for instant upload preview only */}
+                            <img
+                              src={photo.url}
+                              alt={`Foto barang ${i + 1}`}
+                              className="h-20 w-20 rounded-lg border border-slate-200 object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removePhoto(photo.id)}
+                              aria-label={`Hapus foto barang ${i + 1}`}
+                              className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[11px] font-bold leading-none text-white hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                        {photos.length < 3 && (
+                          <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-slate-300 bg-[#F1F3F5] text-slate-500 hover:border-slate-400 hover:bg-slate-100 focus-within:outline-none focus-within:ring-2 focus-within:ring-[#002147] focus-within:ring-offset-2">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                              <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.2" strokeDasharray="2.5 2" />
+                              <path d="M8 5.5V10.5M5.5 8H10.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                            </svg>
+                            <span className="text-[10px] font-medium">+ Foto</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              aria-label="Unggah foto barang"
+                              className="sr-only"
+                              onChange={(e) => {
+                                addPhotos(e.target.files);
+                                e.target.value = "";
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Lokasi & Waktu */}
+                  <section aria-labelledby="laporan-lokasi-heading" className="mt-5 border-t border-slate-100 pt-5">
+                    <h3 id="laporan-lokasi-heading" className="text-[14px] font-bold text-slate-900">Lokasi &amp; Waktu</h3>
+                    <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <label htmlFor="laporan-location" className="text-[12px] font-semibold text-slate-900">
+                          Titik Kampus <span className="text-red-500">*</span>
+                        </label>
+                        <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 focus-within:border-[#002147] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#002147]/15">
+                          <input
+                            id="laporan-location"
+                            type="text"
+                            required
+                            maxLength={255}
+                            value={formData.location}
+                            onChange={(e) => updateForm("location", e.target.value)}
+                            placeholder="Lobi Utama FTI (Gedung Pattimura)"
+                            className="w-full bg-transparent text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                          />
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0 text-slate-400">
+                            <path d="M8 14C8 14 3.5 9.3 3.5 6C3.5 3.5 5.5 1.5 8 1.5C10.5 1.5 12.5 3.5 12.5 6C12.5 9.3 8 14 8 14Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                            <circle cx="8" cy="6" r="1.8" stroke="currentColor" strokeWidth="1.2" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div>
+                        <label htmlFor="laporan-date" className="text-[12px] font-semibold text-slate-900">
+                          Tanggal <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          id="laporan-date"
+                          type="date"
+                          required
+                          value={formData.date_event}
+                          onChange={(e) => updateForm("date_event", e.target.value)}
+                          className="mt-1.5 w-full rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-900 focus:border-[#002147] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#002147]/15"
+                        />
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Imbalan — highlighted for lost reports */}
+                  {reportType === "lost" && (
+                    <section aria-labelledby="laporan-imbalan-heading" className="mt-5 rounded-xl bg-amber-50 p-4 ring-1 ring-inset ring-amber-200">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 id="laporan-imbalan-heading" className="text-[13px] font-bold text-slate-900">
+                          Bantuan &amp; Opsi Imbalan <span className="font-normal text-slate-500">(Opsional)</span>
+                        </h3>
+                        <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                          Khusus Barang Hilang
+                        </span>
+                      </div>
+                      <div className="mt-3">
+                        <label htmlFor="laporan-reward" className="text-[12px] font-semibold text-slate-900">
+                          Nominal Imbalan (Rp)
+                        </label>
+                        <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 py-2.5 focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-200">
+                          <span className="text-[13px] font-semibold text-slate-500">Rp</span>
+                          <input
+                            id="laporan-reward"
+                            type="number"
+                            min={0}
+                            step="any"
+                            value={formData.reward}
+                            onChange={(e) => updateForm("reward", e.target.value)}
+                            placeholder="50000"
+                            className="w-full bg-transparent text-[13px] font-semibold text-slate-900 placeholder:font-normal placeholder:text-slate-400 focus:outline-none"
+                          />
+                        </div>
+                        <p className="mt-1 text-[11px] text-slate-500">
+                          Sukarela — nominal dapat disepakati saat serah terima barang.
+                        </p>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* Kontak */}
+                  <section aria-labelledby="laporan-kontak-heading" className="mt-5 border-t border-slate-100 pt-5">
+                    <h3 id="laporan-kontak-heading" className="text-[14px] font-bold text-slate-900">Kontak Pelapor</h3>
+                    <div className="mt-3">
+                      <label htmlFor="laporan-contact" className="text-[12px] font-semibold text-slate-900">
+                        Nomor WhatsApp <span className="text-red-500">*</span>
+                      </label>
+                      <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 focus-within:border-[#002147] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#002147]/15">
+                        <span className="shrink-0 rounded bg-slate-200/70 px-1.5 py-0.5 text-[12px] font-semibold text-slate-600">+62</span>
+                        <input
+                          id="laporan-contact"
+                          type="tel"
+                          required
+                          maxLength={50}
+                          value={formData.contact_info}
+                          onChange={(e) => updateForm("contact_info", e.target.value)}
+                          placeholder="812-3456-7890"
+                          className="w-full bg-transparent text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </section>
+
+                  {submitError && (
+                    <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                      {submitError}
+                    </p>
+                  )}
+
+                  <div className="mt-5 flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={closeModal}
+                      disabled={isSubmitting}
+                      className="rounded-lg bg-slate-100 px-4 py-2 text-[13px] font-semibold text-slate-600 hover:bg-slate-200 disabled:opacity-50"
+                    >
+                      Simpan Draft
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="rounded-lg bg-[#0A2342] px-5 py-2 text-[13px] font-semibold text-white hover:bg-[#12325e] disabled:opacity-60"
+                    >
+                      {isSubmitting ? "Menyimpan…" : "Publikasikan Laporan"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Live preview + guide */}
+                <div className="space-y-4 lg:sticky lg:top-0">
+                  <aside aria-label="Pratinjau feed laporan" className="rounded-xl border border-gray-200 bg-white p-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Pratinjau Feed</p>
+                      <span className="text-[10px] font-medium text-slate-400">Publik</span>
+                    </div>
+                    <div className="mt-2 overflow-hidden rounded-lg border border-slate-100">
+                      <div className="relative flex aspect-[16/9] items-center justify-center bg-[#E9EDF2]">
+                        {photos.length > 0 ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- local object URLs for instant upload preview only
+                          <img src={photos[0].url} alt="Pratinjau foto barang" className="h-full w-full object-cover" />
+                        ) : (
+                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-slate-400">
+                            <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.3" />
+                            <circle cx="9" cy="9" r="2" stroke="currentColor" strokeWidth="1.3" />
+                            <path d="M3 16L8.5 11L13 15.5L16 13L21 18" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round" />
+                          </svg>
+                        )}
+                        <span className={`absolute left-2 top-2 rounded px-1.5 py-0.5 text-[10px] font-bold text-white ${reportType === "lost" ? "bg-amber-500" : "bg-emerald-600"}`}>
+                          {reportType === "lost" ? "HILANG (DICARI)" : "DITEMUKAN"}
+                        </span>
+                        <span className="absolute right-2 top-2 rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                          {previewDate}
+                        </span>
+                      </div>
+                      <div className="p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-teal-700">{previewCategory}</p>
+                        <p className="mt-0.5 line-clamp-2 text-[12px] font-bold leading-5 text-slate-900">
+                          {formData.title || "Judul laporan akan tampil di sini"}
+                        </p>
+                        <p className="mt-1 flex items-center gap-1 text-[10px] text-slate-500">
+                          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
+                            <path d="M8 14C8 14 3.5 9.3 3.5 6C3.5 3.5 5.5 1.5 8 1.5C10.5 1.5 12.5 3.5 12.5 6C12.5 9.3 8 14 8 14Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                            <circle cx="8" cy="6" r="1.8" stroke="currentColor" strokeWidth="1.2" />
+                          </svg>
+                          <span className="truncate">{formData.location || "Lokasi kejadian"}</span>
+                        </p>
+                        <p className={`mt-1.5 text-[10px] font-semibold ${reportType === "lost" ? "text-amber-700" : "text-emerald-700"}`}>
+                          Status: {reportType === "lost" ? "Sedang Dicari" : "Menunggu Klaim"}
+                        </p>
+                      </div>
+                    </div>
+                  </aside>
+                  <aside aria-label="Panduan pelaporan" className="rounded-xl border border-gray-200 bg-white p-4">
+                    <p className="text-[12px] font-bold text-slate-900">
+                      {reportType === "lost" ? "ⓘ Panduan Pelaporan" : "🛡 Panduan Keamanan"}
+                    </p>
+                    <ul className="mt-2 space-y-2 text-[11px] leading-4 text-slate-500">
+                      {reportType === "lost" ? (
+                        <>
+                          <li><strong className="text-slate-700">Lapor ke Pos Satpam:</strong> segera lapor ke pos terdekat jika barang berharga.</li>
+                          <li><strong className="text-slate-700">Periksa ruangan:</strong> periksa kembali ruangan kelas terakhir sebelum jam perkuliahan usai.</li>
+                          <li><strong className="text-slate-700">Koordinasi aman:</strong> gunakan chat untuk koordinasi awal tanpa membagikan data pribadi sensitif.</li>
+                        </>
+                      ) : (
+                        <>
+                          <li><strong className="text-slate-700">Cek STNK / dokumen:</strong> minta bukti kepemilikan sebelum serah terima.</li>
+                          <li><strong className="text-slate-700">Verifikasi KTM:</strong> cocokkan identitas pengambil dengan KTM aktif.</li>
+                          <li><strong className="text-slate-700">Titik publik:</strong> janjian serah terima di tempat ramai atau titipkan di pos satpam.</li>
+                        </>
+                      )}
+                    </ul>
+                  </aside>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function LostAndFoundPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-slate-500">Memuat lost &amp; found…</p>}>
+      <LostAndFoundContent />
+    </Suspense>
   );
 }
