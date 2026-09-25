@@ -16,22 +16,30 @@ class LostFoundReport extends Model
         'user_id',
         'type',
         'title',
+        'category_id',
         'description',
         'location',
-        'incident_date',
+        'date_event',
+        'contact_info',
+        'reward',
         'status',
     ];
 
     protected function casts(): array
     {
         return [
-            'incident_date' => 'datetime',
+            'date_event' => 'datetime',
         ];
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 
     public function images(): MorphMany

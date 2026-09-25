@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AdminAuthController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\KostController;
+use App\Http\Controllers\Api\V1\LostFoundController;
 use App\Http\Controllers\Api\V1\MarketplaceController;
 use App\Http\Controllers\Api\V1\ServiceController;
 use Illuminate\Support\Facades\Route;
@@ -32,6 +33,11 @@ Route::prefix('v1')->group(function () {
     Route::get('/services', [ServiceController::class, 'index']);
     Route::post('/services', [ServiceController::class, 'store']);
     Route::get('/services/{id}', [ServiceController::class, 'show']);
+
+    // Lost & Found Routes
+    Route::get('/lost-found', [LostFoundController::class, 'index']);
+    Route::post('/lost-found', [LostFoundController::class, 'store']);
+    Route::get('/lost-found/{id}', [LostFoundController::class, 'show']);
 
     // Admin Authentication Routes
     Route::prefix('admin/auth')->group(function () {

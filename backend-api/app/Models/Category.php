@@ -25,4 +25,9 @@ class Category extends Model
     {
         return $this->hasMany(ServiceListing::class);
     }
+
+    public function lostFoundReports(): HasMany
+    {
+        return $this->hasMany(LostFoundReport::class);
+    }
 }
