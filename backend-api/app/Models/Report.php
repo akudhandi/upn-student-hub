@@ -16,6 +16,7 @@ class Report extends Model
         'reportable_type',
         'reportable_id',
         'reason',
+        'description',
         'status',
         'resolved_by',
     ];

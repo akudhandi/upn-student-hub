@@ -3,9 +3,12 @@
 use App\Http\Controllers\Api\V1\AdminAuthController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\EventController;
+use App\Http\Controllers\Api\V1\FavoriteController;
 use App\Http\Controllers\Api\V1\KostController;
 use App\Http\Controllers\Api\V1\LostFoundController;
 use App\Http\Controllers\Api\V1\MarketplaceController;
+use App\Http\Controllers\Api\V1\ReportController;
+use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\ServiceController;
 use Illuminate\Support\Facades\Route;
 
@@ -44,6 +47,13 @@ Route::prefix('v1')->group(function () {
     Route::get('/events', [EventController::class, 'index']);
     Route::post('/events', [EventController::class, 'store']);
     Route::get('/events/{id}', [EventController::class, 'show']);
+
+    // Polymorphic Interactions
+    Route::get('/favorites', [FavoriteController::class, 'index']);
+    Route::post('/favorites/toggle', [FavoriteController::class, 'toggle']);
+    Route::get('/reviews', [ReviewController::class, 'index']);
+    Route::post('/reviews', [ReviewController::class, 'store']);
+    Route::post('/reports', [ReportController::class, 'store']);
 
     // Admin Authentication Routes
     Route::prefix('admin/auth')->group(function () {

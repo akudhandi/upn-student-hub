@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
+import { useFavorite } from "@/lib/interactions";
+import ReportModal from "@/components/ReportModal";
 
 // ---------------------------------------------------------------------------
 // API types — shape of GET /api/v1/kost/{id} (standard { message, data }
@@ -195,7 +197,8 @@ export default function KostDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { isFavorite, toggle: toggleFavorite } = useFavorite("kost", id);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const loadDetail = useCallback(async (kostId: string, signal?: AbortSignal) => {
     try {
@@ -358,7 +361,7 @@ export default function KostDetailPage() {
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
-            onClick={() => setIsFavorite((v) => !v)}
+            onClick={() => void toggleFavorite()}
             aria-pressed={isFavorite}
             aria-label={isFavorite ? `Hapus ${kost.title} dari favorit` : `Simpan ${kost.title} ke favorit`}
             className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
@@ -380,8 +383,23 @@ export default function KostDetailPage() {
             </svg>
             Bagikan
           </button>
+          <button
+            type="button"
+            onClick={() => setReportOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-slate-400 hover:text-red-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
+          >
+            Laporkan
+          </button>
         </div>
       </div>
+
+      <ReportModal
+        open={reportOpen}
+        title={kost.title}
+        type="kost"
+        id={kost.id}
+        onClose={() => setReportOpen(false)}
+      />
 
       {/* Main 2-column layout. Pricing sits below gallery on mobile via order. */}
       <div className="mt-5 grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_350px] lg:gap-8">

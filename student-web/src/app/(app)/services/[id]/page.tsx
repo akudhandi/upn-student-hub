@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
+import { useFavorite } from "@/lib/interactions";
+import ReportModal from "@/components/ReportModal";
+import ReviewsSection from "@/components/ReviewsSection";
 
 // ---------------------------------------------------------------------------
 // API types — shape of GET /api/v1/services/{id} (standard { message, data }
@@ -198,7 +201,8 @@ export default function ServiceDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { isFavorite, toggle: toggleFavorite } = useFavorite("service", id);
+  const [reportOpen, setReportOpen] = useState(false);
   const [chatNotice, setChatNotice] = useState(false);
   const [shareNotice, setShareNotice] = useState<string | null>(null);
 
@@ -477,6 +481,10 @@ export default function ServiceDetailPage() {
               pekerjaan sebelum pembayaran.
             </div>
           </section>
+
+          <div className="mt-5">
+            <ReviewsSection type="service" id={item.id} />
+          </div>
         </div>
 
         {/* Tarif + provider card */}
@@ -534,7 +542,7 @@ export default function ServiceDetailPage() {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsFavorite((v) => !v)}
+                  onClick={() => void toggleFavorite()}
                   aria-pressed={isFavorite}
                   aria-label={isFavorite ? `Hapus ${item.title} dari favorit` : `Simpan ${item.title} ke favorit`}
                   className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
@@ -559,6 +567,13 @@ export default function ServiceDetailPage() {
                   Bagikan
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={() => setReportOpen(true)}
+                className="w-full text-center text-[11px] font-medium text-slate-400 hover:text-red-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+              >
+                Laporkan postingan ini
+              </button>
               {shareNotice && (
                 <p role="status" className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-500">
                   {shareNotice}
@@ -568,6 +583,14 @@ export default function ServiceDetailPage() {
           </div>
         </aside>
       </div>
+
+      <ReportModal
+        open={reportOpen}
+        title={item.title}
+        type="service"
+        id={item.id}
+        onClose={() => setReportOpen(false)}
+      />
 
       {/* Related services */}
       {related.length > 0 && (

@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
+import { useFavorite } from "@/lib/interactions";
+import ReportModal from "@/components/ReportModal";
+import ReviewsSection from "@/components/ReviewsSection";
 
 // ---------------------------------------------------------------------------
 // API types — shape of GET /api/v1/marketplace/{id} (standard { message, data }
@@ -147,7 +150,8 @@ export default function MarketplaceDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { isFavorite, toggle: toggleFavorite } = useFavorite("marketplace", id);
+  const [reportOpen, setReportOpen] = useState(false);
   const [chatNotice, setChatNotice] = useState(false);
 
   const loadDetail = useCallback(async (itemId: string, signal?: AbortSignal) => {
@@ -361,6 +365,10 @@ export default function MarketplaceDetailPage() {
               COD di area kampus UPN (mis. Perpustakaan Pusat / Gazebo fakultas) sesuai kesepakatan dengan penjual demi keamanan bersama.
             </div>
           </section>
+
+          <div className="mt-5">
+            <ReviewsSection type="marketplace" id={item.id} />
+          </div>
         </div>
 
         {/* Seller card */}
@@ -395,7 +403,7 @@ export default function MarketplaceDetailPage() {
             )}
             <button
               type="button"
-              onClick={() => setIsFavorite((v) => !v)}
+              onClick={() => void toggleFavorite()}
               aria-pressed={isFavorite}
               aria-label={isFavorite ? `Hapus ${item.title} dari favorit` : `Simpan ${item.title} ke favorit`}
               className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
@@ -405,9 +413,24 @@ export default function MarketplaceDetailPage() {
               </svg>
               {isFavorite ? "Tersimpan ke Favorit" : "Simpan ke Favorit"}
             </button>
+            <button
+              type="button"
+              onClick={() => setReportOpen(true)}
+              className="w-full text-center text-[11px] font-medium text-slate-400 hover:text-red-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+            >
+              Laporkan postingan ini
+            </button>
           </div>
         </aside>
       </div>
+
+      <ReportModal
+        open={reportOpen}
+        title={item.title}
+        type="marketplace"
+        id={item.id}
+        onClose={() => setReportOpen(false)}
+      />
 
       {/* Related items */}
       {related.length > 0 && (

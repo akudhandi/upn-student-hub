@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
+import { useFavorite } from "@/lib/interactions";
+import ReportModal from "@/components/ReportModal";
 
 // ---------------------------------------------------------------------------
 // API types — shape of GET /api/v1/lost-found/{id} (standard { message, data }
@@ -146,7 +148,8 @@ export default function LostFoundDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { isFavorite, toggle: toggleFavorite } = useFavorite("lostfound", id);
+  const [reportOpen, setReportOpen] = useState(false);
   const [claimNotice, setClaimNotice] = useState(false);
   const [shareNotice, setShareNotice] = useState<string | null>(null);
 
@@ -524,7 +527,7 @@ export default function LostFoundDetailPage() {
             <div className="mt-3 flex gap-2">
               <button
                 type="button"
-                onClick={() => setIsFavorite((v) => !v)}
+                onClick={() => void toggleFavorite()}
                 aria-pressed={isFavorite}
                 aria-label={isFavorite ? `Hapus ${item.title} dari favorit` : `Simpan ${item.title} ke favorit`}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
@@ -548,9 +551,24 @@ export default function LostFoundDetailPage() {
                 {shareNotice}
               </p>
             )}
+            <button
+              type="button"
+              onClick={() => setReportOpen(true)}
+              className="mt-2 w-full text-center text-[11px] font-medium text-slate-400 hover:text-red-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+            >
+              Laporkan postingan ini
+            </button>
           </aside>
         </div>
       </div>
+
+      <ReportModal
+        open={reportOpen}
+        title={item.title}
+        type="lostfound"
+        id={item.id}
+        onClose={() => setReportOpen(false)}
+      />
     </div>
   );
 }
