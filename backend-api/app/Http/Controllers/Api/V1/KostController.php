@@ -50,6 +50,7 @@ class KostController extends Controller
         $query = KostListing::query()
             ->with([
                 'user:id,name',
+                'images',
             ])
             ->where('status', 'available')
             ->latest();
@@ -74,6 +75,7 @@ class KostController extends Controller
         try {
             $query = KostListing::query()->with([
                 'user:id,name',
+                'images',
             ]);
 
             if (is_numeric($idOrSlug)) {

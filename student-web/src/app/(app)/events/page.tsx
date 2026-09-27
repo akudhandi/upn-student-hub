@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import ListingImage from "@/components/ListingImage";
+import type { ApiImage } from "@/lib/images";
 
 // ---------------------------------------------------------------------------
 // API types — shape of GET /api/v1/events (Laravel paginator wrapped in
@@ -22,6 +24,7 @@ type ApiEventItem = {
   created_at: string;
   user?: { id: number; name: string } | null;
   category?: { id: number; name: string; slug: string } | null;
+  images?: ApiImage[] | null;
 };
 
 type EventListResponse = {
@@ -67,19 +70,28 @@ function formatShortDate(isoDate: string): string {
   });
 }
 
-function PosterPlaceholder({ title, tall }: { title: string; tall?: boolean }) {
+function PosterPlaceholder({
+  title,
+  tall,
+  seed,
+  hint,
+  images,
+}: {
+  title: string;
+  tall?: boolean;
+  seed: string | number;
+  hint?: string | null;
+  images?: ApiImage[] | null;
+}) {
   return (
-    <div
-      className={`relative flex items-center justify-center overflow-hidden bg-[#1F3A5F] ${tall ? "aspect-[16/10] sm:aspect-auto sm:h-full sm:min-h-[220px]" : "aspect-[16/9]"}`}
-      role="img"
-      aria-label={`Poster ${title}`}
-    >
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-white/40">
-        <rect x="2" y="4" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.3" />
-        <path d="M2 9H22" stroke="currentColor" strokeWidth="1.3" />
-        <path d="M6 21H18" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-      </svg>
-    </div>
+    <ListingImage
+      module="event"
+      seed={seed}
+      hint={hint ?? title}
+      images={images}
+      alt={`Poster ${title}`}
+      className={`w-full bg-[#1F3A5F] object-cover ${tall ? "aspect-[16/10] sm:aspect-auto sm:h-full sm:min-h-[220px]" : "aspect-[16/9]"}`}
+    />
   );
 }
 
@@ -302,7 +314,7 @@ export default function EventsPage() {
             {featured && (
               <article className="grid grid-cols-1 gap-0 overflow-hidden rounded-xl border border-gray-200 bg-white transition-colors hover:border-slate-300 focus-within:ring-2 focus-within:ring-[#002147] focus-within:ring-offset-2 lg:grid-cols-2">
                 <Link href={`/events/${featured.id}`} aria-label={`Lihat detail ${featured.title}`} className="focus:outline-none">
-                  <PosterPlaceholder title={featured.title} tall />
+                  <PosterPlaceholder title={featured.title} tall seed={featured.id} hint={`${featured.category?.name ?? ""} ${featured.title}`} images={featured.images} />
                 </Link>
                 <div className="flex min-w-0 flex-col p-5 sm:p-6">
                   <p className="text-[11px] font-bold text-teal-700">
@@ -352,7 +364,7 @@ export default function EventsPage() {
                     >
                       <Link href={`/events/${item.id}`} aria-label={`Lihat detail ${item.title}`} className="focus:outline-none">
                         <span className="block">
-                          <PosterPlaceholder title={item.title} />
+                          <PosterPlaceholder title={item.title} seed={item.id} hint={`${item.category?.name ?? ""} ${item.title}`} images={item.images} />
                         </span>
                       </Link>
                       <div className="flex flex-1 flex-col p-4">

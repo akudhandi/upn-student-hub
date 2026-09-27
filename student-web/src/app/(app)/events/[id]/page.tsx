@@ -6,6 +6,8 @@ import { useParams, useRouter } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
 import { useFavorite } from "@/lib/interactions";
 import ReportModal from "@/components/ReportModal";
+import ListingImage from "@/components/ListingImage";
+import type { ApiImage } from "@/lib/images";
 
 // ---------------------------------------------------------------------------
 // API types — shape of GET /api/v1/events/{id} (standard { message, data }
@@ -44,6 +46,7 @@ type ApiEventDetail = {
   status: string;
   created_at: string;
   user?: { id: number; name: string } | null;
+  images?: ApiImage[] | null;
   category?: { id: number; name: string; slug: string } | null;
 };
 
@@ -311,16 +314,16 @@ export default function EventDetailPage() {
         <div className="min-w-0 space-y-5">
           {/* Hero */}
           <section aria-label="Banner acara" className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-            <div
-              className="relative flex aspect-[16/7] items-center justify-center bg-[#1F3A5F]"
-              role="img"
-              aria-label={`Banner ${item.title}`}
-            >
-              <svg width="56" height="56" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-white/40">
-                <rect x="2" y="4" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.3" />
-                <path d="M2 9H22" stroke="currentColor" strokeWidth="1.3" />
-                <path d="M6 21H18" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-              </svg>
+            <div className="relative overflow-hidden">
+              <ListingImage
+                module="event"
+                seed={item.id}
+                hint={item.title}
+                images={item.images}
+                alt={`Banner ${item.title}`}
+                eager
+                className="aspect-[16/7] w-full object-cover"
+              />
               <span className="absolute bottom-3 left-3 rounded-md bg-slate-900/80 px-2 py-1 text-[11px] font-semibold text-white">
                 📍 {item.location}
               </span>

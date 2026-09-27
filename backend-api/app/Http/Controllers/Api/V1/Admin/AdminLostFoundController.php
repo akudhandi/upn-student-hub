@@ -21,7 +21,7 @@ class AdminLostFoundController extends Controller
         ]);
 
         $query = LostFoundReport::query()
-            ->with(['user:id,name', 'category:id,name,slug'])
+            ->with(['user:id,name', 'category:id,name,slug', 'images'])
             ->withCount('reports')
             ->latest();
 

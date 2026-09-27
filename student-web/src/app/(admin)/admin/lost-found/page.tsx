@@ -12,6 +12,8 @@ import {
   TableLoading,
   type PillTone,
 } from "@/components/admin-ui";
+import ListingImage from "@/components/ListingImage";
+import type { ApiImage } from "@/lib/images";
 
 type LostFoundItem = {
   id: number;
@@ -23,6 +25,7 @@ type LostFoundItem = {
   deleted_at?: string | null;
   reports_count?: number;
   user?: { id: number; name: string } | null;
+  images?: ApiImage[] | null;
 };
 
 type ListResponse = {
@@ -146,7 +149,7 @@ export default function AdminLostFoundPage() {
         ) : (
           <>
             <p className="mb-2 text-xs text-slate-500" role="status">Menampilkan {items.length} dari {total} laporan</p>
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <div className="admin-table-wrap admin-table overflow-auto rounded-xl border border-slate-200 bg-white">
               <table className="w-full min-w-[920px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
@@ -169,8 +172,18 @@ export default function AdminLostFoundPage() {
                     const resolved = ["resolved", "closed"].includes(item.status);
                     return (
                       <tr key={item.id} className="align-top hover:bg-slate-50/60">
-                        <td className="max-w-[220px] px-4 py-3 text-[13px] font-semibold text-slate-900">
-                          <p className="line-clamp-2">{item.title}</p>
+                        <td className="max-w-[260px] px-4 py-3 text-[13px] font-semibold text-slate-900">
+                          <div className="flex items-start gap-3">
+                            <ListingImage
+                              module="lostfound"
+                              seed={item.id}
+                              hint={`${item.type} ${item.title}`}
+                              images={item.images}
+                              alt={`Foto ${item.title}`}
+                              className="h-11 w-11 shrink-0 rounded-lg object-cover"
+                            />
+                            <p className="line-clamp-2 min-w-0">{item.title}</p>
+                          </div>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3">
                           <StatusPill tone={item.type === "lost" ? "red" : "blue"}>

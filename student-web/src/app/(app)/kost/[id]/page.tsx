@@ -6,6 +6,8 @@ import { useParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
 import { useFavorite } from "@/lib/interactions";
 import ChatButton from "@/components/ChatButton";
+import ListingImage from "@/components/ListingImage";
+import type { ApiImage } from "@/lib/images";
 import ReportModal from "@/components/ReportModal";
 
 // ---------------------------------------------------------------------------
@@ -26,6 +28,7 @@ type ApiKostDetail = {
   status: string;
   created_at: string;
   user?: { id: number; name: string } | null;
+  images?: ApiImage[] | null;
 };
 
 type KostDetailResponse = {
@@ -38,8 +41,6 @@ const GENDER_LABELS: Record<string, string> = {
   putri: "Putri",
   campur: "Campur",
 };
-
-const GALLERY_TONES = ["#E7ECF2", "#EFE9DF", "#E8F0E9", "#E9EAF3", "#F0E8E4"];
 
 function formatRupiah(value: number | string): string {
   return new Intl.NumberFormat("id-ID", {
@@ -69,29 +70,29 @@ function CheckIcon() {
   );
 }
 
-function GalleryPlaceholder({ label, tone, large }: { label: string; tone: string; large?: boolean }) {
+function GalleryPlaceholder({
+  label,
+  large,
+  seed,
+  hint,
+  images,
+}: {
+  label: string;
+  large?: boolean;
+  seed: string | number;
+  hint?: string | null;
+  images?: ApiImage[] | null;
+}) {
   return (
-    <div
-      className={`flex items-center justify-center ${large ? "aspect-[16/9]" : "aspect-[4/3]"}`}
-      style={{ backgroundColor: tone }}
-      role="img"
-      aria-label={label}
-    >
-      <svg
-        width={large ? "56" : "32"}
-        height={large ? "56" : "32"}
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-        className="text-slate-500/70"
-      >
-        <rect x="3" y="7" width="18" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
-        <path d="M3 11H21" stroke="currentColor" strokeWidth="1.3" />
-        <path d="M6 7V5.5C6 4.7 6.7 4 7.5 4H11V7" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-        <path d="M5 17V18.5M19 17V18.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-        <rect x="14.5" y="12.5" width="4" height="3" rx="0.5" stroke="currentColor" strokeWidth="1.1" />
-      </svg>
-    </div>
+    <ListingImage
+      module="kost"
+      seed={seed}
+      hint={hint}
+      images={images}
+      alt={label}
+      eager={large}
+      className={`w-full bg-[#E7ECF2] object-cover ${large ? "aspect-[16/9]" : "aspect-[4/3]"}`}
+    />
   );
 }
 
@@ -416,12 +417,23 @@ export default function KostDetailPage() {
         {/* Gallery + facility highlights */}
         <section aria-label="Galeri foto kost" className="order-1 min-w-0 lg:col-start-1 lg:row-start-1">
           <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-            <GalleryPlaceholder label={`Foto utama ${kost.title}`} tone={GALLERY_TONES[0]} large />
+            <GalleryPlaceholder
+              label={`Foto utama ${kost.title}`}
+              large
+              seed={kost.id}
+              hint={kost.title}
+              images={kost.images}
+            />
           </div>
           <div className="mt-3 grid grid-cols-4 gap-3">
-            {GALLERY_TONES.slice(1).map((tone, i) => (
-              <div key={tone} className="overflow-hidden rounded-md border border-gray-200 bg-white">
-                <GalleryPlaceholder label={`Foto ${i + 2} ${kost.title}`} tone={tone} />
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="overflow-hidden rounded-md border border-gray-200 bg-white">
+                <GalleryPlaceholder
+                  label={`Foto ${i + 2} ${kost.title}`}
+                  seed={`${kost.id}-t${i}`}
+                  hint={kost.title}
+                  images={kost.images?.slice(i, i + 1)}
+                />
               </div>
             ))}
           </div>

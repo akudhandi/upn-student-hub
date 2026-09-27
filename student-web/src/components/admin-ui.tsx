@@ -153,3 +153,122 @@ export function TableEmpty({ title, description }: { title: string; description:
     </div>
   );
 }
+
+export function Pagination({
+  page,
+  lastPage,
+  total,
+  unit,
+  onChange,
+}: {
+  page: number;
+  lastPage: number;
+  total: number;
+  unit: string;
+  onChange: (page: number) => void;
+}) {
+  if (lastPage <= 1) return null;
+  return (
+    <nav aria-label="Navigasi halaman" className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
+      <p className="text-xs text-slate-500" role="status">
+        Halaman {page} dari {lastPage} • {total.toLocaleString("id-ID")} {unit}
+      </p>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          disabled={page <= 1}
+          onClick={() => onChange(page - 1)}
+          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2342] focus-visible:ring-offset-2"
+        >
+          ← Sebelumnya
+        </button>
+        <button
+          type="button"
+          disabled={page >= lastPage}
+          onClick={() => onChange(page + 1)}
+          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2342] focus-visible:ring-offset-2"
+        >
+          Berikutnya →
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+// Slide-over drawer for detail inspection with an action toolbar.
+// Used for user profiles, report evidence, and listing previews.
+export function AdminDrawer({
+  title,
+  description,
+  onClose,
+  actions,
+  children,
+}: {
+  title: string;
+  description?: string;
+  onClose: () => void;
+  actions?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const titleId = "admin-drawer-title";
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    panelRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50" role="presentation">
+      <button
+        aria-label="Tutup panel detail"
+        className="absolute inset-0 h-full w-full cursor-default bg-slate-900/40"
+        onClick={onClose}
+      />
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-xl focus:outline-none"
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+          <div className="min-w-0">
+            <h2 id={titleId} className="truncate text-base font-bold text-slate-900">
+              {title}
+            </h2>
+            {description ? <p className="mt-0.5 line-clamp-2 text-[13px] text-slate-500">{description}</p> : null}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Tutup panel detail"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2342]"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
+        {actions && (
+          <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3.5">
+            {actions}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -75,13 +75,48 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 }
 
-function StatCard({ title, value, href, actionLabel }: { title: string; value: number | null; href: string; actionLabel: string }) {
+function StatCard({
+  title,
+  value,
+  href,
+  actionLabel,
+  sharePct,
+  warning,
+}: {
+  title: string;
+  value: number | null;
+  href: string;
+  actionLabel: string;
+  /** Share of total platform content, rendered as a progress bar (0-100). */
+  sharePct?: number;
+  /** Pending count that triggers a warning badge when > 0. */
+  warning?: number;
+}) {
+  const pct = Math.max(0, Math.min(100, sharePct ?? 0));
   return (
-    <section aria-label={title} className="rounded-xl border border-slate-200 bg-white p-5">
-      <h2 className="text-[13px] font-semibold text-slate-600">{title}</h2>
+    <section
+      aria-label={title}
+      className={`rounded-xl border bg-white p-5 ${warning ? "border-amber-300" : "border-slate-200"}`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <h2 className="text-[13px] font-semibold text-slate-600">{title}</h2>
+        {typeof warning === "number" && warning > 0 && (
+          <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800">
+            {warning} pending
+          </span>
+        )}
+      </div>
       <p className="mt-2 text-[28px] font-bold leading-none tracking-tight text-slate-900" role="status">
         {value === null ? "…" : value.toLocaleString("id-ID")}
       </p>
+      {sharePct !== undefined && (
+        <div className="mt-3" role="img" aria-label={`${title}: ${pct.toFixed(0)} persen dari total konten`}>
+          <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full rounded-full bg-[#0A2342]" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="mt-1 text-[11px] text-slate-500">{pct.toFixed(1)}% dari total konten</p>
+        </div>
+      )}
       <Link
         href={href}
         className="mt-3 inline-block text-[13px] font-semibold text-[#0A2342] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2342] focus-visible:ring-offset-2"
@@ -89,6 +124,34 @@ function StatCard({ title, value, href, actionLabel }: { title: string; value: n
         {actionLabel} →
       </Link>
     </section>
+  );
+}
+
+function DashboardCards({ stats }: { stats: DashboardStats }) {
+  const totalContent =
+    stats.counts.marketplace +
+    stats.counts.services +
+    stats.counts.kost +
+    stats.counts.lost_found +
+    stats.counts.events;
+  const share = (n: number) => (totalContent > 0 ? (n / totalContent) * 100 : 0);
+
+  return (
+    <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <StatCard title="Total Users" value={stats.counts.users} href="/admin/users" actionLabel="Kelola users" warning={stats.needs_attention.reported_users} />
+      <StatCard title="Marketplace" value={stats.counts.marketplace} href="/admin/marketplace" actionLabel="Moderasi" sharePct={share(stats.counts.marketplace)} />
+      <StatCard title="Jasa Mahasiswa" value={stats.counts.services} href="/admin/services" actionLabel="Moderasi" sharePct={share(stats.counts.services)} />
+      <StatCard title="Kost" value={stats.counts.kost} href="/admin/kost" actionLabel="Moderasi" sharePct={share(stats.counts.kost)} />
+      <StatCard title="Lost & Found" value={stats.counts.lost_found} href="/admin/lost-found" actionLabel="Moderasi" sharePct={share(stats.counts.lost_found)} />
+      <StatCard
+        title="Event & Informasi"
+        value={stats.counts.events}
+        href="/admin/events"
+        actionLabel="Kelola event"
+        sharePct={share(stats.counts.events)}
+        warning={stats.needs_attention.pending_events}
+      />
+    </div>
   );
 }
 
@@ -156,14 +219,7 @@ export default function AdminDashboardPage() {
         </div>
       ) : (
         <>
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <StatCard title="Total Users" value={stats.counts.users} href="/admin/users" actionLabel="Kelola users" />
-            <StatCard title="Marketplace" value={stats.counts.marketplace} href="/admin/marketplace" actionLabel="Moderasi" />
-            <StatCard title="Jasa Mahasiswa" value={stats.counts.services} href="/admin/services" actionLabel="Moderasi" />
-            <StatCard title="Kost" value={stats.counts.kost} href="/admin/kost" actionLabel="Moderasi" />
-            <StatCard title="Lost & Found" value={stats.counts.lost_found} href="/admin/lost-found" actionLabel="Moderasi" />
-            <StatCard title="Event & Informasi" value={stats.counts.events} href="/admin/events" actionLabel="Kelola event" />
-          </div>
+          <DashboardCards stats={stats} />
 
           <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
             <section aria-label="Perlu perhatian" className="rounded-xl border border-amber-200 bg-white p-5">

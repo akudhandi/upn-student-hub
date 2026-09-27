@@ -142,10 +142,16 @@ function AdminNavLink({ item, isActive, onNavigate }: { item: NavItem; isActive:
       href={item.href}
       onClick={onNavigate}
       aria-current={isActive ? "page" : undefined}
-      className={`flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-medium transition-colors ${
+      className={`relative flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-medium transition-colors ${
         isActive ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5 hover:text-white"
       }`}
     >
+      <span
+        aria-hidden="true"
+        className={`absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-white transition-opacity ${
+          isActive ? "opacity-100" : "opacity-0"
+        }`}
+      />
       <span className={isActive ? "text-white" : "text-slate-400"}>{item.icon}</span>
       <span className="flex-1">{item.label}</span>
     </Link>
@@ -238,9 +244,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               BAAK • Kemahasiswaan
             </span>
           </div>
-          <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
-            Mode Admin
+          <span className="hidden shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 md:inline-flex">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#0A2342] text-[9px] font-bold text-white">
+              A
+            </span>
+            Administrator
           </span>
+          <Link
+            href="/"
+            className="shrink-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2342] focus-visible:ring-offset-2"
+          >
+            Lihat Portal →
+          </Link>
         </header>
 
         <main className="mx-auto max-w-[1180px] px-4 py-6 lg:px-6">{children}</main>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { getToken, clearAuth, getUser, type AuthUser } from "@/lib/auth";
+import DevUserSwitcher from "@/components/DevUserSwitcher";
 
 type NavItem = {
   label: string;
@@ -353,6 +354,7 @@ export default function AppLayout({
 
           {/* Right actions */}
           <div className="flex items-center gap-2 sm:gap-3">
+            <DevUserSwitcher />
             <button
               type="button"
               aria-label="Notifikasi"

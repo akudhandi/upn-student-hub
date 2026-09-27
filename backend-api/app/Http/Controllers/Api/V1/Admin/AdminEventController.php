@@ -25,6 +25,7 @@ class AdminEventController extends Controller
             ->with([
                 'user:id,name',
                 'category:id,name,slug',
+                'images',
             ])
             ->latest();
 
@@ -72,7 +73,7 @@ class AdminEventController extends Controller
     public function show(string $id): JsonResponse
     {
         try {
-            $event = Event::with(['user:id,name', 'category:id,name,slug'])
+            $event = Event::with(['user:id,name', 'category:id,name,slug', 'images'])
                 ->where('id', $id)
                 ->firstOrFail();
         } catch (ModelNotFoundException $e) {

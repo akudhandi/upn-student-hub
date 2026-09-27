@@ -69,6 +69,7 @@ class EventController extends Controller
             ->with([
                 'user:id,name',
                 'category:id,name,slug',
+                'images',
             ])
             ->orderBy('event_date', 'asc');
 

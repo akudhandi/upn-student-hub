@@ -20,7 +20,7 @@ class AdminServiceController extends Controller
         ]);
 
         $query = ServiceListing::query()
-            ->with(['user:id,name', 'category:id,name,slug'])
+            ->with(['user:id,name', 'category:id,name,slug', 'images'])
             ->withCount('reports')
             ->latest();
 

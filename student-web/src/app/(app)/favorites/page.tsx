@@ -8,6 +8,8 @@ import {
   type FavoriteEntry,
   type InteractableType,
 } from "@/lib/interactions";
+import ListingImage from "@/components/ListingImage";
+import type { ImageModule } from "@/lib/images";
 
 type SavedItemType = InteractableType;
 
@@ -173,16 +175,6 @@ function IconCap() {
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
       <path d="M8 3L2 5.5L8 8L14 5.5L8 3Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
       <path d="M4 7V10.5C4 11.3 5.8 12.5 8 12.5C10.2 12.5 12 11.3 12 10.5V7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconImage() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="9" cy="10" r="1.8" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M4.5 17.5L10 12.5L14 16L16.5 13.5L19.5 16.5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -368,10 +360,14 @@ export default function FavoritesPage() {
                 className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white"
               >
                 {/* Image placeholder */}
-                <div className="relative aspect-[4/3] bg-slate-100">
-                  <div className="flex h-full w-full items-center justify-center text-slate-300">
-                    <IconImage />
-                  </div>
+                <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                  <ListingImage
+                    module={item.type as ImageModule}
+                    seed={item.refId}
+                    hint={`${item.badge} ${item.title}`}
+                    alt={`Foto ${item.title}`}
+                    className="h-full w-full object-cover"
+                  />
                   <span className="absolute left-3 top-3 max-w-[60%] truncate rounded-md bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-slate-800">
                     {item.badge}
                   </span>

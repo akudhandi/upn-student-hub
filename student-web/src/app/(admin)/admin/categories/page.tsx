@@ -177,7 +177,7 @@ export default function AdminCategoriesPage() {
         ) : items.length === 0 ? (
           <TableEmpty title="Belum ada kategori" description="Tambahkan kategori pertama untuk modul ini." />
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <div className="admin-table-wrap admin-table overflow-auto rounded-xl border border-slate-200 bg-white">
             <table className="w-full min-w-[640px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">

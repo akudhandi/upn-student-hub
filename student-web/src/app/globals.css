@@ -39,3 +39,16 @@
     animation: none;
   }
 }
+
+/* Admin data tables: contained scroll area with sticky header row. */
+.admin-table-wrap {
+  max-height: 68vh;
+  overflow: auto;
+}
+
+.admin-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: #f8fafc;
+}

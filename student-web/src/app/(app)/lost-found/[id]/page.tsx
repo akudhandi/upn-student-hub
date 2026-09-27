@@ -6,6 +6,8 @@ import { useParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
 import { useFavorite } from "@/lib/interactions";
 import ChatButton from "@/components/ChatButton";
+import ListingImage from "@/components/ListingImage";
+import type { ApiImage } from "@/lib/images";
 import ReportModal from "@/components/ReportModal";
 
 // ---------------------------------------------------------------------------
@@ -24,6 +26,7 @@ type ApiLostFoundDetail = {
   status: string;
   created_at: string;
   user?: { id: number; name: string } | null;
+  images?: ApiImage[] | null;
   category?: { id: number; name: string; slug: string } | null;
 };
 
@@ -331,16 +334,16 @@ export default function LostFoundDetailPage() {
             </p>
 
             {/* Photo placeholder */}
-            <div
-              className="relative mt-4 flex aspect-[16/8] items-center justify-center overflow-hidden rounded-xl bg-[#E9EDF2]"
-              role="img"
-              aria-label={`Foto dokumentasi ${item.title}`}
-            >
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-slate-400">
-                <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.3" />
-                <circle cx="9" cy="9" r="2" stroke="currentColor" strokeWidth="1.3" />
-                <path d="M3 16L8.5 11L13 15.5L16 13L21 18" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round" />
-              </svg>
+            <div className="relative mt-4 overflow-hidden rounded-xl">
+              <ListingImage
+                module="lostfound"
+                seed={item.id}
+                hint={`${item.type} ${item.title}`}
+                images={item.images}
+                alt={`Foto dokumentasi ${item.title}`}
+                eager
+                className="aspect-[16/8] w-full object-cover"
+              />
               <span className="absolute bottom-3 left-3 rounded-md bg-slate-900/80 px-2 py-1 text-[11px] font-semibold text-white">
                 Foto Dokumentasi Barang {item.type === "lost" ? "Hilang" : "Temuan"}
               </span>
@@ -430,12 +433,15 @@ export default function LostFoundDetailPage() {
                     className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition-colors hover:border-slate-300 focus-within:ring-2 focus-within:ring-[#002147] focus-within:ring-offset-2"
                   >
                     <Link href={`/lost-found/${entry.id}`} aria-label={`Lihat detail ${entry.title}`}>
-                      <span className={`relative flex aspect-[16/9] items-center justify-center ${entry.type === "lost" ? "bg-[#F3E8C8]" : "bg-[#DDE7F0]"}`}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-slate-400">
-                          <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.3" />
-                          <circle cx="9" cy="9" r="2" stroke="currentColor" strokeWidth="1.3" />
-                          <path d="M3 16L8.5 11L13 15.5L16 13L21 18" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round" />
-                        </svg>
+                      <span className="relative block overflow-hidden">
+                        <ListingImage
+                          module="lostfound"
+                          seed={entry.id}
+                          hint={`${entry.type} ${entry.title}`}
+                          images={entry.images}
+                          alt={`Foto ${entry.title}`}
+                          className="aspect-[16/9] w-full object-cover"
+                        />
                         <span className={`absolute left-2 top-2 rounded px-1.5 py-0.5 text-[10px] font-bold text-white ${entry.type === "lost" ? "bg-amber-500" : "bg-indigo-500"}`}>
                           {entry.type === "lost" ? "Hilang (Dicari)" : "Ditemukan"}
                         </span>

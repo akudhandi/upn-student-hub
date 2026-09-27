@@ -20,7 +20,7 @@ class AdminKostController extends Controller
         ]);
 
         $query = KostListing::query()
-            ->with('user:id,name')
+            ->with(['user:id,name', 'images'])
             ->withCount('reports')
             ->latest();
 

@@ -45,6 +45,7 @@ class MarketplaceController extends Controller
             ->with([
                 'user:id,name',
                 'category:id,name,slug',
+                'images',
             ])
             ->where('status', 'active')
             ->latest()

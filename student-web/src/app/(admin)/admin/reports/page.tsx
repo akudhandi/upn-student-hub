@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
+  AdminDrawer,
   FilterTabs,
-  Modal,
   StatusPill,
   TableEmpty,
   TableError,
@@ -198,7 +198,7 @@ export default function AdminReportsPage() {
         ) : (
           <>
             <p className="mb-2 text-xs text-slate-500" role="status">Menampilkan {items.length} dari {total} laporan</p>
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <div className="admin-table-wrap admin-table overflow-auto rounded-xl border border-slate-200 bg-white">
               <table className="w-full min-w-[860px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
@@ -245,12 +245,20 @@ export default function AdminReportsPage() {
       </div>
 
       {selected && (
-        <Modal
+        <AdminDrawer
           title={`Laporan #${selected.id} • ${targetTypeLabel(selected.reportable_type)}`}
           description={`Dilaporkan oleh ${selected.reporter?.name ?? "pelapor"}${selected.reporter?.email ? ` (${selected.reporter.email})` : ""}`}
           onClose={() => setSelected(null)}
+          actions={
+            <>
+              <Button size="sm" variant="secondary" onClick={() => setSelected(null)}>Batal</Button>
+              <Button size="sm" disabled={actionId === selected.id} onClick={() => void resolveReport()}>
+                {actionId === selected.id ? "Memproses…" : "Konfirmasi tindakan"}
+              </Button>
+            </>
+          }
         >
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <p className="text-sm font-semibold text-slate-900">{targetTitle(selected.reportable ?? null)}</p>
             <p className="mt-1 text-xs text-slate-500">Alasan: {REASON_LABELS[selected.reason] ?? selected.reason}</p>
             {selected.description && <p className="mt-1.5 text-[13px] leading-5 text-slate-700">{selected.description}</p>}
@@ -283,13 +291,7 @@ export default function AdminReportsPage() {
               })}
             </div>
           </fieldset>
-          <div className="mt-4 flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setSelected(null)}>Batal</Button>
-            <Button disabled={actionId === selected.id} onClick={() => void resolveReport()}>
-              {actionId === selected.id ? "Memproses…" : "Konfirmasi tindakan"}
-            </Button>
-          </div>
-        </Modal>
+        </AdminDrawer>
       )}
     </div>
   );

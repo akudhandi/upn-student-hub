@@ -41,9 +41,17 @@ export default function ChatButton({
 
   if (currentUserId !== null && recipientId === currentUserId) {
     return (
-      <p role="note" className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-500">
-        Ini listing Anda sendiri.
-      </p>
+      <span
+        role="note"
+        title="Anda tidak dapat memulai chat dengan diri sendiri"
+        className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-100 px-4 py-2.5 text-[13px] font-semibold text-slate-500"
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" strokeWidth="1.3" />
+          <path d="M3 13.5C3 11 5 9.5 8 9.5C11 9.5 13 11 13 13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+        </svg>
+        Ini Listing Anda
+      </span>
     );
   }
 

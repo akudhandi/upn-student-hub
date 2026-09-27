@@ -4,6 +4,8 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
+import ListingImage from "@/components/ListingImage";
+import type { ApiImage } from "@/lib/images";
 
 // ---------------------------------------------------------------------------
 // API types — shape of GET /api/v1/kost (Laravel paginator wrapped in a
@@ -23,6 +25,7 @@ type ApiKostItem = {
   status: string;
   created_at: string;
   user?: { id: number; name: string } | null;
+  images?: ApiImage[] | null;
 };
 
 type KostListResponse = {
@@ -83,8 +86,6 @@ const FACILITY_OPTIONS = [
   "Parkir Motor",
 ] as const;
 
-const IMAGE_TONES = ["#E7ECF2", "#EFE9DF", "#E8F0E9", "#E9EAF3"];
-
 function formatRupiah(value: number | string): string {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -107,25 +108,6 @@ function facilityMatches(kostFacilities: string[], wanted: string): boolean {
     const n = normalizeFacility(item);
     return n === w || n.includes(w) || w.includes(n);
   });
-}
-
-function RoomPlaceholder({ tone, name }: { tone: string; name: string }) {
-  return (
-    <div
-      className="flex aspect-[16/10] items-center justify-center"
-      style={{ backgroundColor: tone }}
-      role="img"
-      aria-label={`Placeholder foto untuk ${name}`}
-    >
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-slate-500/70">
-        <rect x="3" y="7" width="18" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
-        <path d="M3 11H21" stroke="currentColor" strokeWidth="1.3" />
-        <path d="M6 7V5.5C6 4.7 6.7 4 7.5 4H11V7" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-        <path d="M5 17V18.5M19 17V18.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-        <rect x="14.5" y="12.5" width="4" height="3" rx="0.5" stroke="currentColor" strokeWidth="1.1" />
-      </svg>
-    </div>
-  );
 }
 
 function KostCardSkeleton() {
@@ -662,7 +644,7 @@ function KostContent() {
                 </div>
               ) : (
                 <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {filtered.map((kost, index) => {
+                  {filtered.map((kost) => {
                     const isFavorite = favorites.includes(kost.id);
                     const genderLabel = GENDER_LABELS[kost.gender_type] ?? kost.gender_type;
                     const genderTone = GENDER_BADGE_TONES[kost.gender_type] ?? "bg-slate-100 text-slate-700";
@@ -675,7 +657,14 @@ function KostContent() {
                         className="flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white focus-within:ring-2 focus-within:ring-[#002147] focus-within:ring-offset-2"
                       >
                         <div className="relative">
-                          <RoomPlaceholder tone={IMAGE_TONES[index % IMAGE_TONES.length]} name={kost.title} />
+                          <ListingImage
+                            module="kost"
+                            seed={kost.id}
+                            hint={kost.title}
+                            images={kost.images}
+                            alt={`Foto ${kost.title}`}
+                            className="aspect-[16/10] w-full object-cover"
+                          />
                           <span
                             className={`absolute left-2.5 top-2.5 rounded px-2 py-1 text-[11px] font-semibold ${genderTone}`}
                           >

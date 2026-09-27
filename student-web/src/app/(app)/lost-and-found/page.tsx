@@ -4,6 +4,8 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
+import ListingImage from "@/components/ListingImage";
+import type { ApiImage } from "@/lib/images";
 
 // ---------------------------------------------------------------------------
 // API types — shape of GET /api/v1/lost-found (Laravel paginator wrapped in
@@ -21,6 +23,7 @@ type ApiLostFoundItem = {
   status: string;
   created_at: string;
   user?: { id: number; name: string } | null;
+  images?: ApiImage[] | null;
   category?: { id: number; name: string; slug: string } | null;
 };
 
@@ -132,31 +135,29 @@ function StatusBadge({ type, status }: { type: "lost" | "found"; status: string 
   );
 }
 
-function ItemPhoto({ id, title, type, status }: { id: number; title: string; type: "lost" | "found"; status: string }) {
+function ItemPhoto({
+  id,
+  title,
+  type,
+  status,
+  images,
+}: {
+  id: number;
+  title: string;
+  type: "lost" | "found";
+  status: string;
+  images?: ApiImage[] | null;
+}) {
   return (
-    <div
-      className={`relative flex h-40 w-full shrink-0 items-center justify-center sm:h-auto sm:w-44 ${PHOTO_TONES[id % PHOTO_TONES.length]}`}
-      role="img"
-      aria-label={`Placeholder foto untuk ${title}`}
-    >
-      <svg
-        width="36"
-        height="36"
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-        className="text-slate-400"
-      >
-        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.4" />
-        <circle cx="9" cy="9" r="2" stroke="currentColor" strokeWidth="1.4" />
-        <path
-          d="M3 16.5L8.5 11.5L13 16L15.5 13.5L21 19"
-          stroke="currentColor"
-          strokeWidth="1.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+    <div className={`relative h-40 w-full shrink-0 overflow-hidden sm:h-auto sm:w-44 ${PHOTO_TONES[id % PHOTO_TONES.length]}`}>
+      <ListingImage
+        module="lostfound"
+        seed={id}
+        hint={`${type} ${title}`}
+        images={images}
+        alt={`Foto ${title}`}
+        className="h-40 w-full object-cover sm:h-full sm:min-h-40"
+      />
       <span className="absolute left-2 top-2">
         <StatusBadge type={type} status={status} />
       </span>
@@ -578,7 +579,7 @@ export function LostAndFoundContent() {
                             aria-label={`Lihat detail ${item.title}`}
                             className="shrink-0 focus:outline-none"
                           >
-                            <ItemPhoto id={item.id} title={item.title} type={item.type} status={item.status} />
+                            <ItemPhoto id={item.id} title={item.title} type={item.type} status={item.status} images={item.images} />
                           </Link>
                           <div className="flex min-w-0 flex-1 flex-col p-4">
                             <div className="flex items-start justify-between gap-3">

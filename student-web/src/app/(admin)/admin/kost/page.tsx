@@ -12,6 +12,8 @@ import {
   TableLoading,
   type PillTone,
 } from "@/components/admin-ui";
+import ListingImage from "@/components/ListingImage";
+import type { ApiImage } from "@/lib/images";
 
 type KostItem = {
   id: number;
@@ -23,6 +25,7 @@ type KostItem = {
   deleted_at?: string | null;
   reports_count?: number;
   user?: { id: number; name: string } | null;
+  images?: ApiImage[] | null;
 };
 
 type ListResponse = {
@@ -155,7 +158,7 @@ export default function AdminKostPage() {
         ) : (
           <>
             <p className="mb-2 text-xs text-slate-500" role="status">Menampilkan {items.length} dari {total} kost</p>
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <div className="admin-table-wrap admin-table overflow-auto rounded-xl border border-slate-200 bg-white">
               <table className="w-full min-w-[900px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
@@ -176,9 +179,21 @@ export default function AdminKostPage() {
                     const trashed = Boolean(item.deleted_at);
                     return (
                       <tr key={item.id} className="align-top hover:bg-slate-50/60">
-                        <td className="max-w-[220px] px-4 py-3">
-                          <p className="line-clamp-2 text-[13px] font-semibold text-slate-900">{item.title}</p>
-                          <p className="mt-0.5 text-xs text-slate-400">{formatDate(item.created_at)}</p>
+                        <td className="max-w-[260px] px-4 py-3">
+                          <div className="flex items-start gap-3">
+                            <ListingImage
+                              module="kost"
+                              seed={item.id}
+                              hint={item.title}
+                              images={item.images}
+                              alt={`Foto ${item.title}`}
+                              className="h-11 w-11 shrink-0 rounded-lg object-cover"
+                            />
+                            <div className="min-w-0">
+                              <p className="line-clamp-2 text-[13px] font-semibold text-slate-900">{item.title}</p>
+                              <p className="mt-0.5 text-xs text-slate-400">{formatDate(item.created_at)}</p>
+                            </div>
+                          </div>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-[13px] text-slate-600">{item.user?.name ?? "-"}</td>
                         <td className="max-w-[220px] px-4 py-3 text-[13px] text-slate-600">

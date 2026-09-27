@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  AdminDrawer,
   FilterTabs,
-  Modal,
   StatusPill,
   TableEmpty,
   TableError,
@@ -208,7 +208,7 @@ export default function AdminUsersPage() {
         ) : (
           <>
             <p className="mb-2 text-xs text-slate-500" role="status">Menampilkan {items.length} dari {total} pengguna</p>
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <div className="admin-table-wrap admin-table overflow-auto rounded-xl border border-slate-200 bg-white">
               <table className="w-full min-w-[900px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
@@ -265,13 +265,22 @@ export default function AdminUsersPage() {
       </div>
 
       {detailId !== null && (
-        <Modal
+        <AdminDrawer
           title={detailLoading ? "Memuat detail…" : detailUser ? `Detail ${detailUser.profile?.name || detailUser.name}` : "Detail pengguna"}
           description="Profil, riwayat laporan, dan tindakan akun."
           onClose={() => {
             setDetailId(null);
             setDetail(null);
           }}
+          actions={
+            detail && !detailLoading ? (
+              <>
+                <Button size="sm" variant="secondary" disabled={actionId === detail.user.id} onClick={() => void setStatus(detail.user.id, "suspended")}>Suspend</Button>
+                <Button size="sm" variant="secondary" disabled={actionId === detail.user.id} onClick={() => void setStatus(detail.user.id, "banned")}>Ban</Button>
+                <Button size="sm" disabled={actionId === detail.user.id} onClick={() => void setStatus(detail.user.id, "active")}>Aktifkan kembali</Button>
+              </>
+            ) : undefined
+          }
         >
           {detailLoading ? (
             <div role="status" aria-busy="true" aria-label="Memuat detail pengguna" className="space-y-2">
@@ -283,10 +292,20 @@ export default function AdminUsersPage() {
             <p role="alert" className="text-sm text-red-600">{detailError ?? "Data tidak tersedia."}</p>
           ) : (
             <div className="space-y-4">
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0A2342] text-sm font-bold text-white" role="img" aria-label={`Avatar ${detail.user.profile?.name || detail.user.name}`}>
+                  {initialsOf(detail.user.profile?.name || detail.user.name)}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-[15px] font-bold text-slate-900">{detail.user.profile?.name || detail.user.name}</p>
+                  <p className="truncate text-xs text-slate-500">{detail.user.email}</p>
+                  <div className="mt-1"><StatusPill tone={(STATUS_PILL[detail.user.status] ?? { tone: "slate" }).tone as PillTone}>{(STATUS_PILL[detail.user.status] ?? { label: detail.user.status }).label}</StatusPill></div>
+                </div>
+              </div>
               <dl className="grid grid-cols-2 gap-3 text-sm">
                 <div><dt className="text-xs text-slate-500">NPM</dt><dd className="font-medium text-slate-900">{detail.user.profile?.nim ?? "-"}</dd></div>
-                <div><dt className="text-xs text-slate-500">Email</dt><dd className="font-medium text-slate-900">{detail.user.email}</dd></div>
                 <div><dt className="text-xs text-slate-500">Fakultas</dt><dd className="font-medium text-slate-900">{detail.user.profile?.faculty ?? "-"}</dd></div>
+                <div><dt className="text-xs text-slate-500">Bergabung</dt><dd className="font-medium text-slate-900">{formatDate(detail.user.created_at)}</dd></div>
                 <div><dt className="text-xs text-slate-500">Total listing</dt><dd className="font-medium text-slate-900">{detail.listings_count}</dd></div>
               </dl>
               <div>
@@ -294,7 +313,7 @@ export default function AdminUsersPage() {
                 {detail.reports_history.length === 0 ? (
                   <p className="mt-1 text-xs text-slate-500">Tidak ada riwayat laporan.</p>
                 ) : (
-                  <ul className="mt-2 max-h-40 space-y-1.5 overflow-y-auto">
+                  <ul className="mt-2 space-y-1.5">
                     {detail.reports_history.map((r) => (
                       <li key={r.id} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600">
                         #{r.id} • {r.reason} • {r.status} • {formatDate(r.created_at)}
@@ -303,14 +322,9 @@ export default function AdminUsersPage() {
                   </ul>
                 )}
               </div>
-              <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-                <Button size="sm" variant="secondary" disabled={actionId === detail.user.id} onClick={() => void setStatus(detail.user.id, "suspended")}>Suspend</Button>
-                <Button size="sm" variant="secondary" disabled={actionId === detail.user.id} onClick={() => void setStatus(detail.user.id, "banned")}>Ban</Button>
-                <Button size="sm" disabled={actionId === detail.user.id} onClick={() => void setStatus(detail.user.id, "active")}>Aktifkan kembali</Button>
-              </div>
             </div>
           )}
-        </Modal>
+        </AdminDrawer>
       )}
     </div>
   );

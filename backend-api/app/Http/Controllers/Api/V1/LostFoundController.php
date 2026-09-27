@@ -48,6 +48,7 @@ class LostFoundController extends Controller
             ->with([
                 'user:id,name',
                 'category:id,name,slug',
+                'images',
             ])
             ->latest();
 

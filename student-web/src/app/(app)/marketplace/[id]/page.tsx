@@ -6,6 +6,8 @@ import { useParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
 import { useFavorite } from "@/lib/interactions";
 import ChatButton from "@/components/ChatButton";
+import ListingImage from "@/components/ListingImage";
+import type { ApiImage } from "@/lib/images";
 import ReportModal from "@/components/ReportModal";
 import ReviewsSection from "@/components/ReviewsSection";
 
@@ -23,6 +25,7 @@ type ApiMarketplaceDetail = {
   created_at: string;
   user?: { id: number; name: string } | null;
   category?: { id: number; name: string; slug: string } | null;
+  images?: ApiImage[] | null;
 };
 
 type MarketplaceDetailResponse = {
@@ -83,26 +86,29 @@ function ownerInitials(name: string): string {
     .toUpperCase();
 }
 
-function GalleryImage({ title, large }: { title: string; large?: boolean }) {
+function GalleryImage({
+  title,
+  large,
+  seed,
+  hint,
+  images,
+}: {
+  title: string;
+  large?: boolean;
+  seed: string | number;
+  hint?: string | null;
+  images?: ApiImage[] | null;
+}) {
   return (
-    <div
-      className={`flex items-center justify-center bg-[#EEF2F7] ${large ? "aspect-[16/10]" : "aspect-[4/3]"}`}
-      role="img"
-      aria-label={`Foto ${title}`}
-    >
-      <svg
-        width={large ? "64" : "32"}
-        height={large ? "64" : "32"}
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-        className="text-slate-400"
-      >
-        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.3" />
-        <circle cx="9" cy="9" r="2" stroke="currentColor" strokeWidth="1.3" />
-        <path d="M3 16L8.5 11L13 15.5L16 13L21 18" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round" />
-      </svg>
-    </div>
+    <ListingImage
+      module="marketplace"
+      seed={seed}
+      hint={hint}
+      images={images}
+      alt={`Foto ${title}`}
+      eager={large}
+      className={`w-full bg-[#EEF2F7] object-cover ${large ? "aspect-[16/10]" : "aspect-[4/3]"}`}
+    />
   );
 }
 
@@ -288,7 +294,7 @@ export default function MarketplaceDetailPage() {
           {/* Gallery card */}
           <section aria-label="Galeri foto barang" className="overflow-hidden rounded-xl border border-gray-200 bg-white">
             <div className="relative">
-              <GalleryImage title={item.title} large />
+              <GalleryImage title={item.title} large seed={item.id} hint={`${categoryName} ${item.title}`} images={item.images} />
               <div className="absolute left-3 top-3 flex gap-1.5">
                 <span
                   className={`rounded-md px-2 py-1 text-[11px] font-bold ${
@@ -305,7 +311,12 @@ export default function MarketplaceDetailPage() {
             <div className="grid grid-cols-3 gap-3 p-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="overflow-hidden rounded-lg border border-slate-100">
-                  <GalleryImage title={`${item.title} ${i + 1}`} />
+                  <GalleryImage
+                    title={`${item.title} ${i + 1}`}
+                    seed={`${item.id}-t${i}`}
+                    hint={`${categoryName} ${item.title}`}
+                    images={item.images?.slice(i, i + 1)}
+                  />
                 </div>
               ))}
             </div>
@@ -449,7 +460,12 @@ export default function MarketplaceDetailPage() {
                   className="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-colors hover:border-slate-300 focus-within:ring-2 focus-within:ring-[#002147] focus-within:ring-offset-2"
                 >
                   <Link href={`/marketplace/${entry.id}`} aria-label={`Lihat detail ${entry.title}`}>
-                    <GalleryImage title={entry.title} />
+                    <GalleryImage
+                      title={entry.title}
+                      seed={entry.id}
+                      hint={`${entry.category?.name ?? ""} ${entry.title}`}
+                      images={entry.images}
+                    />
                   </Link>
                   <div className="flex flex-1 flex-col px-4 py-3">
                     <h3 className="line-clamp-2 text-[13px] font-semibold leading-5 text-slate-900">

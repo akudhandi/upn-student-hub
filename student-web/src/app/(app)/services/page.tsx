@@ -4,6 +4,8 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
+import ListingImage from "@/components/ListingImage";
+import type { ApiImage } from "@/lib/images";
 
 // ---------------------------------------------------------------------------
 // API types — shape of GET /api/v1/services (Laravel paginator wrapped in
@@ -24,6 +26,7 @@ type ApiServiceItem = {
   created_at: string;
   user?: { id: number; name: string } | null;
   category?: { id: number; name: string; slug: string } | null;
+  images?: ApiImage[] | null;
 };
 
 type ServiceListResponse = {
@@ -530,6 +533,20 @@ function ServicesContent() {
                   key={item.id}
                   className="flex flex-col overflow-hidden rounded-xl border border-gray-200 border-t-4 border-t-gray-200 bg-white transition-colors hover:border-x-gray-300 hover:border-b-gray-300 hover:border-t-teal-500 focus-within:ring-2 focus-within:ring-teal-600 focus-within:ring-offset-2"
                 >
+                  <Link
+                    href={`/services/${item.id}`}
+                    aria-label={`Lihat detail ${item.title}`}
+                    className="focus:outline-none"
+                  >
+                    <ListingImage
+                      module="service"
+                      seed={item.id}
+                      hint={`${categoryName} ${item.title}`}
+                      images={item.images}
+                      alt={`Sampul ${item.title}`}
+                      className="aspect-[16/7] w-full rounded-t-xl object-cover"
+                    />
+                  </Link>
                   <Link
                     href={`/services/${item.id}`}
                     aria-label={`Lihat detail ${item.title}`}

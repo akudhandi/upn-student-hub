@@ -6,6 +6,8 @@ import { useParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
 import { useFavorite } from "@/lib/interactions";
 import ChatButton from "@/components/ChatButton";
+import ListingImage from "@/components/ListingImage";
+import type { ApiImage } from "@/lib/images";
 import ReportModal from "@/components/ReportModal";
 import ReviewsSection from "@/components/ReviewsSection";
 
@@ -28,6 +30,7 @@ type ApiServiceDetail = {
   created_at: string;
   user?: { id: number; name: string } | null;
   category?: { id: number; name: string; slug: string } | null;
+  images?: ApiImage[] | null;
 };
 
 type ServiceDetailResponse = {
@@ -140,18 +143,28 @@ function normalizeWaNumber(raw: string): string | null {
   return null;
 }
 
-function ServiceCover({ category, title }: { category: string; title: string }) {
+function ServiceCover({
+  category,
+  title,
+  seed,
+  images,
+}: {
+  category: string;
+  title: string;
+  seed: string | number;
+  images?: ApiImage[] | null;
+}) {
   return (
-    <div
-      className="relative flex aspect-[16/7] items-center justify-center overflow-hidden bg-teal-700"
-      role="img"
-      aria-label={`Sampul portofolio ${title}`}
-    >
-      <svg width="72" height="72" viewBox="0 0 64 64" fill="none" aria-hidden="true" className="text-teal-100/70">
-        <path d="M32 12L12 20L32 28L52 20L32 12Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-        <path d="M14 34L32 43L50 34" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        <path d="M20 24V34" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </svg>
+    <div className="relative overflow-hidden" role="img" aria-label={`Sampul portofolio ${title}`}>
+      <ListingImage
+        module="service"
+        seed={seed}
+        hint={`${category} ${title}`}
+        images={images}
+        alt={`Sampul portofolio ${title}`}
+        eager
+        className="aspect-[16/7] w-full object-cover"
+      />
       <div className="absolute left-3 top-3 flex gap-1.5">
         <span className="rounded-md bg-white/95 px-2 py-1 text-[11px] font-bold text-teal-800">
           ✓ Jasa Terverifikasi
@@ -368,7 +381,7 @@ export default function ServiceDetailPage() {
 
       {/* Hero header card */}
       <section aria-labelledby="jasa-title" className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
-        <ServiceCover category={categoryName} title={item.title} />
+        <ServiceCover category={categoryName} title={item.title} seed={item.id} images={item.images} />
         <div className="p-5 sm:p-6">
           <p className="text-[11px] font-medium text-slate-500">
             <span className="font-bold text-teal-700">{categoryName}</span>

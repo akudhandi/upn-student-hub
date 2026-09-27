@@ -4,6 +4,8 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
+import ListingImage from "@/components/ListingImage";
+import type { ApiImage } from "@/lib/images";
 
 // ---------------------------------------------------------------------------
 // API types — shape of GET /api/v1/marketplace (Laravel paginator wrapped in
@@ -19,6 +21,7 @@ type ApiMarketplaceItem = {
   created_at: string;
   user?: { id: number; name: string } | null;
   category?: { id: number; name: string; slug: string } | null;
+  images?: ApiImage[] | null;
 };
 
 type MarketplaceListResponse = {
@@ -109,28 +112,6 @@ function formatTimeAgo(isoDate: string): string {
     month: "short",
     year: "numeric",
   });
-}
-
-function ItemImagePlaceholder({ category }: { category: string }) {
-  return (
-    <div className="relative flex aspect-[4/3] items-center justify-center bg-[#EEF2F7]">
-      <svg
-        width="40"
-        height="40"
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-        className="text-slate-400"
-      >
-        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.3" />
-        <circle cx="9" cy="9" r="2" stroke="currentColor" strokeWidth="1.3" />
-        <path d="M3 16L8.5 11L13 15.5L16 13L21 18" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round" />
-      </svg>
-      <span className="absolute right-3 top-3 rounded-md bg-amber-100/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-900 backdrop-blur-sm">
-        {category}
-      </span>
-    </div>
-  );
 }
 
 function SellerAvatar({ name }: { name: string }) {
@@ -514,8 +495,18 @@ function MarketplaceContent() {
                   key={item.id}
                   className="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-colors hover:border-slate-300 focus-within:ring-2 focus-within:ring-[#002147] focus-within:ring-offset-2"
                 >
-                  <Link href={`/marketplace/${item.id}`} aria-label={`Lihat detail ${item.title}`}>
-                    <ItemImagePlaceholder category={categoryName} />
+                  <Link href={`/marketplace/${item.id}`} aria-label={`Lihat detail ${item.title}`} className="relative block">
+                    <ListingImage
+                      module="marketplace"
+                      seed={item.id}
+                      hint={`${categoryName} ${item.title}`}
+                      images={item.images}
+                      alt={`Foto ${item.title}`}
+                      className="aspect-[4/3] w-full object-cover"
+                    />
+                    <span className="absolute right-3 top-3 rounded-md bg-amber-100/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-900 backdrop-blur-sm">
+                      {categoryName}
+                    </span>
                   </Link>
                   <div className="flex flex-1 flex-col px-4 py-3">
                     <h3 className="line-clamp-2 text-[13px] font-semibold leading-5 text-slate-900">

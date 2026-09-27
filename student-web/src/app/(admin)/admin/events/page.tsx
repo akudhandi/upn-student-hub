@@ -14,6 +14,8 @@ import {
   TableLoading,
   type PillTone,
 } from "@/components/admin-ui";
+import ListingImage from "@/components/ListingImage";
+import type { ApiImage } from "@/lib/images";
 
 type AdminEventItem = {
   id: number;
@@ -24,6 +26,7 @@ type AdminEventItem = {
   location: string;
   status: string;
   category?: { id: number; name: string; slug: string } | null;
+  images?: ApiImage[] | null;
 };
 
 type EventListResponse = {
@@ -172,7 +175,7 @@ export default function AdminEventsPage() {
         ) : (
           <>
             <p className="mb-2 text-xs text-slate-500" role="status">Menampilkan {items.length} dari {total} event</p>
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <div className="admin-table-wrap admin-table overflow-auto rounded-xl border border-slate-200 bg-white">
               <table className="w-full min-w-[900px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
@@ -189,9 +192,21 @@ export default function AdminEventsPage() {
                     const busy = actionId === item.id;
                     return (
                       <tr key={item.id} className="align-top hover:bg-slate-50/60">
-                        <td className="max-w-[260px] px-4 py-3">
-                          <p className="line-clamp-2 text-[13px] font-semibold text-slate-900">{item.title}</p>
-                          <p className="mt-0.5 truncate text-xs text-slate-500">{item.organizer_name}</p>
+                        <td className="max-w-[300px] px-4 py-3">
+                          <div className="flex items-start gap-3">
+                            <ListingImage
+                              module="event"
+                              seed={item.id}
+                              hint={item.title}
+                              images={item.images}
+                              alt={`Poster ${item.title}`}
+                              className="h-11 w-11 shrink-0 rounded-lg object-cover"
+                            />
+                            <div className="min-w-0">
+                              <p className="line-clamp-2 text-[13px] font-semibold text-slate-900">{item.title}</p>
+                              <p className="mt-0.5 truncate text-xs text-slate-500">{item.organizer_name}</p>
+                            </div>
+                          </div>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-[13px] text-slate-600">{item.category?.name ?? "-"}</td>
                         <td className="whitespace-nowrap px-4 py-3 text-[13px] text-slate-600">{formatDate(item.event_date)}</td>

@@ -5,17 +5,22 @@ import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  AdminDrawer,
   FilterTabs,
+  Pagination,
   StatusPill,
   TableEmpty,
   TableError,
   TableLoading,
   type PillTone,
 } from "@/components/admin-ui";
+import ListingImage from "@/components/ListingImage";
+import type { ApiImage } from "@/lib/images";
 
 type ListingItem = {
   id: number;
   title: string;
+  description?: string | null;
   price: string | number;
   status: string;
   created_at: string;
@@ -23,6 +28,7 @@ type ListingItem = {
   reports_count?: number;
   user?: { id: number; name: string } | null;
   category?: { id: number; name: string; slug: string } | null;
+  images?: ApiImage[] | null;
 };
 
 type ListResponse = {
@@ -66,11 +72,13 @@ export default function AdminMarketplacePage() {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [items, setItems] = useState<ListingItem[]>([]);
   const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionId, setActionId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState<number | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query.trim()), 400);
@@ -88,6 +96,7 @@ export default function AdminMarketplacePage() {
       if (signal?.aborted) return;
       setItems(res.data.data);
       setPage(res.data.current_page);
+      setLastPage(res.data.last_page);
       setTotal(res.data.total);
     } catch {
       if (signal?.aborted) return;
@@ -124,6 +133,8 @@ export default function AdminMarketplacePage() {
     }
   }
 
+  const preview = previewId !== null ? (items.find((i) => i.id === previewId) ?? null) : null;
+
   return (
     <div>
       <div>
@@ -157,7 +168,7 @@ export default function AdminMarketplacePage() {
         ) : (
           <>
             <p className="mb-2 text-xs text-slate-500" role="status">Menampilkan {items.length} dari {total} listing</p>
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <div className="admin-table-wrap admin-table overflow-auto rounded-xl border border-slate-200 bg-white">
               <table className="w-full min-w-[900px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
@@ -179,9 +190,21 @@ export default function AdminMarketplacePage() {
                     const trashed = Boolean(item.deleted_at);
                     return (
                       <tr key={item.id} className="align-top hover:bg-slate-50/60">
-                        <td className="max-w-[240px] px-4 py-3">
-                          <p className="line-clamp-2 text-[13px] font-semibold text-slate-900">{item.title}</p>
-                          <p className="mt-0.5 text-xs text-slate-400">{formatDate(item.created_at)}</p>
+                        <td className="max-w-[280px] px-4 py-3">
+                          <div className="flex items-start gap-3">
+                            <ListingImage
+                              module="marketplace"
+                              seed={item.id}
+                              hint={`${item.category?.name ?? ""} ${item.title}`}
+                              images={item.images}
+                              alt={`Foto ${item.title}`}
+                              className="h-11 w-11 shrink-0 rounded-lg object-cover"
+                            />
+                            <div className="min-w-0">
+                              <p className="line-clamp-2 text-[13px] font-semibold text-slate-900">{item.title}</p>
+                              <p className="mt-0.5 text-xs text-slate-400">{formatDate(item.created_at)}</p>
+                            </div>
+                          </div>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-[13px] text-slate-600">{item.user?.name ?? "-"}</td>
                         <td className="whitespace-nowrap px-4 py-3 text-[13px] text-slate-600">{item.category?.name ?? "-"}</td>
@@ -190,6 +213,7 @@ export default function AdminMarketplacePage() {
                         <td className="whitespace-nowrap px-4 py-3 text-[13px] text-slate-600">{item.reports_count ?? 0}</td>
                         <td className="whitespace-nowrap px-4 py-3">
                           <div className="flex items-center gap-2">
+                            <Button size="sm" variant="secondary" disabled={busy} onClick={() => setPreviewId(item.id)} aria-label={`Pratinjau ${item.title}`}>Preview</Button>
                             {!trashed && item.status !== "hidden" && (
                               <Button size="sm" variant="secondary" disabled={busy} onClick={() => void runAction(item.id, "hide")} aria-label={`Sembunyikan ${item.title}`}>Hide</Button>
                             )}
@@ -207,9 +231,59 @@ export default function AdminMarketplacePage() {
                 </tbody>
               </table>
             </div>
+            <Pagination
+              page={page}
+              lastPage={lastPage}
+              total={total}
+              unit="listing"
+              onChange={(p) => void loadItems(filter, debouncedQuery, p)}
+            />
           </>
         )}
       </div>
+
+      {preview && (
+        <AdminDrawer
+          title={preview.title}
+          description={`Dijual oleh ${preview.user?.name ?? "-"} • ${preview.category?.name ?? "Tanpa kategori"}`}
+          onClose={() => setPreviewId(null)}
+          actions={
+            <>
+              {!preview.deleted_at && preview.status !== "hidden" && (
+                <Button size="sm" variant="secondary" disabled={actionId === preview.id} onClick={() => void runAction(preview.id, "hide")}>Hide</Button>
+              )}
+              {!preview.deleted_at && (
+                <Button size="sm" variant="secondary" disabled={actionId === preview.id} onClick={() => void runAction(preview.id, "delete")}>Delete</Button>
+              )}
+              {(Boolean(preview.deleted_at) || preview.status === "hidden") && (
+                <Button size="sm" disabled={actionId === preview.id} onClick={() => void runAction(preview.id, "restore")}>Restore</Button>
+              )}
+            </>
+          }
+        >
+          <ListingImage
+            module="marketplace"
+            seed={preview.id}
+            hint={`${preview.category?.name ?? ""} ${preview.title}`}
+            images={preview.images}
+            alt={`Foto ${preview.title}`}
+            eager
+            className="aspect-[4/3] w-full rounded-xl object-cover"
+          />
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <p className="text-lg font-bold text-slate-900">{formatPrice(preview.price)}</p>
+            <StatusPill tone={(STATUS_PILL[preview.status] ?? { tone: "slate" }).tone as PillTone}>
+              {(STATUS_PILL[preview.status] ?? { label: preview.status }).label}
+            </StatusPill>
+          </div>
+          <p className="mt-2 text-[13px] leading-6 text-slate-600">
+            {preview.description ?? "Tidak ada deskripsi."}
+          </p>
+          <p className="mt-2 text-xs text-slate-400">
+            Dilaporkan {preview.reports_count ?? 0} kali • Dibuat {formatDate(preview.created_at)}
+          </p>
+        </AdminDrawer>
+      )}
     </div>
   );
 }
