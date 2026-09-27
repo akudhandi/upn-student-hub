@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\AdminDashboardController;
+use App\Http\Controllers\Api\V1\Admin\AdminEventController;
+use App\Http\Controllers\Api\V1\Admin\AdminReportController;
+use App\Http\Controllers\Api\V1\Admin\AdminUserController;
 use App\Http\Controllers\Api\V1\AdminAuthController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ChatController;
@@ -62,6 +66,17 @@ Route::prefix('v1')->group(function () {
     Route::get('/conversations/{id}', [ChatController::class, 'show']);
     Route::post('/conversations/{id}/messages', [ChatController::class, 'sendMessage']);
     Route::patch('/conversations/{id}/read', [ChatController::class, 'markAsRead']);
+
+    // Admin Portal (dashboard stats, event curation, reports, users)
+    Route::prefix('admin')->group(function () {
+        Route::get('/stats', [AdminDashboardController::class, 'stats']);
+        Route::get('/events', [AdminEventController::class, 'index']);
+        Route::patch('/events/{id}/status', [AdminEventController::class, 'updateStatus']);
+        Route::get('/reports', [AdminReportController::class, 'index']);
+        Route::patch('/reports/{id}/resolve', [AdminReportController::class, 'resolve']);
+        Route::get('/users', [AdminUserController::class, 'index']);
+        Route::patch('/users/{id}/status', [AdminUserController::class, 'toggleStatus']);
+    });
 
     // Admin Authentication Routes
     Route::prefix('admin/auth')->group(function () {
