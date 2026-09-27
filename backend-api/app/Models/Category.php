@@ -14,7 +14,15 @@ class Category extends Model
         'name',
         'slug',
         'type',
+        'is_active',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
 
     public function marketplaceListings(): HasMany
     {

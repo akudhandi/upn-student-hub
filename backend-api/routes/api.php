@@ -1,8 +1,15 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\AdminAnnouncementController;
+use App\Http\Controllers\Api\V1\Admin\AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\AdminEventController;
+use App\Http\Controllers\Api\V1\Admin\AdminKostController;
+use App\Http\Controllers\Api\V1\Admin\AdminLostFoundController;
+use App\Http\Controllers\Api\V1\Admin\AdminMarketplaceController;
 use App\Http\Controllers\Api\V1\Admin\AdminReportController;
+use App\Http\Controllers\Api\V1\Admin\AdminServiceController;
+use App\Http\Controllers\Api\V1\Admin\AdminSettingsController;
 use App\Http\Controllers\Api\V1\Admin\AdminUserController;
 use App\Http\Controllers\Api\V1\AdminAuthController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -67,15 +74,51 @@ Route::prefix('v1')->group(function () {
     Route::post('/conversations/{id}/messages', [ChatController::class, 'sendMessage']);
     Route::patch('/conversations/{id}/read', [ChatController::class, 'markAsRead']);
 
-    // Admin Portal (dashboard stats, event curation, reports, users)
+    // Admin Portal (dashboard, content moderation, events, users, master data)
     Route::prefix('admin')->group(function () {
         Route::get('/stats', [AdminDashboardController::class, 'stats']);
+
+        // Content monitoring & moderation (view, hide, restore, delete).
+        Route::get('/marketplace', [AdminMarketplaceController::class, 'index']);
+        Route::patch('/marketplace/{id}/status', [AdminMarketplaceController::class, 'updateStatus']);
+        Route::get('/services', [AdminServiceController::class, 'index']);
+        Route::patch('/services/{id}/status', [AdminServiceController::class, 'updateStatus']);
+        Route::get('/kost', [AdminKostController::class, 'index']);
+        Route::patch('/kost/{id}/status', [AdminKostController::class, 'updateStatus']);
+        Route::get('/lost-found', [AdminLostFoundController::class, 'index']);
+        Route::patch('/lost-found/{id}/status', [AdminLostFoundController::class, 'updateStatus']);
+
+        // Event & Informasi Kampus (full CRUD + status workflow).
         Route::get('/events', [AdminEventController::class, 'index']);
+        Route::post('/events', [AdminEventController::class, 'store']);
+        Route::get('/events/{id}', [AdminEventController::class, 'show']);
+        Route::put('/events/{id}', [AdminEventController::class, 'update']);
+        Route::delete('/events/{id}', [AdminEventController::class, 'destroy']);
         Route::patch('/events/{id}/status', [AdminEventController::class, 'updateStatus']);
+
+        // Category master data.
+        Route::get('/categories', [AdminCategoryController::class, 'index']);
+        Route::post('/categories', [AdminCategoryController::class, 'store']);
+        Route::put('/categories/{id}', [AdminCategoryController::class, 'update']);
+        Route::delete('/categories/{id}', [AdminCategoryController::class, 'destroy']);
+        Route::patch('/categories/{id}/toggle', [AdminCategoryController::class, 'toggleActive']);
+
+        // Announcements (MVP notification sender).
+        Route::get('/announcements', [AdminAnnouncementController::class, 'index']);
+        Route::post('/announcements', [AdminAnnouncementController::class, 'store']);
+        Route::delete('/announcements/{id}', [AdminAnnouncementController::class, 'destroy']);
+
+        // Users & reports resolution.
         Route::get('/reports', [AdminReportController::class, 'index']);
         Route::patch('/reports/{id}/resolve', [AdminReportController::class, 'resolve']);
         Route::get('/users', [AdminUserController::class, 'index']);
+        Route::get('/users/{id}', [AdminUserController::class, 'show']);
         Route::patch('/users/{id}/status', [AdminUserController::class, 'toggleStatus']);
+
+        // Admin settings & system status.
+        Route::get('/profile', [AdminSettingsController::class, 'profile']);
+        Route::patch('/profile/password', [AdminSettingsController::class, 'updatePassword']);
+        Route::get('/system-status', [AdminSettingsController::class, 'systemStatus']);
     });
 
     // Admin Authentication Routes

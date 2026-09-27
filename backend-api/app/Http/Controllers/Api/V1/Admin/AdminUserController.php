@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Report;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
@@ -16,11 +17,24 @@ class AdminUserController extends Controller
     {
         $validated = $request->validate([
             'search' => 'nullable|string|max:255',
+            'status' => 'nullable|in:active,suspended,banned,inactive',
+            'faculty' => 'nullable|string|max:100',
         ]);
 
         $query = User::query()
             ->with('profile')
             ->latest();
+
+        if (! empty($validated['status'])) {
+            $query->where('status', $validated['status']);
+        }
+
+        if (! empty($validated['faculty'])) {
+            $faculty = (string) $validated['faculty'];
+            $query->whereHas('profile', function ($profile) use ($faculty) {
+                $profile->where('faculty', 'like', "%{$faculty}%");
+            });
+        }
 
         if (! empty($validated['search'])) {
             $keyword = (string) $validated['search'];
@@ -42,10 +56,48 @@ class AdminUserController extends Controller
         ]);
     }
 
+    public function show(string $id): JsonResponse
+    {
+        try {
+            $user = User::with('profile')->where('id', $id)->firstOrFail();
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Data pengguna tidak ditemukan',
+                'data' => null,
+            ], 404);
+        }
+
+        $listingsCount = $user->marketplaceListings()->count()
+            + $user->serviceListings()->count()
+            + $user->kostListings()->count()
+            + $user->lostFoundReports()->count();
+
+        $reportsHistory = Report::with('reporter:id,name')
+            ->where(function ($q) use ($user) {
+                $q->where('reporter_id', $user->id)
+                    ->orWhere(function ($q) use ($user) {
+                        $q->where('reportable_type', User::class)
+                            ->where('reportable_id', $user->id);
+                    });
+            })
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        return response()->json([
+            'message' => 'Detail pengguna berhasil diambil',
+            'data' => [
+                'user' => $user,
+                'listings_count' => $listingsCount,
+                'reports_history' => $reportsHistory,
+            ],
+        ]);
+    }
+
     public function toggleStatus(Request $request, string $id): JsonResponse
     {
         $validated = $request->validate([
-            'status' => 'nullable|in:active,suspended,inactive',
+            'status' => 'nullable|in:active,suspended,banned,inactive',
         ]);
 
         try {

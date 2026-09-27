@@ -17,7 +17,7 @@ class AdminReportController extends Controller
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'status' => 'nullable|in:pending,resolved,dismissed',
+            'status' => 'nullable|in:pending,reviewing,resolved,rejected,dismissed',
         ]);
 
         $query = Report::query()
@@ -42,8 +42,8 @@ class AdminReportController extends Controller
     public function resolve(Request $request, string $id): JsonResponse
     {
         $validated = $request->validate([
-            'status' => 'required|in:resolved,dismissed',
-            'target_action' => 'nullable|in:none,delete,deactivate,suspend_user',
+            'status' => 'required|in:reviewing,resolved,rejected,dismissed',
+            'target_action' => 'nullable|in:none,hide_content,delete_content,suspend_user,ban_user,delete,deactivate',
         ]);
 
         try {
@@ -79,6 +79,13 @@ class AdminReportController extends Controller
 
     private function applyTargetAction(object $target, string $action): void
     {
+        // Canonical moderation verbs used by the admin portal.
+        if ($action === 'hide_content') {
+            $action = 'deactivate';
+        } elseif ($action === 'delete_content') {
+            $action = 'delete';
+        }
+
         if ($action === 'delete') {
             $target->delete();
 
@@ -103,16 +110,18 @@ class AdminReportController extends Controller
             return;
         }
 
-        if ($action === 'suspend_user') {
+        if ($action === 'suspend_user' || $action === 'ban_user') {
+            $status = $action === 'ban_user' ? 'banned' : 'suspended';
+
             if ($target instanceof User) {
-                $target->update(['status' => 'suspended']);
+                $target->update(['status' => $status]);
 
                 return;
             }
 
             $owner = $target->user ?? null;
             if ($owner instanceof User) {
-                $owner->update(['status' => 'suspended']);
+                $owner->update(['status' => $status]);
             }
         }
     }
