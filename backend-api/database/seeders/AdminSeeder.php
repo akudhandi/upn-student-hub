@@ -17,7 +17,7 @@ class AdminSeeder extends Seeder
             ['email' => 'admin@upnjatim.ac.id'],
             [
                 'password' => Hash::make('password'),
-                'role' => 'admin',
+                'role' => 'superadmin',
             ]
         );
     }

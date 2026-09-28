@@ -63,7 +63,11 @@ export default function AdminLayout({
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        showAdminNav={session?.admin?.role === "superadmin"}
+      />
       <div className="flex min-h-screen flex-1 flex-col lg:ml-64">
         <Topbar
           adminName={adminName}

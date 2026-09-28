@@ -170,3 +170,34 @@ export async function updateMarketplaceStatus(
   }>(`/admin/marketplace/${id}/status`, { action });
   return data.data;
 }
+
+export interface AdminAccount {
+  id: number;
+  email: string;
+  role: string;
+  created_at: string;
+}
+
+export async function getAdmins(): Promise<Paginated<AdminAccount>> {
+  const { data } = await api.get<{
+    message: string;
+    data: Paginated<AdminAccount>;
+  }>('/admin/admins');
+  return data.data;
+}
+
+export async function createAdmin(input: {
+  email: string;
+  password: string;
+  role?: string;
+}): Promise<AdminAccount> {
+  const { data } = await api.post<{
+    message: string;
+    data: AdminAccount;
+  }>('/admin/admins', input);
+  return data.data;
+}
+
+export async function deleteAdmin(id: number): Promise<void> {
+  await api.delete(`/admin/admins/${id}`);
+}

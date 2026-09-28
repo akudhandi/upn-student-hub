@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\AdminAnnouncementController;
 use App\Http\Controllers\Api\V1\Admin\AdminCategoryController;
+use App\Http\Controllers\Api\V1\Admin\AdminController;
 use App\Http\Controllers\Api\V1\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\AdminEventController;
 use App\Http\Controllers\Api\V1\Admin\AdminKostController;
@@ -136,6 +137,13 @@ Route::prefix('v1')->group(function () {
         Route::get('/profile', [AdminSettingsController::class, 'profile']);
         Route::patch('/profile/password', [AdminSettingsController::class, 'updatePassword']);
         Route::get('/system-status', [AdminSettingsController::class, 'systemStatus']);
+
+        // Kelola akun admin (khusus superadmin, wajib token Sanctum).
+        Route::middleware('auth:sanctum')->group(function () {
+            Route::get('/admins', [AdminController::class, 'index']);
+            Route::post('/admins', [AdminController::class, 'store']);
+            Route::delete('/admins/{id}', [AdminController::class, 'destroy']);
+        });
     });
 
     // Admin Authentication Routes
