@@ -63,7 +63,7 @@ class AdminExportTest extends TestCase
 
     public function test_users_export_includes_profile_columns(): void
     {
-        User::factory()->create(['name' => 'Mahasiswa Ekspor', 'email' => 'ekspor@upnyk.ac.id']);
+        User::factory()->create(['name' => 'Mahasiswa Ekspor', 'email' => 'ekspor@upnjatim.ac.id']);
         User::factory()->create();
 
         $response = $this->get('/api/v1/admin/users/export');
@@ -72,7 +72,7 @@ class AdminExportTest extends TestCase
         $lines = $this->csvLines($response->streamedContent());
         $this->assertCount(3, $lines);
         $this->assertStringContainsString('NIM', $lines[0]);
-        $this->assertStringContainsString('ekspor@upnyk.ac.id', $lines[1].$lines[2]);
+        $this->assertStringContainsString('ekspor@upnjatim.ac.id', $lines[1].$lines[2]);
     }
 
     public function test_reports_export_respects_status_filter(): void

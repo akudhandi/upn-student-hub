@@ -31,8 +31,8 @@ const USER_PROFILE = {
   faculty: "Fakultas Ilmu Komputer",
   angkatan: "Angkatan 2022",
   nim: "19482914",
-  email: "alex.rivera@upn.ac.id",
-  campus: "Kampus Condongcatur, Sleman",
+  email: "alex.rivera@upnjatim.ac.id",
+  campus: "Kampus Rungkut, Surabaya",
   initials: "AR",
   stats: [
     { label: "Listing Aktif", value: "3", hint: "barang & jasa" },
@@ -412,7 +412,7 @@ export default function ProfilePage() {
                   <p className="text-[9px] font-semibold uppercase leading-3 tracking-wide text-amber-300">
                     Kementerian Pendidikan dan Kebudayaan
                   </p>
-                  <p className="mt-0.5 text-[11px] font-bold leading-4">UPN “VETERAN” YOGYAKARTA</p>
+                  <p className="mt-0.5 text-[11px] font-bold leading-4">UPN &ldquo;VETERAN&rdquo; JAWA TIMUR</p>
                   <p className="text-[9px] uppercase tracking-widest text-slate-300">Kartu Tanda Mahasiswa</p>
                 </div>
               </div>

@@ -249,7 +249,7 @@ function DashboardCards({ stats }: { stats: DashboardStats }) {
         value={stats.counts.kost}
         href="/admin/kost"
         actionLabel="Buka Modul"
-        subtitle="Sekitar kampus UPN Condongcatur"
+        subtitle="Sekitar kampus UPN Rungkut"
         trend={{ text: `${share(stats.counts.kost).toFixed(1)}% konten`, className: "bg-emerald-50 text-emerald-600" }}
         footerMeta="Terverifikasi BAAK"
       />

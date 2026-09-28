@@ -48,7 +48,7 @@ class EventFactory extends Factory
             'Konser Musik Kampus Dies Natalis UPN' => [
                 'organizer' => 'UKM Music UPN',
                 'location' => 'Online via Zoom',
-                'description' => 'Perayaan Dies Natalis UPN dimeriahkan penampilan band mahasiswa, guest star, dan bazar kuliner. Disiarkan hybrid dari panggung utama kampus Condongcatur.',
+                'description' => 'Perayaan Dies Natalis UPN dimeriahkan penampilan band mahasiswa, guest star, dan bazar kuliner. Disiarkan hybrid dari panggung utama kampus Rungkut.',
             ],
         ];
 

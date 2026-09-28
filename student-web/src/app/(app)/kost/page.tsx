@@ -158,9 +158,9 @@ function KostContent() {
   const [nomorWa, setNomorWa] = useState("081234567890");
   const [kostPhotos, setKostPhotos] = useState<{ id: number; url: string }[]>([]);
   const kostPhotoIdRef = useRef(0);
-  // Pin-point map state — defaults to Kampus 1 UPN Babarsari area.
-  const [latitude, setLatitude] = useState(-7.773428);
-  const [longitude, setLongitude] = useState(110.468241);
+  // Pin-point map state — defaults to Kampus UPNVJT Rungkut area.
+  const [latitude, setLatitude] = useState(-7.3356);
+  const [longitude, setLongitude] = useState(112.791);
   const [pinPos, setPinPos] = useState({ x: 50, y: 50 });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -253,9 +253,9 @@ function KostContent() {
     const xRatio = hasPointer ? Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1) : 0.5;
     const yRatio = hasPointer ? Math.min(Math.max((e.clientY - rect.top) / rect.height, 0), 1) : 0.5;
     setPinPos({ x: Math.round(xRatio * 100), y: Math.round(yRatio * 100) });
-    // Map box spans roughly ±0.005° around the UPN Babarsari center.
-    setLatitude(Number((-7.773428 + (0.5 - yRatio) * 0.01).toFixed(6)));
-    setLongitude(Number((110.468241 + (xRatio - 0.5) * 0.01).toFixed(6)));
+    // Map box spans roughly ±0.005° around the UPN Veteran Jawa Timur center.
+    setLatitude(Number((-7.3356 + (0.5 - yRatio) * 0.01).toFixed(6)));
+    setLongitude(Number((112.791 + (xRatio - 0.5) * 0.01).toFixed(6)));
   }
 
   const clearCreateParam = useCallback(() => {
@@ -790,7 +790,7 @@ function KostContent() {
               </h2>
               <p className="mt-0.5 max-w-[620px] text-[13px] leading-5 text-slate-500">
                 Publikasikan kamar kost kosong atau tawarkan oper kontrak sisa masa tinggal kepada sesama
-                civitas UPN &ldquo;Veteran&rdquo; Yogyakarta secara transparan tanpa calo.
+                civitas UPN &ldquo;Veteran&rdquo; Jawa Timur secara transparan tanpa calo.
               </p>
             </div>
 
@@ -872,7 +872,7 @@ function KostContent() {
                         <label htmlFor="kost-title" className="text-[12px] font-semibold text-slate-900">
                           Nama Kost / Hunian <span className="text-red-500">*</span>
                         </label>
-                        <span className="hidden text-[10px] text-slate-400 sm:block">Contoh: Kost Mawar Putih Babarsari</span>
+                        <span className="hidden text-[10px] text-slate-400 sm:block">Contoh: Kost Mawar Putih Rungkut</span>
                       </div>
                       <input
                         id="kost-title"
@@ -881,7 +881,7 @@ function KostContent() {
                         maxLength={255}
                         value={formData.title}
                         onChange={(e) => updateForm("title", e.target.value)}
-                        placeholder="Griya Mahasiswa Tambakbayan"
+                        placeholder="Griya Mahasiswa Rungkut"
                         className="mt-1.5 w-full rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#002147]/15"
                       />
                     </div>
@@ -896,7 +896,7 @@ function KostContent() {
                         required
                         value={formData.address}
                         onChange={(e) => updateForm("address", e.target.value)}
-                        placeholder="Jl. Delima No. 14, Condongcatur, Kec. Depok, Sleman"
+                        placeholder="Jl. Raya Rungkut Madya No. 14, Gunung Anyar, Surabaya"
                         className="mt-1.5 w-full rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#002147]/15"
                       />
                     </div>
@@ -911,7 +911,7 @@ function KostContent() {
                           type="text"
                           value={jarakKampus}
                           onChange={(e) => setJarakKampus(e.target.value)}
-                          placeholder="450 meter (Kampus 1 UPN Babarsari)"
+                          placeholder="450 meter (Kampus UPNVJT Rungkut)"
                           className="mt-1.5 w-full rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#002147]/15"
                         />
                       </div>
@@ -950,7 +950,7 @@ function KostContent() {
                           <input
                             type="text"
                             aria-label="Cari alamat di peta"
-                            defaultValue="Jl. Delima No. 14, Condongcatur"
+                            defaultValue="Jl. Raya Rungkut Madya No. 14, Gunung Anyar"
                             placeholder="Cari alamat…"
                             className="w-full bg-transparent text-[12px] text-slate-700 placeholder:text-slate-400 focus:outline-none"
                           />
@@ -974,13 +974,13 @@ function KostContent() {
                       >
                         <span className="relative block h-40" aria-hidden="true">
                           <span className="absolute left-0 right-0 top-1/2 border-t-2 border-dashed border-amber-300" />
-                          <span className="absolute bottom-3 left-3 rounded bg-white/90 px-2 py-1 text-[10px] font-medium text-slate-600">Kampus 1 UPN Babarsari</span>
+                          <span className="absolute bottom-3 left-3 rounded bg-white/90 px-2 py-1 text-[10px] font-medium text-slate-600">Kampus UPNVJT Rungkut</span>
                           <span
                             className="absolute -translate-x-1/2 -translate-y-1/2"
                             style={{ left: `${pinPos.x}%`, top: `${pinPos.y}%` }}
                           >
                             <span className="block whitespace-nowrap rounded-full bg-[#0A2342] px-2.5 py-1 text-[10px] font-bold text-white shadow">
-                              {formData.title.trim() || "Griya Mahasiswa Tambakbayan"}
+                              {formData.title.trim() || "Griya Mahasiswa Rungkut"}
                             </span>
                             <span className="mx-auto mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] text-white">◎</span>
                           </span>
@@ -990,7 +990,7 @@ function KostContent() {
                       </button>
                       <div className="mt-2 flex flex-col gap-2 text-[10px] leading-4 text-slate-500 sm:flex-row">
                         <span className="rounded-lg bg-slate-50 px-2 py-1" aria-live="polite">Koordinat: <strong className="text-slate-700">{latitude.toFixed(6)}, {longitude.toFixed(6)}</strong></span>
-                        <span className="rounded-lg bg-slate-50 px-2 py-1">Terdeteksi 450m dari Kampus 1 UPN Babarsari (Akurasi Presisi GPS)</span>
+                        <span className="rounded-lg bg-slate-50 px-2 py-1">Terdeteksi 450m dari Kampus UPNVJT Rungkut (Akurasi Presisi GPS)</span>
                       </div>
                     </div>
                   </section>
@@ -1293,7 +1293,7 @@ function KostContent() {
                         Khusus {GENDER_LABELS[formData.gender_type] ?? "Putri"}
                       </span>
                       <span className="absolute right-2 top-2 rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-slate-700">Kost Baru</span>
-                      <span className="absolute bottom-2 left-2 rounded bg-slate-900/80 px-1.5 py-0.5 text-[10px] font-semibold text-white">450 meter (Kampus 1 UPN Babarsari)</span>
+                      <span className="absolute bottom-2 left-2 rounded bg-slate-900/80 px-1.5 py-0.5 text-[10px] font-semibold text-white">450 meter (Kampus UPNVJT Rungkut)</span>
                     </div>
                     <div className="p-3">
                       <div className="flex items-start justify-between gap-2">
@@ -1311,7 +1311,7 @@ function KostContent() {
                         {formData.price ? `${formatRupiah(Number(formData.price) || 0)} / bln` : "Rp 850.000 / bln"}
                       </p>
                       <p className="mt-0.5 line-clamp-1 text-[11px] font-semibold text-slate-700">
-                        {formData.title || "Griya Mahasiswa Tambakbayan"}
+                        {formData.title || "Griya Mahasiswa Rungkut"}
                       </p>
                     </div>
                   </div>
