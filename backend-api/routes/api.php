@@ -80,20 +80,25 @@ Route::prefix('v1')->group(function () {
 
         // Content monitoring & moderation (view, hide, restore, delete).
         Route::get('/marketplace', [AdminMarketplaceController::class, 'index']);
+        Route::get('/marketplace/export', [AdminMarketplaceController::class, 'export']);
         Route::post('/marketplace/bulk-status', [AdminMarketplaceController::class, 'bulkStatus']);
         Route::patch('/marketplace/{id}/status', [AdminMarketplaceController::class, 'updateStatus']);
         Route::get('/services', [AdminServiceController::class, 'index']);
+        Route::get('/services/export', [AdminServiceController::class, 'export']);
         Route::post('/services/bulk-status', [AdminServiceController::class, 'bulkStatus']);
         Route::patch('/services/{id}/status', [AdminServiceController::class, 'updateStatus']);
         Route::get('/kost', [AdminKostController::class, 'index']);
+        Route::get('/kost/export', [AdminKostController::class, 'export']);
         Route::post('/kost/bulk-status', [AdminKostController::class, 'bulkStatus']);
         Route::patch('/kost/{id}/status', [AdminKostController::class, 'updateStatus']);
         Route::get('/lost-found', [AdminLostFoundController::class, 'index']);
+        Route::get('/lost-found/export', [AdminLostFoundController::class, 'export']);
         Route::post('/lost-found/bulk-status', [AdminLostFoundController::class, 'bulkStatus']);
         Route::patch('/lost-found/{id}/status', [AdminLostFoundController::class, 'updateStatus']);
 
         // Event & Informasi Kampus (full CRUD + status workflow).
         Route::get('/events', [AdminEventController::class, 'index']);
+        Route::get('/events/export', [AdminEventController::class, 'export']);
         Route::post('/events', [AdminEventController::class, 'store']);
         Route::get('/events/{id}', [AdminEventController::class, 'show']);
         Route::put('/events/{id}', [AdminEventController::class, 'update']);
@@ -114,9 +119,11 @@ Route::prefix('v1')->group(function () {
 
         // Users & reports resolution.
         Route::get('/reports', [AdminReportController::class, 'index']);
+        Route::get('/reports/export', [AdminReportController::class, 'export']);
         Route::post('/reports/bulk-resolve', [AdminReportController::class, 'bulkResolve']);
         Route::patch('/reports/{id}/resolve', [AdminReportController::class, 'resolve']);
         Route::get('/users', [AdminUserController::class, 'index']);
+        Route::get('/users/export', [AdminUserController::class, 'export']);
         Route::post('/users/bulk-status', [AdminUserController::class, 'bulkStatus']);
         Route::get('/users/{id}', [AdminUserController::class, 'show']);
         Route::patch('/users/{id}/status', [AdminUserController::class, 'toggleStatus']);

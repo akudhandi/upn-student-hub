@@ -7,22 +7,70 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Report;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminUserController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $validated = $request->validate([
+        $users = $this->filteredQuery($this->validateFilters($request))->paginate(15);
+
+        return response()->json([
+            'message' => 'Daftar pengguna berhasil diambil',
+            'data' => $users,
+        ]);
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $rows = $this->filteredQuery($this->validateFilters($request))
+            ->limit(5000)
+            ->get();
+
+        $filename = 'users-'.now()->format('Ymd-His').'.csv';
+
+        return response()->streamDownload(function () use ($rows) {
+            $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, ['ID', 'Nama', 'Email', 'NIM', 'Fakultas', 'Status', 'Terdaftar']);
+            foreach ($rows as $row) {
+                fputcsv($handle, [
+                    $row->id,
+                    $row->profile->name ?? $row->name,
+                    $row->email,
+                    $row->profile->nim ?? '',
+                    $row->profile->faculty ?? '',
+                    $row->status,
+                    $row->created_at,
+                ]);
+            }
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validateFilters(Request $request): array
+    {
+        return $request->validate([
             'search' => 'nullable|string|max:255',
             'status' => 'nullable|in:active,suspended,banned,inactive',
             'faculty' => 'nullable|string|max:100',
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date|after_or_equal:date_from',
         ]);
+    }
 
+    /**
+     * @param array<string, mixed> $validated
+     */
+    private function filteredQuery(array $validated): Builder
+    {
         $query = User::query()
             ->with('profile')
             ->latest();
@@ -58,12 +106,7 @@ class AdminUserController extends Controller
             $query->whereDate('users.created_at', '<=', $validated['date_to']);
         }
 
-        $users = $query->paginate(15);
-
-        return response()->json([
-            'message' => 'Daftar pengguna berhasil diambil',
-            'data' => $users,
-        ]);
+        return $query;
     }
 
     public function show(string $id): JsonResponse

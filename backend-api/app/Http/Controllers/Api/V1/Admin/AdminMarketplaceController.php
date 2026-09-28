@@ -6,23 +6,73 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\MarketplaceListing;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminMarketplaceController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $validated = $request->validate([
+        $query = $this->filteredQuery($this->validateFilters($request));
+
+        return response()->json([
+            'message' => 'Daftar marketplace admin berhasil diambil',
+            'data' => $query->paginate(15),
+        ]);
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $rows = $this->filteredQuery($this->validateFilters($request))
+            ->limit(5000)
+            ->get();
+
+        $filename = 'marketplace-'.now()->format('Ymd-His').'.csv';
+
+        return response()->streamDownload(function () use ($rows) {
+            $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, ['ID', 'Judul', 'Kategori', 'Penjual', 'Harga', 'Kondisi', 'Status', 'Laporan', 'Diunggah']);
+            foreach ($rows as $row) {
+                fputcsv($handle, [
+                    $row->id,
+                    $row->title,
+                    $row->category->name ?? '',
+                    $row->user->name ?? '',
+                    $row->price,
+                    $row->condition,
+                    $row->deleted_at ? 'deleted' : $row->status,
+                    $row->reports_count ?? 0,
+                    $row->created_at,
+                ]);
+            }
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validateFilters(Request $request): array
+    {
+        return $request->validate([
             'status' => 'nullable|in:active,hidden,sold,inactive,deleted',
             'search' => 'nullable|string|max:255',
             'category_id' => 'nullable|integer|exists:categories,id',
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date|after_or_equal:date_from',
         ]);
+    }
 
+    /**
+     * @param array<string, mixed> $validated
+     */
+    private function filteredQuery(array $validated): Builder
+    {
         $query = MarketplaceListing::query()
             ->with(['user:id,name', 'category:id,name,slug', 'images'])
             ->withCount('reports')
@@ -56,10 +106,7 @@ class AdminMarketplaceController extends Controller
             $query->whereDate('created_at', '<=', $validated['date_to']);
         }
 
-        return response()->json([
-            'message' => 'Daftar marketplace admin berhasil diambil',
-            'data' => $query->paginate(15),
-        ]);
+        return $query;
     }
 
     public function updateStatus(Request $request, string $id): JsonResponse

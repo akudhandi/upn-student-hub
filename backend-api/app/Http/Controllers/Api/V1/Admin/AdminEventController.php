@@ -6,24 +6,73 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminEventController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $validated = $request->validate([
+        $query = $this->filteredQuery($this->validateFilters($request));
+
+        return response()->json([
+            'message' => 'Daftar event admin berhasil diambil',
+            'data' => $query->paginate(15),
+        ]);
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $rows = $this->filteredQuery($this->validateFilters($request))
+            ->limit(5000)
+            ->get();
+
+        $filename = 'event-'.now()->format('Ymd-His').'.csv';
+
+        return response()->streamDownload(function () use ($rows) {
+            $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, ['ID', 'Judul', 'Kategori', 'Penyelenggara', 'Tanggal Acara', 'Lokasi', 'Status', 'Diunggah']);
+            foreach ($rows as $row) {
+                fputcsv($handle, [
+                    $row->id,
+                    $row->title,
+                    $row->category->name ?? '',
+                    $row->organizer_name,
+                    $row->event_date,
+                    $row->location,
+                    $row->status,
+                    $row->created_at,
+                ]);
+            }
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validateFilters(Request $request): array
+    {
+        return $request->validate([
             'status' => 'nullable|in:draft,pending,published,rejected,archived',
             'search' => 'nullable|string|max:255',
             'category_id' => 'nullable|integer|exists:categories,id',
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date|after_or_equal:date_from',
         ]);
+    }
 
+    /**
+     * @param array<string, mixed> $validated
+     */
+    private function filteredQuery(array $validated): Builder
+    {
         $query = Event::query()
             ->with([
                 'user:id,name',
@@ -56,10 +105,7 @@ class AdminEventController extends Controller
             $query->whereDate('event_date', '<=', $validated['date_to']);
         }
 
-        return response()->json([
-            'message' => 'Daftar event admin berhasil diambil',
-            'data' => $query->paginate(15),
-        ]);
+        return $query;
     }
 
     public function store(Request $request): JsonResponse

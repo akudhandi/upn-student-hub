@@ -8,23 +8,72 @@ use App\Http\Controllers\Controller;
 use App\Models\LostFoundReport;
 use App\Models\Report;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminReportController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $validated = $request->validate([
+        $reports = $this->filteredQuery($this->validateFilters($request))->paginate(15);
+
+        return response()->json([
+            'message' => 'Daftar laporan berhasil diambil',
+            'data' => $reports,
+        ]);
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $rows = $this->filteredQuery($this->validateFilters($request))
+            ->limit(5000)
+            ->get();
+
+        $filename = 'reports-'.now()->format('Ymd-His').'.csv';
+
+        return response()->streamDownload(function () use ($rows) {
+            $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, ['ID', 'Tipe Objek', 'ID Objek', 'Alasan', 'Pelapor', 'Status', 'Diselesaikan Oleh', 'Dilaporkan']);
+            foreach ($rows as $row) {
+                fputcsv($handle, [
+                    $row->id,
+                    $row->reportable_type,
+                    $row->reportable_id,
+                    $row->reason,
+                    $row->reporter->name ?? '',
+                    $row->status,
+                    $row->resolved_by,
+                    $row->created_at,
+                ]);
+            }
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validateFilters(Request $request): array
+    {
+        return $request->validate([
             'status' => 'nullable|in:pending,reviewing,resolved,rejected,dismissed',
             'search' => 'nullable|string|max:255',
             'reportable_type' => 'nullable|string|max:255',
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date|after_or_equal:date_from',
         ]);
+    }
 
+    /**
+     * @param array<string, mixed> $validated
+     */
+    private function filteredQuery(array $validated): Builder
+    {
         $query = Report::query()
             ->with([
                 'reporter:id,name,email',
@@ -59,12 +108,7 @@ class AdminReportController extends Controller
             $query->whereDate('created_at', '<=', $validated['date_to']);
         }
 
-        $reports = $query->paginate(15);
-
-        return response()->json([
-            'message' => 'Daftar laporan berhasil diambil',
-            'data' => $reports,
-        ]);
+        return $query;
     }
 
     public function resolve(Request $request, string $id): JsonResponse
