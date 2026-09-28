@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  AdminMetricCard,
+  AdminPageHeader,
   FilterTabs,
+  MetricIcon,
   Modal,
   StatusPill,
   TableEmpty,
@@ -147,19 +150,53 @@ export default function AdminCategoriesPage() {
     }
   }
 
+  const activeCount = items.filter((c) => c.is_active).length;
+  const inactiveCount = items.length - activeCount;
+
   return (
     <div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-slate-900 sm:text-[26px]">Category Management</h1>
-          <p className="mt-1 max-w-[600px] text-sm text-slate-500">
-            Master data kategori per modul: tambah, ubah, hapus, dan aktif/nonaktifkan.
-          </p>
-        </div>
-        <Button onClick={openAdd}>+ Tambah Kategori</Button>
+      <AdminPageHeader
+        title="Kategori & Taksonomi"
+        subtitle="Master data kategori per modul: tambah, ubah, hapus, dan aktif/nonaktifkan."
+        actions={
+          <button
+            type="button"
+            onClick={openAdd}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800"
+          >
+            <span aria-hidden="true" className="text-base leading-none">+</span> Tambah Kategori
+          </button>
+        }
+      />
+
+      <div className="mb-6 mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <AdminMetricCard
+          label="Total Kategori"
+          value={items.length.toLocaleString("id-ID")}
+          icon={<MetricIcon><path d="M4 7V5a2 2 0 012-2h4l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7z" /></MetricIcon>}
+          iconClass="bg-blue-500/10 text-blue-600"
+          accentClass="bg-blue-500"
+          footer={`modul: ${MODULE_TABS.find((t) => t.value === tab)?.label}`}
+        />
+        <AdminMetricCard
+          label="Aktif"
+          value={activeCount.toLocaleString("id-ID")}
+          icon={<MetricIcon><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></MetricIcon>}
+          iconClass="bg-emerald-500/10 text-emerald-600"
+          accentClass="bg-emerald-500"
+          footer="tampil di publik"
+        />
+        <AdminMetricCard
+          label="Nonaktif"
+          value={inactiveCount.toLocaleString("id-ID")}
+          icon={<MetricIcon><circle cx="12" cy="12" r="9" /><path d="M8 12h8" /></MetricIcon>}
+          iconClass="bg-slate-500/10 text-slate-600"
+          accentClass="bg-slate-500"
+          footer="disembunyikan"
+        />
       </div>
 
-      <div className="mt-4">
+      <div className="mb-6 rounded-xl bg-white p-4 shadow-sm">
         <FilterTabs ariaLabel="Filter kategori berdasarkan modul" options={MODULE_TABS} value={tab} onChange={setTab} />
       </div>
 
@@ -177,12 +214,12 @@ export default function AdminCategoriesPage() {
         ) : items.length === 0 ? (
           <TableEmpty title="Belum ada kategori" description="Tambahkan kategori pertama untuk modul ini." />
         ) : (
-          <div className="admin-table-wrap admin-table overflow-auto rounded-xl border border-slate-200 bg-white">
+          <div className="admin-table-wrap admin-table overflow-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs">
             <table className="w-full min-w-[640px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                  <th scope="col" className="px-4 py-3 font-semibold">Nama</th>
-                  <th scope="col" className="px-4 py-3 font-semibold">Slug</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">Nama Kategori & Slug</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">Modul Terkait</th>
                   <th scope="col" className="px-4 py-3 font-semibold">Status</th>
                   <th scope="col" className="px-4 py-3 font-semibold"><span className="sr-only">Aksi</span>Aksi</th>
                 </tr>
@@ -190,8 +227,15 @@ export default function AdminCategoriesPage() {
               <tbody className="divide-y divide-slate-100">
                 {items.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/60">
-                    <td className="px-4 py-3 text-[13px] font-semibold text-slate-900">{item.name}</td>
-                    <td className="px-4 py-3 text-[13px] text-slate-500">{item.slug}</td>
+                    <td className="px-4 py-3">
+                      <p className="text-[13px] font-semibold text-slate-900">{item.name}</p>
+                      <p className="mt-0.5 font-mono text-xs text-slate-400">{item.slug}</p>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">
+                        {MODULE_TABS.find((t) => t.value === tab)?.label ?? item.type}
+                      </span>
+                    </td>
                     <td className="whitespace-nowrap px-4 py-3">
                       <StatusPill tone={item.is_active ? "green" : "slate"}>
                         {item.is_active ? "Aktif" : "Nonaktif"}

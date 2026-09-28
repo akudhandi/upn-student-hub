@@ -6,12 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   AdminDrawer,
+  AdminMetricCard,
+  AdminPageHeader,
   FilterTabs,
+  MetricIcon,
   Pagination,
   StatusPill,
   TableEmpty,
   TableError,
   TableLoading,
+  ToolbarButton,
+  exportToCsv,
   type PillTone,
 } from "@/components/admin-ui";
 import ListingImage from "@/components/ListingImage";
@@ -133,22 +138,101 @@ export default function AdminMarketplacePage() {
     }
   }
 
+  function handleExport() {
+    exportToCsv(
+      "marketplace.csv",
+      ["ID", "Judul", "Penjual", "Kategori", "Harga", "Status", "Laporan", "Dibuat"],
+      items.map((i) => [
+        i.id,
+        i.title,
+        i.user?.name ?? "-",
+        i.category?.name ?? "-",
+        formatPrice(i.price),
+        i.deleted_at ? "deleted" : i.status,
+        i.reports_count ?? 0,
+        formatDate(i.created_at),
+      ])
+    );
+  }
+
   const preview = previewId !== null ? (items.find((i) => i.id === previewId) ?? null) : null;
+  const activeCount = items.filter((i) => i.status === "active" && !i.deleted_at).length;
+  const reportedCount = items.filter((i) => (i.reports_count ?? 0) > 0).length;
+  const soldCount = items.filter((i) => i.status === "sold").length;
 
   return (
     <div>
-      <div>
-        <h1 className="text-[22px] font-bold tracking-tight text-slate-900 sm:text-[26px]">Marketplace</h1>
-        <p className="mt-1 max-w-[600px] text-sm text-slate-500">
-          Monitoring & moderasi listing preloved: sembunyikan, hapus, atau pulihkan konten bermasalah.
-        </p>
+      <AdminPageHeader
+        title="Manajemen Marketplace"
+        subtitle="Pantau, filter, dan kelola listing barang/produk jual-beli mahasiswa UPN."
+        eyebrow="Katalog Mahasiswa"
+        refCode="REF: MKT-UPNYK-2026"
+        actions={
+          <ToolbarButton variant="light" onClick={handleExport} ariaLabel="Ekspor data marketplace ke CSV">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-slate-500">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            Ekspor (.csv)
+          </ToolbarButton>
+        }
+      />
+
+      <div className="mb-6 mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <AdminMetricCard
+          label="Total Listing"
+          value={total.toLocaleString("id-ID")}
+          icon={<MetricIcon><path d="M4 7l8-4 8 4v10l-8 4-8-4V7z" /><path d="M4 7l8 4 8-4M12 11v9" /></MetricIcon>}
+          iconClass="bg-teal-500/10 text-teal-700"
+          accentClass="bg-teal-500"
+          trend={{ text: `${activeCount} aktif`, className: "text-emerald-600" }}
+          footer="pada filter ini"
+        />
+        <AdminMetricCard
+          label="Aktif Tayang"
+          value={activeCount.toLocaleString("id-ID")}
+          icon={<MetricIcon><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></MetricIcon>}
+          iconClass="bg-amber-500/10 text-amber-600"
+          accentClass="bg-amber-500"
+          footer={`halaman ${page} dari ${lastPage}`}
+        />
+        <AdminMetricCard
+          label="Dilaporkan"
+          value={reportedCount.toLocaleString("id-ID")}
+          icon={<MetricIcon><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" /></MetricIcon>}
+          iconClass="bg-red-500/10 text-red-600"
+          accentClass="bg-red-500"
+          footer="dari data dimuat"
+        />
+        <AdminMetricCard
+          label="Terjual"
+          value={soldCount.toLocaleString("id-ID")}
+          icon={<MetricIcon><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></MetricIcon>}
+          iconClass="bg-slate-900/10 text-slate-900"
+          accentClass="bg-slate-900"
+          footer="dari data dimuat"
+        />
       </div>
 
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <FilterTabs ariaLabel="Filter marketplace berdasarkan status" options={STATUS_TABS} value={filter} onChange={setFilter} />
-        <div className="w-full sm:max-w-[280px]">
-          <label htmlFor="marketplace-search" className="sr-only">Cari listing</label>
-          <Input id="marketplace-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari judul listing…" />
+      <div className="mb-6 rounded-xl bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative w-full lg:w-96">
+            <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M20 20L16.5 16.5" />
+              </svg>
+            </span>
+            <label htmlFor="marketplace-search" className="sr-only">Cari listing</label>
+            <Input
+              id="marketplace-search"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Cari nama produk, nama mahasiswa, NIM..."
+              className="border-transparent bg-slate-100 pl-10 focus:border-slate-300 focus:bg-white"
+            />
+          </div>
+          <FilterTabs ariaLabel="Filter marketplace berdasarkan status" options={STATUS_TABS} value={filter} onChange={setFilter} />
         </div>
       </div>
 
@@ -168,16 +252,15 @@ export default function AdminMarketplacePage() {
         ) : (
           <>
             <p className="mb-2 text-xs text-slate-500" role="status">Menampilkan {items.length} dari {total} listing</p>
-            <div className="admin-table-wrap admin-table overflow-auto rounded-xl border border-slate-200 bg-white">
+            <div className="admin-table-wrap admin-table overflow-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs">
               <table className="w-full min-w-[900px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                    <th scope="col" className="px-4 py-3 font-semibold">Judul</th>
-                    <th scope="col" className="px-4 py-3 font-semibold">Seller</th>
-                    <th scope="col" className="px-4 py-3 font-semibold">Kategori</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Produk & Kategori</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Penjual</th>
                     <th scope="col" className="px-4 py-3 font-semibold">Harga</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Unggah</th>
                     <th scope="col" className="px-4 py-3 font-semibold">Status</th>
-                    <th scope="col" className="px-4 py-3 font-semibold">Laporan</th>
                     <th scope="col" className="px-4 py-3 font-semibold"><span className="sr-only">Aksi</span>Aksi</th>
                   </tr>
                 </thead>
@@ -202,15 +285,17 @@ export default function AdminMarketplacePage() {
                             />
                             <div className="min-w-0">
                               <p className="line-clamp-2 text-[13px] font-semibold text-slate-900">{item.title}</p>
-                              <p className="mt-0.5 text-xs text-slate-400">{formatDate(item.created_at)}</p>
+                              <p className="mt-0.5 text-xs text-slate-400">
+                                {item.category?.name ?? "Tanpa kategori"}
+                                {(item.reports_count ?? 0) > 0 && ` • ${item.reports_count} laporan`}
+                              </p>
                             </div>
                           </div>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-[13px] text-slate-600">{item.user?.name ?? "-"}</td>
-                        <td className="whitespace-nowrap px-4 py-3 text-[13px] text-slate-600">{item.category?.name ?? "-"}</td>
                         <td className="whitespace-nowrap px-4 py-3 text-[13px] font-medium text-slate-900">{formatPrice(item.price)}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-[13px] text-slate-600">{formatDate(item.created_at)}</td>
                         <td className="whitespace-nowrap px-4 py-3"><StatusPill tone={pill.tone}>{pill.label}</StatusPill></td>
-                        <td className="whitespace-nowrap px-4 py-3 text-[13px] text-slate-600">{item.reports_count ?? 0}</td>
                         <td className="whitespace-nowrap px-4 py-3">
                           <div className="flex items-center gap-2">
                             <Button size="sm" variant="secondary" disabled={busy} onClick={() => setPreviewId(item.id)} aria-label={`Pratinjau ${item.title}`}>Preview</Button>

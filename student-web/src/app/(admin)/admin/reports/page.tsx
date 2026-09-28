@@ -5,11 +5,16 @@ import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
   AdminDrawer,
+  AdminMetricCard,
+  AdminPageHeader,
   FilterTabs,
+  MetricIcon,
   StatusPill,
   TableEmpty,
   TableError,
   TableLoading,
+  ToolbarButton,
+  exportToCsv,
   type PillTone,
 } from "@/components/admin-ui";
 
@@ -74,6 +79,17 @@ function targetTypeLabel(reportableType: string): string {
   return parts[parts.length - 1] || "Item";
 }
 
+function moduleOf(reportableType: string): string {
+  if (reportableType.includes("MarketplaceListing")) return "Marketplace";
+  if (reportableType.includes("ServiceListing")) return "Jasa";
+  if (reportableType.includes("KostListing")) return "Kost";
+  if (reportableType.includes("LostFoundReport")) return "Lost & Found";
+  if (reportableType.includes("Event")) return "Event";
+  if (reportableType.endsWith("\\User") || reportableType === "User") return "Users";
+  if (reportableType.includes("Chat")) return "Chat";
+  return "Lainnya";
+}
+
 function targetTitle(target: ReportTarget): string {
   if (!target) return "Item sudah tidak tersedia";
   return target.title || target.name || `Item #${target.id}`;
@@ -131,6 +147,87 @@ export default function AdminReportsPage() {
     void loadReports(filter);
   }
 
+  function handleExport() {
+    exportToCsv(
+      "reports.csv",
+      ["ID", "Konten", "Modul", "Alasan", "Pelapor", "Tanggal", "Status"],
+      items.map((item) => [
+        item.id,
+        targetTitle(item.reportable ?? null),
+        moduleOf(item.reportable_type),
+        REASON_LABELS[item.reason] ?? item.reason,
+        item.reporter?.name ?? "-",
+        formatDate(item.created_at),
+        item.status,
+      ])
+    );
+  }
+
+  function formatDate(iso: string): string {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "-";
+    return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  const withReporter = items.filter((i) => i.reporter).length;
+  const missingTarget = items.filter((i) => !i.reportable).length;
+
+  const headerBlock = (
+    <>
+      <AdminPageHeader
+        title="Manajemen Reports / Moderasi"
+        subtitle="Tinjau bukti aduan, ambil tindakan terhadap konten atau akun, atau tolak laporan."
+        actions={
+          <ToolbarButton variant="light" onClick={handleExport} ariaLabel="Ekspor laporan ke CSV">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-slate-500">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            Ekspor Laporan (.csv)
+          </ToolbarButton>
+        }
+      />
+
+      <div className="mb-6 mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <AdminMetricCard
+          label="Total Laporan"
+          value={total.toLocaleString("id-ID")}
+          icon={<MetricIcon><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" /></MetricIcon>}
+          iconClass="bg-amber-500/10 text-amber-600"
+          accentClass="bg-amber-500"
+          footer={`status: ${filter}`}
+        />
+        <AdminMetricCard
+          label="Perlu Tindakan"
+          value={(filter === "pending" || filter === "reviewing" ? total : 0).toLocaleString("id-ID")}
+          icon={<MetricIcon><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></MetricIcon>}
+          iconClass="bg-red-500/10 text-red-600"
+          accentClass="bg-red-500"
+          footer="pending + reviewing"
+        />
+        <AdminMetricCard
+          label="Pelapor Teridentifikasi"
+          value={withReporter.toLocaleString("id-ID")}
+          icon={<MetricIcon><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /></MetricIcon>}
+          iconClass="bg-blue-500/10 text-blue-600"
+          accentClass="bg-blue-500"
+          footer="dari data dimuat"
+        />
+        <AdminMetricCard
+          label="Target Tak Tersedia"
+          value={missingTarget.toLocaleString("id-ID")}
+          icon={<MetricIcon><path d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></MetricIcon>}
+          iconClass="bg-slate-500/10 text-slate-600"
+          accentClass="bg-slate-500"
+          footer="konten sudah dihapus"
+        />
+      </div>
+
+      <div className="mb-6 rounded-xl bg-white p-4 shadow-sm">
+        <FilterTabs ariaLabel="Filter laporan berdasarkan status" options={STATUS_TABS} value={filter} onChange={setFilter} />
+      </div>
+    </>
+  );
+
   async function markReviewing(item: AdminReportItem) {
     try {
       setActionId(item.id);
@@ -171,16 +268,7 @@ export default function AdminReportsPage() {
 
   return (
     <div>
-      <div>
-        <h1 className="text-[22px] font-bold tracking-tight text-slate-900 sm:text-[26px]">Reports / Moderasi</h1>
-        <p className="mt-1 max-w-[600px] text-sm text-slate-500">
-          Tinjau bukti aduan, ambil tindakan terhadap konten atau akun, atau tolak laporan.
-        </p>
-      </div>
-
-      <div className="mt-4">
-        <FilterTabs ariaLabel="Filter laporan berdasarkan status" options={STATUS_TABS} value={filter} onChange={setFilter} />
-      </div>
+      {headerBlock}
 
       {actionError && (
         <div role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
@@ -198,13 +286,15 @@ export default function AdminReportsPage() {
         ) : (
           <>
             <p className="mb-2 text-xs text-slate-500" role="status">Menampilkan {items.length} dari {total} laporan</p>
-            <div className="admin-table-wrap admin-table overflow-auto rounded-xl border border-slate-200 bg-white">
-              <table className="w-full min-w-[860px] border-collapse text-left text-sm">
+            <div className="admin-table-wrap admin-table overflow-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+              <table className="w-full min-w-[960px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                    <th scope="col" className="px-4 py-3 font-semibold">Tipe</th>
-                    <th scope="col" className="px-4 py-3 font-semibold">Target</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Konten / Entitas Terlapor</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Modul</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Alasan & Catatan Pelapor</th>
                     <th scope="col" className="px-4 py-3 font-semibold">Pelapor</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Tanggal Lapor</th>
                     <th scope="col" className="px-4 py-3 font-semibold">Status</th>
                     <th scope="col" className="px-4 py-3 font-semibold"><span className="sr-only">Aksi</span>Aksi</th>
                   </tr>
@@ -215,16 +305,23 @@ export default function AdminReportsPage() {
                     const busy = actionId === item.id;
                     return (
                       <tr key={item.id} className="align-top hover:bg-slate-50/60">
-                        <td className="whitespace-nowrap px-4 py-3">
-                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">
-                            {targetTypeLabel(item.reportable_type)}
-                          </span>
-                        </td>
                         <td className="max-w-[240px] px-4 py-3">
                           <p className="line-clamp-2 text-[13px] font-semibold text-slate-900">{targetTitle(item.reportable ?? null)}</p>
-                          <p className="mt-0.5 text-xs text-slate-500">{REASON_LABELS[item.reason] ?? item.reason}</p>
+                          <p className="mt-0.5 text-xs text-slate-400">
+                            {targetTypeLabel(item.reportable_type)} • #{item.reportable_id}
+                          </p>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3">
+                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">
+                            {moduleOf(item.reportable_type)}
+                          </span>
+                        </td>
+                        <td className="max-w-[220px] px-4 py-3">
+                          <p className="text-[13px] font-medium text-slate-800">{REASON_LABELS[item.reason] ?? item.reason}</p>
+                          {item.description && <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{item.description}</p>}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-[13px] text-slate-600">{item.reporter?.name ?? "-"}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-[13px] text-slate-600">{formatDate(item.created_at)}</td>
                         <td className="whitespace-nowrap px-4 py-3"><StatusPill tone={pill.tone}>{pill.label}</StatusPill></td>
                         <td className="whitespace-nowrap px-4 py-3">
                           <div className="flex items-center gap-2">

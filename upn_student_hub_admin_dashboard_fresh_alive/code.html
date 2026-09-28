@@ -1,0 +1,530 @@
+<!DOCTYPE html><html lang="id" style=""><svg class="inline-defs-container" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"></svg><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Dashboard Admin - UPN Student Hub</title>
+<!-- Tailwind CSS CDN with Forms & Container Queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Inter & Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              navy: '#08172c',
+              navySidebar: '#0b192e',
+              navyItemHover: '#132845',
+              navyActive: '#173054',
+              accent: '#38bdf8',
+              gold: '#f59e0b',
+              upnGreen: '#15803d'
+            }
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-scrollbars">
+    /* Custom refined scrollbars for dashboard panels */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .sidebar-scroll::-webkit-scrollbar-thumb {
+      background: #1e3a5f;
+    }
+    .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+      background: #2b5082;
+    }
+  </style>
+<style data-purpose="micro-interactions">
+    .card-transition {
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card-transition:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px -10px rgba(15, 23, 42, 0.08);
+    }
+  </style>
+</head>
+<body class="bg-[#f8fafc] text-slate-800 antialiased font-sans flex min-h-screen">
+<!-- BEGIN: LeftSidebar -->
+<aside class="w-64 bg-brand-navySidebar text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800/80 fixed inset-y-0 left-0 z-30 select-none" data-purpose="main-sidebar">
+<!-- Top Brand Logo -->
+<div class="h-20 flex items-center px-6 gap-3.5 border-b border-slate-800/60 bg-brand-navy/60">
+<div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-extrabold text-white text-lg shadow-md shadow-sky-500/20 ring-1 ring-white/20">
+        U
+      </div>
+<div class="leading-tight">
+<h1 class="text-white font-bold tracking-tight text-[15px] flex items-center gap-1.5">
+          UPN Student Hub
+        </h1>
+<p class="text-xs text-slate-400 font-medium tracking-wide">Admin Portal</p>
+</div>
+</div>
+<!-- Navigation Scrollable Area -->
+<div class="flex-1 overflow-y-auto py-5 px-3 sidebar-scroll space-y-6">
+<!-- Group: UTAMA -->
+<div>
+<p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Utama</p>
+<div class="mt-2 space-y-1">
+<!-- Active Item: Dashboard -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gradient-to-r from-brand-navyActive to-brand-navyActive/80 text-white font-medium shadow-sm border-l-4 border-sky-400" href="#">
+<svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Dashboard</span>
+</a>
+</div>
+</div>
+<!-- Group: KONTEN -->
+<div>
+<p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Konten</p>
+<div class="mt-2 space-y-1">
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Marketplace</span>
+</div>
+<span class="text-[11px] px-2 py-0.5 font-semibold bg-amber-500/10 text-amber-300 rounded-md">11</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Jasa Mahasiswa</span>
+</div>
+<span class="text-[11px] px-2 py-0.5 font-semibold bg-indigo-500/10 text-indigo-300 rounded-md">10</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Kost</span>
+</div>
+<span class="text-[11px] px-2 py-0.5 font-semibold bg-emerald-500/10 text-emerald-300 rounded-md">12</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M8 16l2.879-2.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Lost &amp; Found</span>
+</div>
+<span class="text-[11px] px-2 py-0.5 font-semibold bg-sky-500/10 text-sky-300 rounded-md">11</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Event &amp; Informasi</span>
+</div>
+<span class="text-[11px] px-2 py-0.5 font-semibold bg-rose-500/10 text-rose-300 rounded-md">9</span>
+</a>
+</div>
+</div>
+<!-- Group: KOMUNITAS -->
+<div>
+<p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Komunitas</p>
+<div class="mt-2 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Users</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Reports / Moderasi</span>
+</div>
+<span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+</a>
+</div>
+</div>
+<!-- Group: SISTEM -->
+<div>
+<p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Sistem</p>
+<div class="mt-2 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Categories</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Notifications</span>
+</div>
+<span class="w-2 h-2 rounded-full bg-sky-400"></span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Pengaturan</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Sidebar Bottom: Return to Student Portal -->
+<div class="p-3 border-t border-slate-800 bg-[#071324]" data-purpose="sidebar-footer">
+<a class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 transition group" href="#">
+<div class="relative">
+<div class="w-9 h-9 rounded-lg bg-emerald-600/30 text-emerald-400 font-bold flex items-center justify-center border border-emerald-500/30">
+            N
+          </div>
+<span class="w-2.5 h-2.5 bg-emerald-500 border-2 border-slate-900 rounded-full absolute -top-0.5 -right-0.5"></span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-xs font-semibold text-white group-hover:text-sky-300 transition truncate">Kembali ke Portal</p>
+<p class="text-[11px] text-slate-400 font-medium truncate">Mahasiswa Active</p>
+</div>
+<svg class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</a>
+</div>
+</aside>
+<!-- END: LeftSidebar -->
+<!-- BEGIN: MainContentWrapper -->
+<div class="flex-1 ml-64 flex flex-col min-h-screen">
+<!-- BEGIN: TopHeader -->
+<header class="h-20 bg-white border-b border-slate-200/90 px-8 flex items-center justify-between sticky top-0 z-20 shadow-xs" data-purpose="top-navigation-header">
+<!-- Left side: Platform scope & badge -->
+<div class="flex items-center gap-3.5">
+<span class="text-slate-800 font-bold text-base tracking-tight">Administrasi Platform</span>
+
+</div>
+<!-- Right side: Administrator profile & View Portal Action -->
+<div class="flex items-center gap-4">
+<!-- Quick Search Icon Button -->
+<button aria-label="Cari data" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
+
+</button>
+<!-- Notification Bell -->
+<button aria-label="Pemberitahuan" class="relative p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
+
+<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white"></span>
+</button>
+<div class="h-6 w-px bg-slate-200"></div>
+<!-- Admin User Pill -->
+<div class="flex items-center gap-2.5 px-3 py-1.5 rounded-full border border-slate-200 bg-slate-50/70 hover:bg-slate-100/60 transition cursor-pointer">
+<div class="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
+            A
+          </div>
+<span class="text-sm font-semibold text-slate-700 pr-1">Administrator</span>
+</div>
+<!-- External Link Button to Student Portal -->
+<a class="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-300 hover:border-slate-400 hover:bg-white text-slate-700 rounded-xl text-sm font-semibold shadow-2xs transition" href="#">
+<span class="">Lihat Portal</span>
+<svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</a>
+</div>
+</header>
+<!-- END: TopHeader -->
+<!-- BEGIN: DashboardBody -->
+<main class="flex-1 p-8 max-w-7xl w-full mx-auto space-y-8" data-purpose="dashboard-main-view">
+<!-- Page Title & Header Actions -->
+<section class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+<div>
+<h2 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Dashboard</h2>
+<p class="mt-1 text-sm text-slate-500">Ringkasan aktivitas platform, hal yang perlu perhatian, dan aktivitas terbaru.</p>
+</div>
+<div class="flex items-center gap-2.5 self-start sm:self-auto"><div class="flex flex-wrap items-center gap-2.5"><div class="relative inline-flex items-center"><svg class="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg><select class="pl-8 pr-7 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg shadow-2xs hover:border-slate-300 focus:ring-1 focus:ring-sky-500 cursor-pointer appearance-none"><option selected="">7 Hari Terakhir</option><option>30 Hari Terakhir</option><option>Semester Ini</option><option>Tahun Akademik 2025/2026</option></select><svg class="w-3.5 h-3.5 text-slate-400 absolute right-2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></div><button class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg shadow-2xs transition"><svg class="w-3.5 h-3.5 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg> Ekspor Laporan</button><button class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-2xs transition" title="Refresh data"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button></div></div>
+</section>
+<!-- BEGIN: MetricCardsGrid -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" data-purpose="metrics-grid"><!-- Card 1: Total Users -->
+<div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs card-transition flex flex-col justify-between">
+  <div>
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Users</span>
+      <span class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+      </span>
+    </div>
+    <div class="mt-3 flex items-baseline gap-2">
+      <span class="text-3xl font-extrabold text-slate-900 tracking-tight">1,420</span>
+      <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">+12% bln ini</span>
+    </div>
+    <p class="text-xs text-slate-400 mt-1">Active user</p>
+  </div>
+  <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+    <a class="font-semibold text-slate-700 hover:text-blue-600 flex items-center gap-1 transition-all" href="#">Buka Modul <span class="">→</span></a>
+    <span class="text-slate-400 font-medium">Terverifikasi</span>
+  </div>
+</div>
+
+<!-- Card 2: Marketplace -->
+<div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs card-transition flex flex-col justify-between">
+  <div>
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Marketplace</span>
+      <span class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+      </span>
+    </div>
+    <div class="mt-3 flex items-baseline gap-2">
+      <span class="text-3xl font-extrabold text-slate-900 tracking-tight">84</span>
+      <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">+6 minggu ini</span>
+    </div>
+    <p class="text-xs text-slate-400 mt-1">Listing produk aktif</p>
+  </div>
+  <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+    <a class="font-semibold text-slate-700 hover:text-amber-600 flex items-center gap-1 transition-all" href="#">Lihat Semua <span class="">→</span></a>
+    <span class="text-slate-400 font-medium">Aktif tayang</span>
+  </div>
+</div>
+
+<!-- Card 3: Jasa Mahasiswa -->
+<div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs card-transition flex flex-col justify-between">
+  <div>
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Jasa Mahasiswa</span>
+      <span class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+      </span>
+    </div>
+    <div class="mt-3 flex items-baseline gap-2">
+      <span class="text-3xl font-extrabold text-slate-900 tracking-tight">38</span>
+      <span class="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Tersedia</span>
+    </div>
+    <p class="text-xs text-slate-400 mt-1">Desain, les, cetak &amp; pengetikan</p>
+  </div>
+  <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+    <a class="font-semibold text-slate-700 hover:text-indigo-600 flex items-center gap-1 transition-all" href="#">Lihat Semua <span class="">→</span></a>
+    <span class="text-slate-400 font-medium">12 kategori</span>
+  </div>
+</div>
+
+<!-- Card 4: Kost & Hunian -->
+<div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs card-transition flex flex-col justify-between">
+  <div>
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Kost</span>
+      <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+      </span>
+    </div>
+    <div class="mt-3 flex items-baseline gap-2">
+      <span class="text-3xl font-extrabold text-slate-900 tracking-tight">62</span>
+      <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">+3 pekan ini</span>
+    </div>
+    <p class="text-xs text-slate-400 mt-1">Sekitar kampus UPN Condongcatur</p>
+  </div>
+  <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+    <a class="font-semibold text-slate-700 hover:text-emerald-600 flex items-center gap-1 transition-all" href="#">Buka Modul <span class="">→</span></a>
+    <span class="text-slate-400 font-medium">Terverifikasi BAAK</span>
+  </div>
+</div>
+
+<!-- Card 5: Lost & Found -->
+<div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs card-transition flex flex-col justify-between">
+  <div>
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Lost &amp; Found</span>
+      <span class="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 16l2.879-2.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+      </span>
+    </div>
+    <div class="mt-3 flex items-baseline gap-2">
+      <span class="text-3xl font-extrabold text-slate-900 tracking-tight">19</span>
+      <span class="text-xs font-semibold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full">14 selesai temu</span>
+    </div>
+    <p class="text-xs text-slate-400 mt-1">Barang hilang &amp; ditemukan</p>
+  </div>
+  <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+    <a class="font-semibold text-slate-700 hover:text-sky-600 flex items-center gap-1 transition-all" href="#">Lihat Semua <span class="">→</span></a>
+    <span class="text-slate-400 font-medium">5 kasus aktif</span>
+  </div>
+</div>
+
+<!-- Card 6: Event & Informasi -->
+<div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs card-transition flex flex-col justify-between">
+  <div>
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Event &amp; Informasi</span>
+      <span class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+      </span>
+    </div>
+    <div class="mt-3 flex items-baseline gap-2">
+      <span class="text-3xl font-extrabold text-slate-900 tracking-tight">24</span>
+      <span class="text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">8 mendatang</span>
+    </div>
+    <p class="text-xs text-slate-400 mt-1">Agenda ormawa &amp; pengumuman kampus</p>
+  </div>
+  <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+    <a class="font-semibold text-slate-700 hover:text-rose-600 flex items-center gap-1 transition-all" href="#">Buka Modul <span class="">→</span></a>
+    <span class="text-slate-400 font-medium">Kalender aktif</span>
+  </div>
+</div></section>
+<!-- END: MetricCardsGrid -->
+<!-- BEGIN: BottomTwoColumnsSection -->
+<!-- BEGIN: QuickActionsAndTraffic -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-5" data-purpose="admin-analytics-overview"><div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between"><div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-sky-500"></span><h3 class="font-bold text-slate-900 text-sm">Pertumbuhan Aktivitas &amp; Interaksi Portal</h3></div><div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-[11px] font-semibold text-slate-600"><button class="px-2.5 py-1 bg-white text-slate-900 rounded-md shadow-2xs">Aktivitas Pengguna</button><button class="px-2.5 py-1 hover:text-slate-900 transition">Listing Konten</button></div></div><div class="mt-3 mb-2 flex flex-wrap items-baseline gap-4"><div class="flex items-baseline gap-2"><span class="text-2xl font-extrabold text-slate-900 tracking-tight">18.420</span><span class="text-xs text-slate-400">total interaksi</span></div><span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">+18.4% Semester Genap</span><div class="text-[11px] text-slate-400 ml-auto hidden sm:flex items-center gap-3"><span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-1 rounded-full bg-sky-500"></span> Mahasiswa Aktif</span><span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-1 rounded-full bg-emerald-500"></span> Listing Transaksi</span></div></div><div class="w-full h-36 relative mt-1"><svg class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 500 130"><defs><linearGradient id="skyGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#0284c7" stop-opacity="0.25"></stop><stop offset="100%" stop-color="#0284c7" stop-opacity="0.0"></stop></linearGradient><linearGradient id="emeraldGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#10b981" stop-opacity="0.2"></stop><stop offset="100%" stop-color="#10b981" stop-opacity="0.0"></stop></linearGradient></defs><line stroke="#f1f5f9" stroke-dasharray="3 3" stroke-width="1" x1="0" x2="500" y1="20"></line><line stroke="#f1f5f9" stroke-dasharray="3 3" stroke-width="1" x1="0" x2="500" y1="60"></line><line stroke="#f1f5f9" stroke-dasharray="3 3" stroke-width="1" x1="0" x2="500" y1="100"></line><path d="M 0,110 Q 50,90 100,75 T 200,65 T 300,45 T 400,30 T 500,15 L 500,120 L 0,120 Z" fill="url(#skyGrad)"></path><path d="M 0,110 Q 50,90 100,75 T 200,65 T 300,45 T 400,30 T 500,15" fill="none" stroke="#0284c7" stroke-linecap="round" stroke-width="2.5"></path><path d="M 0,118 Q 50,105 100,95 T 200,85 T 300,70 T 400,52 T 500,35 L 500,120 L 0,120 Z" fill="url(#emeraldGrad)"></path><path d="M 0,118 Q 50,105 100,95 T 200,85 T 300,70 T 400,52 T 500,35" fill="none" stroke="#10b981" stroke-linecap="round" stroke-width="2"></path><circle cx="100" cy="75" fill="#ffffff" r="3.5" stroke="#0284c7" stroke-width="2"></circle><circle cx="300" cy="45" fill="#ffffff" r="3.5" stroke="#0284c7" stroke-width="2"></circle><circle cx="500" cy="15" fill="#ffffff" r="4" stroke="#0284c7" stroke-width="2"></circle><circle cx="500" cy="35" fill="#ffffff" r="3.5" stroke="#10b981" stroke-width="2"></circle></svg></div><div class="flex justify-between items-center text-[11px] text-slate-400 font-medium pt-2 border-t border-slate-100"><span class="">Jan</span><span class="">Feb</span><span class="">Mar</span><span class="">Apr</span><span class="">Mei</span><span class="font-bold text-slate-700">Jun (Kini)</span></div></div><div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between"><div class="flex items-center justify-between mb-2"><span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Aktivitas Hari Ini</span><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span></div><div class="flex items-baseline justify-between mt-1"><div><span class="text-2xl font-extrabold text-slate-900 tracking-tight">318</span><span class="text-xs text-slate-400 ml-1">pengguna aktif</span></div><span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">+18% vs kemarin</span></div><div class="my-3 p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1.5 text-xs"><div class="flex justify-between text-slate-600"><span class="">Puncak kunjungan</span><span class="font-semibold text-slate-800">12.00 - 14.30</span></div><div class="flex justify-between text-slate-600"><span class="">Server load</span><span class="font-semibold text-emerald-600">23% (Optimal)</span></div></div><div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500"><a href="#" class="font-semibold text-slate-700 hover:text-sky-600 flex items-center gap-1 transition">Lihat Detail →</a></div></div></section>
+<!-- END: QuickActionsAndTraffic --><section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start" data-purpose="two-column-details">
+<!-- Column Left: Needs Attention (5 cols) -->
+<div class="lg:col-span-5 bg-white rounded-2xl border border-amber-200/90 shadow-xs overflow-hidden" data-purpose="needs-attention-container"><div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+  <div class="flex items-center gap-2">
+    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+    <h3 class="font-bold text-slate-900 text-sm">Perlu Tindakan</h3>
+  </div>
+  <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/60">3 Menunggu</span>
+</div>
+<div class="p-4 divide-y divide-slate-100 space-y-3">
+  <!-- Item 1 -->
+  <div class="pt-1 first:pt-0 flex items-center justify-between gap-3">
+    <div class="min-w-0">
+      <div class="flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-rose-500 flex-shrink-0"></span>
+        <h4 class="text-xs font-semibold text-slate-800 truncate">Laporan listing barang melanggar</h4>
+      </div>
+      <p class="text-[11px] text-slate-400 mt-0.5 ml-3.5">1 laporan dari mahasiswa FT</p>
+    </div>
+    <a class="px-2.5 py-1 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition flex-shrink-0" href="#">
+      Periksa
+    </a>
+  </div>
+
+  <!-- Item 2 -->
+  <div class="pt-3 flex items-center justify-between gap-3">
+    <div class="min-w-0">
+      <div class="flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0"></span>
+        <h4 class="text-xs font-semibold text-slate-800 truncate">Pengajuan Event Seminar Ormawa</h4>
+      </div>
+      <p class="text-[11px] text-slate-400 mt-0.5 ml-3.5">2 event menunggu verifikasi jadwal</p>
+    </div>
+    <a class="px-2.5 py-1 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition flex-shrink-0" href="#">
+      Kurasi
+    </a>
+  </div>
+
+  <!-- Item 3 -->
+  <div class="pt-3 flex items-center justify-between gap-3">
+    <div class="min-w-0">
+      <div class="flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-sky-500 flex-shrink-0"></span>
+        <h4 class="text-xs font-semibold text-slate-800 truncate">Klaim Lost &amp; Found (KTM Ditemukan)</h4>
+      </div>
+      <p class="text-[11px] text-slate-400 mt-0.5 ml-3.5">Konfirmasi kepemilikan pemilik</p>
+    </div>
+    <a class="px-2.5 py-1 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition flex-shrink-0" href="#">
+      Tinjau
+    </a>
+  </div>
+</div>
+<div class="bg-slate-50 px-5 py-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+  <span class="">SLA respon: &lt; 24 jam kerja</span>
+  <a class="font-medium text-slate-700 hover:text-sky-600" href="#">Semua Antrean →</a>
+</div></div>
+<!-- Column Right: Recent Activity (7 cols) -->
+<div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden" data-purpose="recent-activity-container"><div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+  <div>
+    <h3 class="font-bold text-slate-900 text-sm">Aktivitas Terbaru</h3>
+    <p class="text-[11px] text-slate-400">Log transaksi dan unggahan di platform</p>
+  </div>
+  <a class="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1" href="#">
+    Lihat Semua <span class="">→</span>
+  </a>
+</div>
+<div class="p-4">
+  <div class="divide-y divide-slate-100 space-y-3">
+    <!-- Feed 1 -->
+    <div class="pt-1 first:pt-0 flex items-center justify-between text-xs">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <span class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0 font-bold text-[10px]">ID</span>
+        <div class="min-w-0">
+          <p class="font-semibold text-slate-800 truncate">Mahasiswa Baru bergabung</p>
+          <p class="text-[11px] text-slate-400 truncate">Verifikasi akun SSO UPN selesai</p>
+        </div>
+      </div>
+      <span class="text-[11px] text-slate-400 font-medium whitespace-nowrap ml-2">5m lalu</span>
+    </div>
+
+    <!-- Feed 2 -->
+    <div class="pt-3 flex items-center justify-between text-xs">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 font-bold text-[10px]">KOST</span>
+        <div class="min-w-0">
+          <p class="font-semibold text-slate-800 truncate">Listing Baru: Kost Babarsari</p>
+          <p class="text-[11px] text-slate-400 truncate">Kamar mandi dalam • Putra</p>
+        </div>
+      </div>
+      <span class="text-[11px] text-slate-400 font-medium whitespace-nowrap ml-2">15m lalu</span>
+    </div>
+
+    <!-- Feed 3 -->
+    <div class="pt-3 flex items-center justify-between text-xs">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <span class="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center flex-shrink-0 font-bold text-[10px]">EVENT</span>
+        <div class="min-w-0">
+          <p class="font-semibold text-slate-800 truncate">Seminar Nasional disetujui</p>
+          <p class="text-[11px] text-slate-400 truncate">Himpunan Mahasiswa Informatika</p>
+        </div>
+      </div>
+      <span class="text-[11px] text-slate-400 font-medium whitespace-nowrap ml-2">1j lalu</span>
+    </div>
+
+    <!-- Feed 4 -->
+    <div class="pt-3 flex items-center justify-between text-xs">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <span class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0 font-bold text-[10px]">JASA</span>
+        <div class="min-w-0">
+          <p class="font-semibold text-slate-800 truncate">Jasa Cetak &amp; Penjilidan dibuka</p>
+          <p class="text-[11px] text-slate-400 truncate">Jeffery Jacobs V • FTI</p>
+        </div>
+      </div>
+      <span class="text-[11px] text-slate-400 font-medium whitespace-nowrap ml-2">2j lalu</span>
+    </div>
+  </div>
+</div></div>
+</section>
+<!-- END: BottomTwoColumnsSection -->
+</main>
+<!-- END: DashboardBody -->
+<!-- BEGIN: DashboardFooter -->
+<footer class="mt-auto border-t border-slate-200/80 bg-white px-8 py-4 text-center sm:flex sm:justify-between sm:text-left text-xs text-slate-400">
+<p class="">© 2026 UPN "Veteran" - Student Hub Management System. Hak cipta dilindungi.</p>
+<div class="mt-2 sm:mt-0 flex justify-center gap-4">
+
+<a class="hover:underline" href="#">Privasi &amp; Keamanan</a>
+<a class="hover:underline" href="#">Bantuan Teknis</a>
+</div>
+</footer>
+<!-- END: DashboardFooter -->
+</div>
+<!-- END: MainContentWrapper -->
+
+
+</body></html>

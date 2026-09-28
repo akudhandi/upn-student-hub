@@ -1,0 +1,715 @@
+<!DOCTYPE html><html lang="id" style=""><head>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"></head><body class="bg-[#f8fafc] text-slate-800 antialiased font-sans flex min-h-screen"><svg aria-hidden="true" class="inline-defs-container" style="position:absolute;width:0;height:0;overflow:hidden"></svg>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Dashboard Admin - UPN Student Hub</title>
+<!-- Tailwind CSS CDN with Forms & Container Queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Inter & Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              navy: '#08172c',
+              navySidebar: '#0b192e',
+              navyItemHover: '#132845',
+              navyActive: '#173054',
+              accent: '#38bdf8',
+              gold: '#f59e0b',
+              upnGreen: '#15803d'
+            }
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-scrollbars">
+    /* Custom refined scrollbars for dashboard panels */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .sidebar-scroll::-webkit-scrollbar-thumb {
+      background: #1e3a5f;
+    }
+    .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+      background: #2b5082;
+    }
+  </style>
+<style data-purpose="micro-interactions">
+    .card-transition {
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card-transition:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px -10px rgba(15, 23, 42, 0.08);
+    }
+  </style>
+<meta content="web_dashboard" name="shell-type">
+<!-- BEGIN: LeftSidebar -->
+<aside class="w-64 bg-brand-navySidebar text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800/80 fixed inset-y-0 left-0 z-30 select-none" data-purpose="main-sidebar">
+<!-- Top Brand Logo -->
+<div class="h-20 flex items-center px-6 gap-3.5 border-b border-slate-800/60 bg-brand-navy/60">
+<div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-extrabold text-white text-lg shadow-md shadow-sky-500/20 ring-1 ring-white/20">
+        U
+      </div>
+<div class="leading-tight">
+<h1 class="text-white font-bold tracking-tight text-[15px] flex items-center gap-1.5">
+          UPN Student Hub
+        </h1>
+<p class="text-xs text-slate-400 font-medium tracking-wide">Admin Portal</p>
+</div>
+</div>
+<!-- Navigation Scrollable Area -->
+<div class="flex-1 overflow-y-auto py-5 px-3 sidebar-scroll space-y-6">
+<!-- Group: UTAMA -->
+<div>
+<p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Utama</p>
+<div class="mt-2 space-y-1">
+<!-- Active Item: Dashboard -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#"><svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg><span class="text-sm">Dashboard</span></a>
+</div>
+</div>
+<!-- Group: KONTEN -->
+<div>
+<p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Konten</p>
+<div class="mt-2 space-y-1">
+<a class="flex items-center justify-between px-3 py-2.5 rounded-lg bg-gradient-to-r from-brand-navyActive to-brand-navyActive/80 text-white font-medium shadow-sm border-l-4 border-sky-400" href="#"><div class="flex items-center gap-3"><svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg><span class="text-sm">Marketplace</span></div><span class="text-[11px] px-2 py-0.5 font-semibold bg-amber-500/10 text-amber-300 rounded-md">11</span></a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Jasa Mahasiswa</span>
+</div>
+<span class="text-[11px] px-2 py-0.5 font-semibold bg-indigo-500/10 text-indigo-300 rounded-md">10</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Kost</span>
+</div>
+<span class="text-[11px] px-2 py-0.5 font-semibold bg-emerald-500/10 text-emerald-300 rounded-md">12</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M8 16l2.879-2.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Lost &amp; Found</span>
+</div>
+<span class="text-[11px] px-2 py-0.5 font-semibold bg-sky-500/10 text-sky-300 rounded-md">11</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Event &amp; Informasi</span>
+</div>
+<span class="text-[11px] px-2 py-0.5 font-semibold bg-rose-500/10 text-rose-300 rounded-md">9</span>
+</a>
+</div>
+</div>
+<!-- Group: KOMUNITAS -->
+<div>
+<p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Komunitas</p>
+<div class="mt-2 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Users</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Reports / Moderasi</span>
+</div>
+<span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+</a>
+</div>
+</div>
+<!-- Group: SISTEM -->
+<div>
+<p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Sistem</p>
+<div class="mt-2 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Categories</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Notifications</span>
+</div>
+<span class="w-2 h-2 rounded-full bg-sky-400"></span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Pengaturan</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Sidebar Bottom: Return to Student Portal -->
+<div class="p-3 border-t border-slate-800 bg-[#071324]" data-purpose="sidebar-footer">
+<a class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 transition group" href="#">
+<div class="relative">
+<div class="w-9 h-9 rounded-lg bg-emerald-600/30 text-emerald-400 font-bold flex items-center justify-center border border-emerald-500/30">
+            N
+          </div>
+<span class="w-2.5 h-2.5 bg-emerald-500 border-2 border-slate-900 rounded-full absolute -top-0.5 -right-0.5"></span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-xs font-semibold text-white group-hover:text-sky-300 transition truncate">Kembali ke Portal</p>
+<p class="text-[11px] text-slate-400 font-medium truncate">Mahasiswa Active</p>
+</div>
+<svg class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</a>
+</div>
+</aside>
+<!-- END: LeftSidebar -->
+<!-- BEGIN: MainContentWrapper -->
+<div class="flex-1 ml-64 flex flex-col min-h-screen">
+<!-- BEGIN: TopHeader -->
+<header class="h-20 bg-white border-b border-slate-200/90 px-8 flex items-center justify-between sticky top-0 z-20 shadow-xs" data-purpose="top-navigation-header">
+<!-- Left side: Platform scope & badge -->
+<div class="flex items-center gap-3.5">
+<span class="text-slate-800 font-bold text-base tracking-tight">Administrasi Platform</span>
+</div>
+<!-- Right side: Administrator profile & View Portal Action -->
+<div class="flex items-center gap-4">
+<!-- Quick Search Icon Button -->
+<button aria-label="Cari data" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
+</button>
+<!-- Notification Bell -->
+<button aria-label="Pemberitahuan" class="relative p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
+<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white"></span>
+</button>
+<div class="h-6 w-px bg-slate-200"></div>
+<!-- Admin User Pill -->
+<div class="flex items-center gap-2.5 px-3 py-1.5 rounded-full border border-slate-200 bg-slate-50/70 hover:bg-slate-100/60 transition cursor-pointer">
+<div class="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
+            A
+          </div>
+<span class="text-sm font-semibold text-slate-700 pr-1">Administrator</span>
+</div>
+<!-- External Link Button to Student Portal -->
+<a class="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-300 hover:border-slate-400 hover:bg-white text-slate-700 rounded-xl text-sm font-semibold shadow-2xs transition" href="#">
+<span class="">Lihat Portal</span>
+<svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</a>
+</div>
+</header>
+<!-- END: TopHeader -->
+<!-- BEGIN: DashboardBody -->
+<main class="flex-1 p-8 max-w-7xl w-full mx-auto space-y-8" data-purpose="dashboard-main-view"><div class="flex flex-col w-full">
+<!-- Top Section: Header & Action Buttons -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6">
+<div>
+<div class="flex items-center gap-2 mb-1.5">
+<span class="px-2 py-0.5 rounded text-[11px] font-medium tracking-wide uppercase bg-secondary-container/20 text-on-secondary-container">Katalog Mahasiswa</span>
+<span class="text-on-surface-variant font-label-mono text-label-mono text-xs">REF: MKT-UPNYK-2026</span>
+</div>
+<h1 class="font-headline-sm text-headline-sm text-primary tracking-tight">Manajemen Marketplace</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Pantau, filter, dan kelola listing barang/produk jual-beli mahasiswa UPN.</p>
+</div>
+<!-- Actions Toolbar -->
+<div class="flex flex-wrap items-center gap-2.5">
+<button class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-surface-container-lowest text-primary hover:bg-surface-container transition shadow-sm font-label-mono text-label-mono text-xs">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">calendar_month</span>
+<span class="">Filter Periode</span>
+</button>
+<button class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-surface-container-lowest text-primary hover:bg-surface-container transition shadow-sm font-label-mono text-label-mono text-xs">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">file_download</span>
+<span class="">Ekspor (.csv / .xlsx)</span>
+</button>
+<button class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-primary text-on-primary hover:bg-primary-container transition shadow-sm font-label-mono text-label-mono text-xs">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+<span class="">Pengaturan Listing</span>
+</button>
+</div>
+</div>
+<!-- Summary Metrics Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<!-- Metric 1: Total Listing Aktif -->
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden group">
+<div class="absolute top-0 left-0 right-0 h-1 bg-services-teal"></div>
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-mono text-label-mono text-xs uppercase text-on-surface-variant">Total Listing Aktif</span>
+<div class="font-headline-sm text-headline-sm text-primary mt-2">84</div>
+</div>
+<div class="w-10 h-10 rounded-lg bg-services-teal/10 flex items-center justify-center text-services-teal">
+<span class="material-symbols-outlined">storefront</span>
+</div>
+</div>
+<div class="mt-4 flex items-center gap-1.5 text-xs text-kost-green font-medium">
+<span class="material-symbols-outlined text-[16px]">arrow_upward</span>
+<span class="">+6 minggu ini</span>
+<span class="text-on-surface-variant font-normal">· 92% penyelesaian</span>
+</div>
+</div>
+<!-- Metric 2: Menunggu Tinjauan -->
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden group">
+<div class="absolute top-0 left-0 right-0 h-1 bg-marketplace-warmth"></div>
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-mono text-label-mono text-xs uppercase text-on-surface-variant">Menunggu Tinjauan</span>
+<div class="font-headline-sm text-headline-sm text-primary mt-2">2</div>
+</div>
+<div class="w-10 h-10 rounded-lg bg-marketplace-warmth/10 flex items-center justify-center text-marketplace-warmth">
+<span class="material-symbols-outlined">pending_actions</span>
+</div>
+</div>
+<div class="mt-4 flex items-center gap-1.5 text-xs text-marketplace-warmth font-medium">
+<span class="material-symbols-outlined text-[16px]">info</span>
+<span class="">Perlu verifikasi foto &amp; harga</span>
+</div>
+</div>
+<!-- Metric 3: Listing Dilaporkan -->
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden group">
+<div class="absolute top-0 left-0 right-0 h-1 bg-error"></div>
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-mono text-label-mono text-xs uppercase text-on-surface-variant">Listing Dilaporkan</span>
+<div class="font-headline-sm text-headline-sm text-error mt-2">1</div>
+</div>
+<div class="w-10 h-10 rounded-lg bg-error/10 flex items-center justify-center text-error">
+<span class="material-symbols-outlined">report_problem</span>
+</div>
+</div>
+<div class="mt-4 flex items-center gap-1.5 text-xs text-error font-medium">
+<span class="material-symbols-outlined text-[16px]">flag</span>
+<span class="">Dugaan mencurigakan</span>
+</div>
+</div>
+<!-- Metric 4: Total Transaksi Selesai -->
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden group">
+<div class="absolute top-0 left-0 right-0 h-1 bg-primary-container"></div>
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-mono text-label-mono text-xs uppercase text-on-surface-variant">Selesai TERJUAL</span>
+<div class="font-headline-sm text-headline-sm text-primary mt-2">248</div>
+</div>
+<div class="w-10 h-10 rounded-lg bg-primary-container/10 flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+</div>
+<div class="mt-4 flex items-center gap-1.5 text-xs text-on-surface-variant font-medium">
+<span class="material-symbols-outlined text-[16px] text-kost-green">history_edu</span>
+<span class="">Akumulasi semester gasal</span>
+</div>
+</div>
+</div>
+<!-- Search & Filter Controls Bar -->
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3">
+<!-- Search Bar -->
+<div class="relative w-full lg:w-96">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low rounded-lg text-primary placeholder-on-surface-variant text-body-sm font-body-sm focus:outline-none focus:ring-1 focus:ring-primary focus:bg-surface-container-lowest transition" placeholder="Cari nama produk, nama mahasiswa, NIM..." type="text">
+</div>
+<!-- Filters & Bulk Action -->
+<div class="flex flex-wrap items-center gap-2.5 w-full lg:w-auto justify-start lg:justify-end">
+<!-- Status Filter -->
+<div class="relative">
+<select class="appearance-none bg-surface-container-low hover:bg-surface-container text-primary font-body-sm text-body-sm py-2 pl-3.5 pr-8 rounded-lg focus:outline-none cursor-pointer">
+<option>Semua Status</option>
+<option>Aktif</option>
+<option>Menunggu Review</option>
+<option>Dilaporkan</option>
+<option>Terjual</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[18px]">expand_more</span>
+</div>
+<!-- Category Filter -->
+<div class="relative">
+<select class="appearance-none bg-surface-container-low hover:bg-surface-container text-primary font-body-sm text-body-sm py-2 pl-3.5 pr-8 rounded-lg focus:outline-none cursor-pointer">
+<option>Semua Kategori</option>
+<option>Elektronik</option>
+<option>Buku Kuliah</option>
+<option>Perlengkapan Kost</option>
+<option>Fashion Kampus</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[18px]">expand_more</span>
+</div>
+<!-- Batch Action -->
+<button class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container text-primary hover:bg-surface-container-high transition font-label-mono text-label-mono text-xs">
+<span class="material-symbols-outlined text-[16px]">checklist</span>
+<span class="">Tindakan Masal</span>
+</button>
+</div>
+</div>
+<!-- Marketplace Listing Table Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant font-label-mono text-label-mono text-xs uppercase tracking-wider">
+<th class="py-3.5 px-4 w-12 text-center">
+<input class="rounded bg-surface-container-lowest text-primary focus:ring-0 cursor-pointer" type="checkbox">
+</th>
+<th class="py-3.5 px-4 font-medium">Produk &amp; Kategori</th>
+<th class="py-3.5 px-4 font-medium">Penjual</th>
+<th class="py-3.5 px-4 font-medium">Harga</th>
+<th class="py-3.5 px-4 font-medium">Unggah</th>
+<th class="py-3.5 px-4 font-medium">Status</th>
+<th class="py-3.5 px-4 font-medium text-right">Aksi</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container-low font-body-sm text-body-sm text-primary">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-bright transition">
+<td class="py-4 px-4 text-center">
+<input class="rounded bg-surface-container-lowest text-primary focus:ring-0 cursor-pointer" type="checkbox">
+</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Casio fx-991EX scientific calculator on clean white wooden university desk with handwritten engineering formula notebook beside it under bright soft studio lighting, ultra-sharp detail." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdlqkEPM9P_mRH8c37zE7aFw1Rt-f4Tr4m62d_haNfbJUar3rFiP27s8fk8bfByPkguHN8O0BP1u6yqxCjV_r0MF3i5TWK3YbcNSXpbEzxLSRrD-npqTcy1ptdW6b7p3zh0AyXz6qXb04Fq3MoldbfGqbqJ3E7EPXF87dK9MSv0ChTh9IQjRZaAJwr90sP2SBwEw-yViiyF8sbxdt3V--UQEtNrcrm9JJigPUNclarmGgD_dgVxgcxkQ">
+</div>
+<div class="min-w-0">
+<div class="font-title-md text-title-md text-sm text-primary font-semibold truncate hover:text-services-teal transition cursor-pointer">Kalkulator Scientific Casio fx-991EX</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="inline-block px-2 py-0.5 rounded text-[10px] font-label-mono text-label-mono uppercase bg-services-teal/15 text-services-teal font-medium">Elektronik</span>
+<span class="text-xs text-on-surface-variant">Kondisi 9/10</span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4"><div class="font-medium text-primary">Dimas Arya</div></td>
+<td class="py-4 px-4">
+<span class="font-label-mono text-label-mono font-bold text-primary">Rp 180.000</span>
+</td>
+<td class="py-4 px-4 text-xs text-on-surface-variant">
+              Hari ini, 09:15
+            </td>
+<td class="py-4 px-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-kost-green/15 text-kost-green">
+<span class="w-1.5 h-1.5 rounded-full bg-kost-green"></span>
+                Aktif
+              </span>
+</td>
+<td class="py-4 px-4 text-right">
+<div class="inline-flex items-center gap-1">
+<button class="p-1.5 hover:bg-surface-container text-on-surface-variant hover:text-primary rounded transition" title="Detail Listing">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+<button class="p-1.5 hover:bg-marketplace-warmth/15 text-marketplace-warmth rounded transition" title="Tangguhkan Listing">
+<span class="material-symbols-outlined text-[18px]">pause_circle</span>
+</button>
+<button class="p-1.5 hover:bg-error/15 text-error rounded transition" title="Hapus Listing">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-bright transition">
+<td class="py-4 px-4 text-center">
+<input class="rounded bg-surface-container-lowest text-primary focus:ring-0 cursor-pointer" type="checkbox">
+</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Cover of Halliday and Resnick Fundamentals of Physics textbook first edition Indonesian translation resting upright against an academic library wooden bookshelf with gentle natural daylight." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBhhqRkgAeBOauGoTW4BU-frXi_N6vCIVJ1i1ipti-aY-oFd8n96m9w5-oScA3Z6UIoG7_Ej8AvyB3itobBM4_o6e00croVXErToudCh4Ca-mPV5iNutgYTR090EYuFUDpHx3s_oi6XvjyLndYWd5wjZEGWfLLHlrgP6ArYYOdWcXA3RbZF8ex3ACUa8kfZvaK40TeaMEcouisoXqaDJIfIKsqbKx54gWcZ7d_KBDlynZT4hCFyazyPw">
+</div>
+<div class="min-w-0">
+<div class="font-title-md text-title-md text-sm text-primary font-semibold truncate hover:text-services-teal transition cursor-pointer">Buku Cetak Fisika Dasar Halliday Resnick Jilid 1</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="inline-block px-2 py-0.5 rounded text-[10px] font-label-mono text-label-mono uppercase bg-primary-container/10 text-primary-container font-medium">Buku Kuliah</span>
+<span class="text-xs text-on-surface-variant">Original Hardcover</span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4"><div class="font-medium text-primary">Sarah Amalia</div></td>
+<td class="py-4 px-4">
+<span class="font-label-mono text-label-mono font-bold text-primary">Rp 75.000</span>
+</td>
+<td class="py-4 px-4 text-xs text-on-surface-variant">
+              Kemarin, 14:20
+            </td>
+<td class="py-4 px-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-kost-green/15 text-kost-green">
+<span class="w-1.5 h-1.5 rounded-full bg-kost-green"></span>
+                Aktif
+              </span>
+</td>
+<td class="py-4 px-4 text-right">
+<div class="inline-flex items-center gap-1">
+<button class="p-1.5 hover:bg-surface-container text-on-surface-variant hover:text-primary rounded transition" title="Detail Listing">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+<button class="p-1.5 hover:bg-marketplace-warmth/15 text-marketplace-warmth rounded transition" title="Tangguhkan Listing">
+<span class="material-symbols-outlined text-[18px]">pause_circle</span>
+</button>
+<button class="p-1.5 hover:bg-error/15 text-error rounded transition" title="Hapus Listing">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-bright transition bg-marketplace-warmth/5">
+<td class="py-4 px-4 text-center">
+<input class="rounded bg-surface-container-lowest text-primary focus:ring-0 cursor-pointer" type="checkbox">
+</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="LG 24 inch slim bezel IPS computer monitor powered on displaying a vivid clean landscape desktop screen inside a cozy student room, matte finish, sharp photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpvp7cR-FZ1tuTd4V1MDiI4rrZAmtePo6bQBMXKvZ7yTvbzbEZbRqB4YMTvRaC6mwMbejfXdExL5LvpFPToJofv2NEaIKaohxKYsjksxX18PmSnK57ir8kcOdaT2ywS1-fxg8ZmvOTHnxidyjHDKc01BPXTX-6tkzZdzleHwqXMYInR3nVKW3un0vp3K_7SYBXMoYjBFGlU-WpKbT8o9eVa-FG0ZjX34-UamNhLNuLKPJyxUMajvpoZA">
+</div>
+<div class="min-w-0">
+<div class="font-title-md text-title-md text-sm text-primary font-semibold truncate hover:text-services-teal transition cursor-pointer">Monitor LG 24 Inch IPS 75Hz (Kondisi Mulus)</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="inline-block px-2 py-0.5 rounded text-[10px] font-label-mono text-label-mono uppercase bg-services-teal/15 text-services-teal font-medium">Elektronik</span>
+<span class="text-xs text-error font-medium">Verifikasi Harga &gt; 500rb</span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4"><div class="font-medium text-primary">Alex Rivera</div></td>
+<td class="py-4 px-4">
+<span class="font-label-mono text-label-mono font-bold text-marketplace-warmth">Rp 950.000</span>
+</td>
+<td class="py-4 px-4 text-xs text-on-surface-variant">
+              2 hari lalu
+            </td>
+<td class="py-4 px-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-marketplace-warmth/15 text-marketplace-warmth">
+<span class="w-1.5 h-1.5 rounded-full bg-marketplace-warmth animate-pulse"></span>
+                Menunggu Review
+              </span>
+</td>
+<td class="py-4 px-4 text-right">
+<div class="inline-flex items-center gap-1.5">
+<button class="px-2.5 py-1 rounded bg-services-teal text-white hover:bg-services-teal/90 transition text-xs font-label-mono flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">done</span>
+<span class="">Verifikasi</span>
+</button>
+<button class="px-2.5 py-1 rounded bg-error/10 text-error hover:bg-error/20 transition text-xs font-label-mono">
+                  Tolak
+                </button>
+<button class="p-1.5 hover:bg-surface-container text-on-surface-variant rounded transition" title="Lihat Foto">
+<span class="material-symbols-outlined text-[18px]">open_in_new</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-bright transition bg-error/5">
+<td class="py-4 px-4 text-center">
+<input class="rounded bg-surface-container-lowest text-primary focus:ring-0 cursor-pointer" type="checkbox">
+</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Full face KYT TT Course Repsol motorcycle racing helmet on a clean neutral platform showcase, vibrant orange and white livery, professional product photograph." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHjSIt2XjE0O3e09mfhgUKKHyigTXwW4X2Asz0-DMaQP4TOFeynq71RCNd8TRFIBkQ45mid86hSxtQ4yqFTKeTvBYD34gNo9ZZJHIFhsoxHxffoFqD4x0Y6VxpIaGU2Mnm52iCq78nQQDRhqBReU__mQZLaOAMLlhjXU-PP6pDywk2zkUjlSNz2q485i-wHGbnUo1wzeyjP5ius18aoHARWWDpKg4yGh2_tcWgjLRV_HWrIPupv6zKlA">
+</div>
+<div class="min-w-0">
+<div class="font-title-md text-title-md text-sm text-primary font-semibold truncate hover:text-error transition cursor-pointer">Helm KYT TT Course Repsol Size L</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="inline-block px-2 py-0.5 rounded text-[10px] font-label-mono text-label-mono uppercase bg-found-purple/15 text-found-purple font-medium">Perlengkapan Kost</span>
+<span class="text-xs text-error font-medium">1 Laporan Pengguna</span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4"><div class="font-medium text-primary">Rizky Pratama</div></td>
+<td class="py-4 px-4">
+<span class="font-label-mono text-label-mono font-bold text-primary">Rp 450.000</span>
+</td>
+<td class="py-4 px-4 text-xs text-on-surface-variant">
+              3 hari lalu
+            </td>
+<td class="py-4 px-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-error/15 text-error">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                Dilaporkan
+              </span>
+</td>
+<td class="py-4 px-4 text-right">
+<div class="inline-flex items-center gap-1.5">
+<button class="px-2.5 py-1 rounded bg-error text-white hover:bg-error/90 transition text-xs font-label-mono flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">shield</span>
+<span class="">Periksa</span>
+</button>
+<button class="px-2 py-1 rounded bg-surface-container text-on-surface-variant hover:text-error transition text-xs font-label-mono">
+                  Banned
+                </button>
+<button class="px-2 py-1 rounded bg-surface-container text-on-surface-variant hover:text-primary transition text-xs font-label-mono">
+                  Abaikan
+                </button>
+</div>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-surface-bright transition opacity-80">
+<td class="py-4 px-4 text-center">
+<input class="rounded bg-surface-container-lowest text-primary focus:ring-0 cursor-pointer" type="checkbox">
+</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Light wooden minimal folding study desk set against a bright minimalist student dorm room wall with small desk lamp and laptop, warm atmospheric lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA2JH7_tm0hib2K_du4PHL2LDAnXXDoA08PnPskAEfUyycDHIjCM8AsL4VXUJxZGphSelFKi1aBJEw3aBIXiLVzo7ZNraP6ZyJQRCDGSAzSMdyzAAbMK8A-6VQ45MM8DjVKZgjJX9-pt924vDcy-ycC4x8jGIOCtPV5glAD2MqUVOSRIlw_q9QSH3i1wH5DK-7EscPPBjDwuOPQHsMHOnOIkgB4i0TTe07TnZNmCia6MRyrF73RtnXMjQ">
+</div>
+<div class="min-w-0">
+<div class="font-title-md text-title-md text-sm text-primary font-semibold truncate hover:text-services-teal transition cursor-pointer">Meja Belajar Lipat Kayu Minimalis Kost</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="inline-block px-2 py-0.5 rounded text-[10px] font-label-mono text-label-mono uppercase bg-found-purple/15 text-found-purple font-medium">Perlengkapan Kost</span>
+<span class="text-xs text-on-surface-variant">Selesai via COD Kampus</span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4"><div class="font-medium text-primary">Nabila Putri</div></td>
+<td class="py-4 px-4">
+<span class="font-label-mono text-label-mono font-bold text-on-surface-variant line-through">Rp 60.000</span>
+</td>
+<td class="py-4 px-4 text-xs text-on-surface-variant">
+              4 hari lalu
+            </td>
+<td class="py-4 px-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-surface-container text-on-surface-variant">
+<span class="w-1.5 h-1.5 rounded-full bg-on-surface-variant"></span>
+                Terjual
+              </span>
+</td>
+<td class="py-4 px-4 text-right">
+<div class="inline-flex items-center gap-1.5">
+<button class="px-2.5 py-1 rounded bg-surface-container text-primary hover:bg-surface-container-high transition text-xs font-label-mono">
+                  Arsipkan
+                </button>
+<button class="p-1.5 hover:bg-surface-container text-on-surface-variant hover:text-primary rounded transition" title="Detail Listing">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 6 -->
+<tr class="hover:bg-surface-bright transition">
+<td class="py-4 px-4 text-center">
+<input class="rounded bg-surface-container-lowest text-primary focus:ring-0 cursor-pointer" type="checkbox">
+</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Crisp clean white university laboratory coat with UPN Veteran Yogyakarta campus embroidered badge neatly folded on clean tabletop, bright laboratory ambient light." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQdybXO-aXqcSP1YwYpXrWIRzHPPWbb2UiZWvniit7nshjKoPSLU_3GS1omjaXYqY76h5A1mgO14hLKu3PXtCR_k_wJ35YufjOiVCZHRIVbNZvhPESg60kbFk9rW8GSYuwCGRs307avSe9sWl19DVb4H6Z0Nbr94mHnlaHfmVHdtOhJzNcoJ3_MLbkROVVlkJfeKjo6AJ8fARRWgx4bjebr8WyYJeRtHwdeLcXB_Tp6HG0_lVmwzMbOw">
+</div>
+<div class="min-w-0">
+<div class="font-title-md text-title-md text-sm text-primary font-semibold truncate hover:text-services-teal transition cursor-pointer">Jas Lab UPN Veteran Yogyakarta Size M</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="inline-block px-2 py-0.5 rounded text-[10px] font-label-mono text-label-mono uppercase bg-marketplace-warmth/15 text-marketplace-warmth font-medium">Fashion Kampus</span>
+<span class="text-xs text-on-surface-variant">Baru dipakai 2x praktikum</span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4"><div class="font-medium text-primary">Farhan Hidayat</div></td>
+<td class="py-4 px-4">
+<span class="font-label-mono text-label-mono font-bold text-primary">Rp 85.000</span>
+</td>
+<td class="py-4 px-4 text-xs text-on-surface-variant">
+              5 hari lalu
+            </td>
+<td class="py-4 px-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-kost-green/15 text-kost-green">
+<span class="w-1.5 h-1.5 rounded-full bg-kost-green"></span>
+                Aktif
+              </span>
+</td>
+<td class="py-4 px-4 text-right">
+<div class="inline-flex items-center gap-1">
+<button class="p-1.5 hover:bg-surface-container text-on-surface-variant hover:text-primary rounded transition" title="Detail Listing">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+<button class="p-1.5 hover:bg-marketplace-warmth/15 text-marketplace-warmth rounded transition" title="Tangguhkan Listing">
+<span class="material-symbols-outlined text-[18px]">pause_circle</span>
+</button>
+<button class="p-1.5 hover:bg-error/15 text-error rounded transition" title="Hapus Listing">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer / Pagination -->
+<div class="px-6 py-4 bg-surface-container-low/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<span class="text-xs text-on-surface-variant font-label-mono">
+          Menampilkan <strong class="text-primary font-semibold">1 - 6</strong> dari <strong class="text-primary font-semibold">84</strong> listing aktif
+        </span>
+<span class="hidden md:inline-block w-1 h-1 rounded-full bg-on-surface-variant/40"></span>
+
+</div>
+<!-- Pagination Nav -->
+<div class="inline-flex items-center gap-1">
+<button class="p-1.5 rounded-md bg-surface-container-lowest text-on-surface-variant opacity-40 cursor-not-allowed" disabled="">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<button class="w-8 h-8 rounded-md bg-primary text-on-primary font-label-mono text-label-mono text-xs font-semibold">1</button>
+<button class="w-8 h-8 rounded-md bg-surface-container-lowest hover:bg-surface-container text-primary font-label-mono text-label-mono text-xs transition">2</button>
+<button class="w-8 h-8 rounded-md bg-surface-container-lowest hover:bg-surface-container text-primary font-label-mono text-label-mono text-xs transition">3</button>
+<span class="px-1 text-xs text-on-surface-variant">...</span>
+<button class="w-8 h-8 rounded-md bg-surface-container-lowest hover:bg-surface-container text-primary font-label-mono text-label-mono text-xs transition">14</button>
+<button class="p-1.5 rounded-md bg-surface-container-lowest hover:bg-surface-container text-primary transition">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Bottom Regulatory / Policy Advisory Note -->
+
+</div></main>
+<!-- END: DashboardBody -->
+<!-- BEGIN: DashboardFooter -->
+<footer class="mt-auto border-t border-slate-200/80 bg-white px-8 py-4 text-center sm:flex sm:justify-between sm:text-left text-xs text-slate-400">
+<p class="">© 2026 UPN "Veteran" - Student Hub Management System. Hak cipta dilindungi.</p>
+<div class="mt-2 sm:mt-0 flex justify-center gap-4">
+<a class="hover:underline" href="#">Privasi &amp; Keamanan</a>
+<a class="hover:underline" href="#">Bantuan Teknis</a>
+</div>
+</footer>
+<!-- END: DashboardFooter -->
+</div>
+<!-- END: MainContentWrapper -->
+
+
+</body></html>

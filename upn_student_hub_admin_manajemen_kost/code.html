@@ -1,0 +1,752 @@
+<!DOCTYPE html><html lang="id" style=""><head>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><meta content="web_dashboard" name="shell-type"></head><body class="bg-[#f8fafc] text-slate-800 antialiased font-sans flex min-h-screen"><svg aria-hidden="true" class="inline-defs-container" style="position:absolute;width:0;height:0;overflow:hidden"></svg>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Dashboard Admin - UPN Student Hub</title>
+<!-- Tailwind CSS CDN with Forms & Container Queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Inter & Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              navy: '#08172c',
+              navySidebar: '#0b192e',
+              navyItemHover: '#132845',
+              navyActive: '#173054',
+              accent: '#38bdf8',
+              gold: '#f59e0b',
+              upnGreen: '#15803d'
+            }
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-scrollbars">
+    /* Custom refined scrollbars for dashboard panels */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .sidebar-scroll::-webkit-scrollbar-thumb {
+      background: #1e3a5f;
+    }
+    .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+      background: #2b5082;
+    }
+  </style>
+<style data-purpose="micro-interactions">
+    .card-transition {
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card-transition:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px -10px rgba(15, 23, 42, 0.08);
+    }
+  </style>
+<meta content="web_dashboard" name="shell-type">
+<!-- BEGIN: LeftSidebar -->
+<aside class="w-64 bg-brand-navySidebar text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800/80 fixed inset-y-0 left-0 z-30 select-none" data-purpose="main-sidebar">
+<!-- Top Brand Logo -->
+<div class="h-20 flex items-center px-6 gap-3.5 border-b border-slate-800/60 bg-brand-navy/60">
+<div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-extrabold text-white text-lg shadow-md shadow-sky-500/20 ring-1 ring-white/20">
+        U
+      </div>
+<div class="leading-tight">
+<h1 class="text-white font-bold tracking-tight text-[15px] flex items-center gap-1.5">
+          UPN Student Hub
+        </h1>
+<p class="text-xs text-slate-400 font-medium tracking-wide">Admin Portal</p>
+</div>
+</div>
+<!-- Navigation Scrollable Area -->
+<div class="flex-1 overflow-y-auto py-5 px-3 sidebar-scroll space-y-6">
+<!-- Group: UTAMA -->
+<div>
+<p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Utama</p>
+<div class="mt-2 space-y-1">
+<!-- Active Item: Dashboard -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#"><svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg><span class="text-sm">Dashboard</span></a>
+</div>
+</div>
+<!-- Group: KONTEN -->
+<div>
+<p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Konten</p>
+<div class="mt-2 space-y-1">
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#"><div class="flex items-center gap-3"><svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg><span class="text-sm">Marketplace</span></div><span class="text-[11px] px-2 py-0.5 font-semibold bg-amber-500/10 text-amber-300 rounded-md">11</span></a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#"><div class="flex items-center gap-3"><svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg><span class="text-sm">Jasa Mahasiswa</span></div><span class="text-[11px] px-2 py-0.5 font-semibold bg-indigo-500/10 text-indigo-300 rounded-md">10</span></a>
+<a class="flex items-center justify-between px-3 py-2.5 rounded-lg bg-gradient-to-r from-[#173054] to-[#173054]/80 text-white font-medium shadow-sm border-l-4 border-sky-400" href="#"><div class="flex items-center gap-3"><svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg><span class="text-sm">Kost</span></div><span class="text-[11px] px-2 py-0.5 font-semibold bg-emerald-500/10 text-emerald-300 rounded-md">12</span></a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M8 16l2.879-2.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Lost &amp; Found</span>
+</div>
+<span class="text-[11px] px-2 py-0.5 font-semibold bg-sky-500/10 text-sky-300 rounded-md">11</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Event &amp; Informasi</span>
+</div>
+<span class="text-[11px] px-2 py-0.5 font-semibold bg-rose-500/10 text-rose-300 rounded-md">9</span>
+</a>
+</div>
+</div>
+<!-- Group: KOMUNITAS -->
+<div>
+<p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Komunitas</p>
+<div class="mt-2 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Users</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Reports / Moderasi</span>
+</div>
+<span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+</a>
+</div>
+</div>
+<!-- Group: SISTEM -->
+<div>
+<p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Sistem</p>
+<div class="mt-2 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Categories</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Notifications</span>
+</div>
+<span class="w-2 h-2 rounded-full bg-sky-400"></span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-brand-navyItemHover transition" href="#">
+<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-sm">Pengaturan</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Sidebar Bottom: Return to Student Portal -->
+<div class="p-3 border-t border-slate-800 bg-[#071324]" data-purpose="sidebar-footer">
+<a class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 transition group" href="#">
+<div class="relative">
+<div class="w-9 h-9 rounded-lg bg-emerald-600/30 text-emerald-400 font-bold flex items-center justify-center border border-emerald-500/30">
+            N
+          </div>
+<span class="w-2.5 h-2.5 bg-emerald-500 border-2 border-slate-900 rounded-full absolute -top-0.5 -right-0.5"></span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-xs font-semibold text-white group-hover:text-sky-300 transition truncate">Kembali ke Portal</p>
+<p class="text-[11px] text-slate-400 font-medium truncate">Mahasiswa Active</p>
+</div>
+<svg class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</a>
+</div>
+</aside>
+<!-- END: LeftSidebar -->
+<!-- BEGIN: MainContentWrapper -->
+<div class="flex-1 ml-64 flex flex-col min-h-screen">
+<!-- BEGIN: TopHeader -->
+<header class="h-20 bg-white border-b border-slate-200/90 px-8 flex items-center justify-between sticky top-0 z-20 shadow-xs" data-purpose="top-navigation-header">
+<!-- Left side: Platform scope & badge -->
+<div class="flex items-center gap-3.5">
+<span class="text-slate-800 font-bold text-base tracking-tight">Administrasi Platform</span>
+</div>
+<!-- Right side: Administrator profile & View Portal Action -->
+<div class="flex items-center gap-4">
+<!-- Quick Search Icon Button -->
+<button aria-label="Cari data" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
+</button>
+<!-- Notification Bell -->
+<button aria-label="Pemberitahuan" class="relative p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
+<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white"></span>
+</button>
+<div class="h-6 w-px bg-slate-200"></div>
+<!-- Admin User Pill -->
+<div class="flex items-center gap-2.5 px-3 py-1.5 rounded-full border border-slate-200 bg-slate-50/70 hover:bg-slate-100/60 transition cursor-pointer">
+<div class="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
+            A
+          </div>
+<span class="text-sm font-semibold text-slate-700 pr-1">Administrator</span>
+</div>
+<!-- External Link Button to Student Portal -->
+<a class="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-300 hover:border-slate-400 hover:bg-white text-slate-700 rounded-xl text-sm font-semibold shadow-2xs transition" href="#">
+<span class="">Lihat Portal</span>
+<svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</a>
+</div>
+</header>
+<!-- END: TopHeader -->
+<!-- BEGIN: DashboardBody -->
+<main class="flex-1 p-8 max-w-7xl w-full mx-auto space-y-8" data-purpose="dashboard-main-view"><div class="flex flex-col w-full">
+<!-- Interactive Script for Filtering & Action handling -->
+<script>
+    function toggleSelectAll(master) {
+      const checkboxes = document.querySelectorAll('.kost-row-checkbox');
+      checkboxes.forEach(cb => cb.checked = master.checked);
+      updateSelectedCount();
+    }
+    function updateSelectedCount() {
+      const selected = document.querySelectorAll('.kost-row-checkbox:checked').length;
+      const badge = document.getElementById('selected-count-badge');
+      if (badge) {
+        badge.textContent = selected > 0 ? `${selected} Dipilih` : 'Tindakan Masal';
+      }
+    }
+    function handleActionFeedback(actionName, itemName) {
+      const toast = document.getElementById('action-toast');
+      const toastText = document.getElementById('toast-text');
+      if (toast && toastText) {
+        toastText.textContent = `Aksi '${actionName}' berhasil diproses untuk: ${itemName}`;
+        toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-2');
+        toast.classList.add('opacity-100', 'translate-y-0');
+        setTimeout(() => {
+          toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-2');
+          toast.classList.remove('opacity-100', 'translate-y-0');
+        }, 3200);
+      }
+    }
+  </script>
+<!-- Notification Toast -->
+<div class="fixed bottom-6 right-8 z-50 flex items-center gap-3 px-4 py-3 rounded-lg bg-primary text-on-primary shadow-xl opacity-0 pointer-events-none translate-y-2 transition-all duration-300 ease-out" id="action-toast">
+<span class="material-symbols-outlined text-kost-green text-body-lg">check_circle</span>
+<span class="font-body-sm text-body-sm" id="toast-text">Pembaruan berhasil disimpan.</span>
+</div>
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6">
+<div class="space-y-1">
+<h1 class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Manajemen Kost</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-2xl">
+        Pantau, kurasi, dan kelola listing hunian dan oper sewa di sekitar kampus UPN 'Veteran' Yogyakarta.
+      </p>
+</div>
+<div class="flex items-center gap-3 shrink-0">
+<button class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface font-body-sm text-body-sm font-medium transition shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">calendar_today</span>
+<span class="">Filter Periode</span>
+</button>
+<button class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-body-sm text-body-sm font-medium transition shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px]">file_download</span>
+<span class="">Ekspor (.csv / .xlsx)</span>
+</button>
+</div>
+</div>
+<!-- KPI Metrics Bar -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<!-- Metric 1: Total Kost Aktif -->
+<div class="p-5 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-mono text-label-mono text-on-surface-variant uppercase tracking-wider">Total Kost Aktif</span>
+<div class="w-9 h-9 rounded-lg bg-kost-green/10 flex items-center justify-center text-kost-green">
+<span class="material-symbols-outlined text-[20px]">home_work</span>
+</div>
+</div>
+<div class="mt-3">
+<span class="font-display-lg-mobile text-display-lg-mobile font-bold text-on-surface">48</span>
+<p class="mt-0.5 font-body-sm text-body-sm text-kost-green font-medium">+3 minggu ini</p>
+</div>
+</div>
+<!-- Metric 2: Menunggu Verifikasi -->
+<div class="p-5 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-mono text-label-mono text-on-surface-variant uppercase tracking-wider">Menunggu Verifikasi</span>
+<div class="w-9 h-9 rounded-lg bg-secondary-container/20 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[20px]">pending_actions</span>
+</div>
+</div>
+<div class="mt-3">
+<span class="font-display-lg-mobile text-display-lg-mobile font-bold text-on-surface">4</span>
+<p class="mt-0.5 font-body-sm text-body-sm text-on-surface-variant">Listing baru &amp; oper sewa</p>
+</div>
+</div>
+<!-- Metric 3: Laporan Masuk -->
+<div class="p-5 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-mono text-label-mono text-on-surface-variant uppercase tracking-wider">Laporan Masuk</span>
+<div class="w-9 h-9 rounded-lg bg-error-container flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-[20px]">flag</span>
+</div>
+</div>
+<div class="mt-3">
+<span class="font-display-lg-mobile text-display-lg-mobile font-bold text-error">1</span>
+<p class="mt-0.5 font-body-sm text-body-sm text-on-surface-variant">Dugaan info tidak akurat</p>
+</div>
+</div>
+<!-- Metric 4: Total Survey / Kontak -->
+<div class="p-5 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-mono text-label-mono text-on-surface-variant uppercase tracking-wider">Total Survey / Kontak</span>
+<div class="w-9 h-9 rounded-lg bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">contact_phone</span>
+</div>
+</div>
+<div class="mt-3">
+<span class="font-display-lg-mobile text-display-lg-mobile font-bold text-on-surface">312</span>
+<p class="mt-0.5 font-body-sm text-body-sm text-on-surface-variant">Interaksi via WhatsApp</p>
+</div>
+</div>
+</div>
+<!-- Search, Filter & Bulk Actions Bar -->
+<div class="p-4 rounded-xl bg-surface-container-lowest shadow-sm mb-5">
+<div class="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+<!-- Search Bar -->
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant">search</span>
+<input class="w-full pl-10 pr-4 py-2.5 rounded-lg bg-surface-container-low text-on-surface font-body-sm text-body-sm placeholder:text-on-surface-variant focus:outline-none focus:bg-surface-container-lowest shadow-2xs" placeholder="Cari nama kost, alamat, nama pemilik..." type="text">
+</div>
+<!-- Filter Status Dropdown -->
+<div class="w-full lg:w-48 shrink-0">
+<select class="w-full py-2.5 px-3 rounded-lg bg-surface-container-low text-on-surface font-body-sm text-body-sm focus:outline-none focus:bg-surface-container-lowest shadow-2xs cursor-pointer">
+<option value="">Semua Status</option>
+<option value="aktif">Aktif</option>
+<option value="review">Menunggu Review</option>
+<option value="terverifikasi">Terverifikasi</option>
+<option value="dilaporkan">Dilaporkan</option>
+<option value="penuh">Penuh / Tutup</option>
+</select>
+</div>
+<!-- Filter Tipe Dropdown -->
+<div class="w-full lg:w-44 shrink-0">
+<select class="w-full py-2.5 px-3 rounded-lg bg-surface-container-low text-on-surface font-body-sm text-body-sm focus:outline-none focus:bg-surface-container-lowest shadow-2xs cursor-pointer">
+<option value="">Semua Tipe</option>
+<option value="putri">Putri</option>
+<option value="putra">Putra</option>
+<option value="campur">Campur</option>
+<option value="oper">Oper Sewa</option>
+</select>
+</div>
+<!-- Bulk Action Button -->
+<button class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-surface-container hover:bg-surface-variant text-on-surface font-body-sm text-body-sm font-medium transition shrink-0" id="bulk-action-btn" onclick="alert('Pilih baris terlebih dahulu untuk menerapkan tindakan massal.')" type="button">
+<span class="material-symbols-outlined text-[18px]">checklist</span>
+<span id="selected-count-badge" class="">Tindakan Masal</span>
+</button>
+</div>
+</div>
+<!-- Data Table Container -->
+<div class="rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left font-body-sm text-body-sm">
+<thead class="bg-surface-container-low text-on-surface-variant font-label-mono text-label-mono uppercase tracking-wider">
+<tr>
+<th class="py-3.5 pl-4 pr-2 w-10 text-center">
+<input class="rounded bg-surface-container-lowest text-primary focus:ring-0 cursor-pointer" onchange="toggleSelectAll(this)" title="Pilih Semua" type="checkbox">
+</th>
+<th class="py-3.5 px-4 min-w-[260px]">Kost &amp; Lokasi</th>
+<th class="py-3.5 px-3 w-32">Tipe</th>
+<th class="py-3.5 px-3 min-w-[150px]">Pemilik / Pengelola</th>
+<th class="py-3.5 px-3 min-w-[150px]">Tarif Sewa</th>
+<th class="py-3.5 px-3 w-32">Waktu Unggah</th>
+<th class="py-3.5 px-3 w-36">Status</th>
+<th class="py-3.5 pr-4 pl-2 text-right w-28">Aksi</th>
+</tr>
+</thead>
+<tbody class="divide-none text-on-surface font-body-sm text-body-sm">
+<!-- Row 1: Griya Mahasiswa Tambakbayan -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-4 pl-4 pr-2 text-center align-middle">
+<input class="kost-row-checkbox rounded bg-surface-container-low text-primary focus:ring-0 cursor-pointer" onchange="updateSelectedCount()" type="checkbox">
+</td>
+<td class="py-4 px-4 align-middle">
+<div class="flex items-center gap-3">
+<img alt="Kamar Griya Mahasiswa Tambakbayan" class="w-12 h-12 rounded-lg object-cover bg-surface-container shrink-0" data-alt="Clean and cozy student boarding room at Condongcatur Sleman, neat single bed, study table with warm lamp light, natural daylight coming from sliding window, tidy aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwq5reKc79JGl1BorFAwIf8jKWaga3vLb2q-gfAvJJO7P1RRY4VhDu8HT73dDv4Idoof4F1i9IM5Syphcl2h2iV2OfOOOiJ58LBFlfpZbrCugrV8wfQqNlYO_tmH2wxaImCEoXhdNJibcyCc9gSlj5xjtlnVTEegj-xmx2OEmbD8J4ePzUYf1Ty6J4kp4W_uewfPXYI6xIwQjJttBgpfgXQPATbr5zVZqm0pvo0vZ8VD5OOyhgJHbHJA">
+<div class="min-w-0">
+<p class="font-medium text-on-surface truncate">Griya Mahasiswa Tambakbayan</p>
+<p class="text-on-surface-variant text-[13px] flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[14px] text-kost-green">distance</span>
+                    Jl. Delima No. 14, Condongcatur • 450m dari Kampus 1
+                  </p>
+</div>
+</div>
+</td>
+<td class="py-4 px-3 align-middle">
+<span class="inline-flex items-center px-2.5 py-1 rounded font-body-sm text-[12px] font-medium bg-rose-500/10 text-rose-700">
+                Putri
+              </span>
+</td>
+<td class="py-4 px-3 align-middle font-medium text-on-surface">
+              Ibu Sri Wahyuni
+            </td>
+<td class="py-4 px-3 align-middle font-label-mono text-label-mono text-on-surface">
+              Rp 850.000 / Bulan
+            </td>
+<td class="py-4 px-3 align-middle text-on-surface-variant text-[13px]">
+              Kemarin, 14:20
+            </td>
+<td class="py-4 px-3 align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-kost-green/15 text-kost-green">
+<span class="w-1.5 h-1.5 rounded-full bg-kost-green"></span>
+                Aktif
+              </span>
+</td>
+<td class="py-4 pr-4 pl-2 text-right align-middle">
+<div class="inline-flex items-center justify-end gap-1">
+<button class="p-1.5 rounded-md text-on-surface-variant hover:text-primary hover:bg-surface-container transition" onclick="handleActionFeedback('Tinjau', 'Griya Mahasiswa Tambakbayan')" title="Detail &amp; Tinjau" type="button">
+<span class="material-symbols-outlined text-[19px]">visibility</span>
+</button>
+<button class="p-1.5 rounded-md text-on-surface-variant hover:text-secondary hover:bg-surface-container transition" onclick="handleActionFeedback('Edit Status', 'Griya Mahasiswa Tambakbayan')" title="Ubah Status" type="button">
+<span class="material-symbols-outlined text-[19px]">edit_note</span>
+</button>
+<button class="p-1.5 rounded-md text-on-surface-variant hover:text-error hover:bg-surface-container transition" onclick="handleActionFeedback('Hapus', 'Griya Mahasiswa Tambakbayan')" title="Hapus Listing" type="button">
+<span class="material-symbols-outlined text-[19px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2: Kost Putra Babarsari Pratama -->
+<tr class="hover:bg-surface-container-low/60 transition-colors bg-surface-container-low/20">
+<td class="py-4 pl-4 pr-2 text-center align-middle">
+<input class="kost-row-checkbox rounded bg-surface-container-low text-primary focus:ring-0 cursor-pointer" onchange="updateSelectedCount()" type="checkbox">
+</td>
+<td class="py-4 px-4 align-middle">
+<div class="flex items-center gap-3">
+<img alt="Tampak Kost Putra Babarsari Pratama" class="w-12 h-12 rounded-lg object-cover bg-surface-container shrink-0" data-alt="Modern facade of a student dormitory in Babarsari Yogyakarta, parked motorbikes in shaded yard, tropical greenery, sunny afternoon atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCN9dCiEPNh4lfrT_24tMPnyIHAEjbAofPObvIySfrwmT8V86XSeOBSr4rSqT9MpiJDPkH7mk__aXcYPvBJBCQznwGJgGUlVObp0zgSTm20mrxla9yvMAVU4Rj8gmUSGWdJ0CcpNto3zxJHU9_0V-FZxyRUH1dicFwVQSeR-N3dOgrQX_XS-vUqowqXbyiGuW9R8r8Y8jjgaOLuIo_Z-3uePYU8bIGHtU5A2z60QLnVJUhpKLE2uIcHQ">
+<div class="min-w-0">
+<p class="font-medium text-on-surface truncate">Kost Putra Babarsari Pratama</p>
+<p class="text-on-surface-variant text-[13px] flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[14px] text-kost-green">distance</span>
+                    Jl. Babarsari Gg. Tambakbayan • 300m dari Kampus 2
+                  </p>
+</div>
+</div>
+</td>
+<td class="py-4 px-3 align-middle">
+<span class="inline-flex items-center px-2.5 py-1 rounded font-body-sm text-[12px] font-medium bg-sky-500/10 text-sky-800">
+                Putra
+              </span>
+</td>
+<td class="py-4 px-3 align-middle font-medium text-on-surface">
+              Pak Hendro Santoso
+            </td>
+<td class="py-4 px-3 align-middle font-label-mono text-label-mono text-on-surface">
+              Rp 650.000 / Bulan
+            </td>
+<td class="py-4 px-3 align-middle text-on-surface-variant text-[13px]">
+              2 hari lalu
+            </td>
+<td class="py-4 px-3 align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-kost-green/15 text-kost-green">
+<span class="w-1.5 h-1.5 rounded-full bg-kost-green"></span>
+                Aktif
+              </span>
+</td>
+<td class="py-4 pr-4 pl-2 text-right align-middle">
+<div class="inline-flex items-center justify-end gap-1">
+<button class="p-1.5 rounded-md text-on-surface-variant hover:text-primary hover:bg-surface-container transition" onclick="handleActionFeedback('Tinjau', 'Kost Putra Babarsari Pratama')" title="Detail &amp; Tinjau" type="button">
+<span class="material-symbols-outlined text-[19px]">visibility</span>
+</button>
+<button class="p-1.5 rounded-md text-on-surface-variant hover:text-secondary hover:bg-surface-container transition" onclick="handleActionFeedback('Edit Status', 'Kost Putra Babarsari Pratama')" title="Ubah Status" type="button">
+<span class="material-symbols-outlined text-[19px]">edit_note</span>
+</button>
+<button class="p-1.5 rounded-md text-on-surface-variant hover:text-error hover:bg-surface-container transition" onclick="handleActionFeedback('Hapus', 'Kost Putra Babarsari Pratama')" title="Hapus Listing" type="button">
+<span class="material-symbols-outlined text-[19px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3: Wisma Sekar Dawa (Oper Sewa - Menunggu Review) -->
+<tr class="hover:bg-surface-container-low/60 transition-colors bg-secondary-container/5">
+<td class="py-4 pl-4 pr-2 text-center align-middle">
+<input class="kost-row-checkbox rounded bg-surface-container-low text-primary focus:ring-0 cursor-pointer" onchange="updateSelectedCount()" type="checkbox">
+</td>
+<td class="py-4 px-4 align-middle">
+<div class="flex items-center gap-3">
+<img alt="Kamar Wisma Sekar Dawa" class="w-12 h-12 rounded-lg object-cover bg-surface-container shrink-0" data-alt="Interior student studio room with wooden wardrobe, tiled floor, neat working desk and Wi-Fi router, well organized and clean." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBcWlPPO3lXDfg44DzmOw7lvIOGinxmxC9x4AT66YcOV49RDgkkSgSF1Q4Jwmi4H2UtF7PTPyf1rLxjMSUPMCBIn6Rkec17nWwD0-oMB5H_xFhto0IIDzwdvUuDZWoW35iCMvBUlm9jVn-5P08oi3_GGBNLonsZr19ThGj8Cd-9sqal1VpJETKtwhPpFE1MPcPIHTfXmMH1dR5ULnbXkX0130hX5eFeHNHBnG1pW4VEBlQr9HQopuHOWA">
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<p class="font-medium text-on-surface truncate">Wisma Sekar Dawa</p>
+<span class="font-label-mono text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-secondary font-semibold uppercase">Oper</span>
+</div>
+<p class="text-on-surface-variant text-[13px] flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[14px] text-kost-green">distance</span>
+                    Jl. Seturan Raya No. 8B • 800m dari Kampus 1
+                  </p>
+</div>
+</div>
+</td>
+<td class="py-4 px-3 align-middle">
+<span class="inline-flex items-center px-2.5 py-1 rounded font-body-sm text-[12px] font-medium bg-amber-500/15 text-amber-900">
+                Oper Sewa
+              </span>
+</td>
+<td class="py-4 px-3 align-middle font-medium text-on-surface">
+              Dimas Prasetyo
+            </td>
+<td class="py-4 px-3 align-middle font-label-mono text-label-mono text-on-surface">
+              Rp 4.200.000 <span class="text-[12px] text-on-surface-variant font-normal">/ Sisa 6 Bln</span>
+</td>
+<td class="py-4 px-3 align-middle text-on-surface-variant text-[13px]">
+              Hari ini, 09:15
+            </td>
+<td class="py-4 px-3 align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-secondary-container/30 text-on-secondary-container">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                Menunggu Review
+              </span>
+</td>
+<td class="py-4 pr-4 pl-2 text-right align-middle">
+<div class="inline-flex items-center justify-end gap-1">
+<button class="px-2 py-1 rounded bg-kost-green text-on-primary font-body-sm text-[12px] font-medium hover:opacity-90 transition" onclick="handleActionFeedback('Verifikasi Listing', 'Wisma Sekar Dawa')" title="Setujui &amp; Verifikasi" type="button">
+                  Verifikasi
+                </button>
+<button class="px-2 py-1 rounded bg-surface-container text-on-surface-variant font-body-sm text-[12px] hover:bg-error-container hover:text-error transition" onclick="handleActionFeedback('Tolak Listing', 'Wisma Sekar Dawa')" title="Tolak Listing" type="button">
+                  Tolak
+                </button>
+</div>
+</td>
+</tr>
+<!-- Row 4: Paviliun Mahasiswa Kledokan -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-4 pl-4 pr-2 text-center align-middle">
+<input class="kost-row-checkbox rounded bg-surface-container-low text-primary focus:ring-0 cursor-pointer" onchange="updateSelectedCount()" type="checkbox">
+</td>
+<td class="py-4 px-4 align-middle">
+<div class="flex items-center gap-3">
+<img alt="Paviliun Mahasiswa Kledokan" class="w-12 h-12 rounded-lg object-cover bg-surface-container shrink-0" data-alt="Spacious pavilion residential unit with small pantry kitchenette and private bathroom, warm interior lighting, neat and quiet environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuByTSpRWc3-pjXMZYe4fPaLWbgqedz9neljKbM_9Xlay7sETu5TGt1DA00aDfGjoPU0jhMGEIfrbCmKHyqQ2NaAL7WU6JwCdE_i_-lISXf8sH0inUIksfQH1CIuNXiNL9Y_9B6XE9VoHRTBhN0Iw1GgxylsIT9DA1eyMqx6rTgyg-6mReQ_yvPiTHNh48Xqbsv55Hc_Qzqx9Eue15rcKv5fSsZ47ClZEc-KDcQ4HE2vnuVto-A-yRZOEg">
+<div class="min-w-0">
+<p class="font-medium text-on-surface truncate">Paviliun Mahasiswa Kledokan</p>
+<p class="text-on-surface-variant text-[13px] flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[14px] text-kost-green">distance</span>
+                    Jl. Kledokan Raya Blok B3 • 950m dari Kampus 2
+                  </p>
+</div>
+</div>
+</td>
+<td class="py-4 px-3 align-middle">
+<span class="inline-flex items-center px-2.5 py-1 rounded font-body-sm text-[12px] font-medium bg-purple-500/10 text-purple-800">
+                Campur
+              </span>
+</td>
+<td class="py-4 px-3 align-middle font-medium text-on-surface">
+              Ibu Ratna Dewi
+            </td>
+<td class="py-4 px-3 align-middle font-label-mono text-label-mono text-on-surface">
+              Rp 1.100.000 / Bulan
+            </td>
+<td class="py-4 px-3 align-middle text-on-surface-variant text-[13px]">
+              3 hari lalu
+            </td>
+<td class="py-4 px-3 align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-kost-green/15 text-kost-green">
+<span class="w-1.5 h-1.5 rounded-full bg-kost-green"></span>
+                Aktif
+              </span>
+</td>
+<td class="py-4 pr-4 pl-2 text-right align-middle">
+<div class="inline-flex items-center justify-end gap-1">
+<button class="p-1.5 rounded-md text-on-surface-variant hover:text-primary hover:bg-surface-container transition" onclick="handleActionFeedback('Tinjau', 'Paviliun Mahasiswa Kledokan')" title="Detail &amp; Tinjau" type="button">
+<span class="material-symbols-outlined text-[19px]">visibility</span>
+</button>
+<button class="p-1.5 rounded-md text-on-surface-variant hover:text-secondary hover:bg-surface-container transition" onclick="handleActionFeedback('Edit Status', 'Paviliun Mahasiswa Kledokan')" title="Ubah Status" type="button">
+<span class="material-symbols-outlined text-[19px]">edit_note</span>
+</button>
+<button class="p-1.5 rounded-md text-on-surface-variant hover:text-error hover:bg-surface-container transition" onclick="handleActionFeedback('Hapus', 'Paviliun Mahasiswa Kledokan')" title="Hapus Listing" type="button">
+<span class="material-symbols-outlined text-[19px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 5: Pondok Kenanga Exclusive (Dilaporkan) -->
+<tr class="hover:bg-surface-container-low/60 transition-colors bg-error-container/10">
+<td class="py-4 pl-4 pr-2 text-center align-middle">
+<input class="kost-row-checkbox rounded bg-surface-container-low text-primary focus:ring-0 cursor-pointer" onchange="updateSelectedCount()" type="checkbox">
+</td>
+<td class="py-4 px-4 align-middle">
+<div class="flex items-center gap-3">
+<img alt="Pondok Kenanga Exclusive" class="w-12 h-12 rounded-lg object-cover bg-surface-container shrink-0" data-alt="Modern boarding house entrance gate with tall fence and security post, quiet residential alleyway in Yogyakarta." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBR7Vn0S5A1Bt_cGNCCV2Dkg1lT-DqOqOrT7dOAHFtwTYFF4FYCPVrQAY3N_YGrR5LxgXH8QR_Ea2zoex89j3ebO3-uMjQErM_ARX6Qzwgf9bMtOS0d-DkHDLvzxx5mw7VAE7KIr_bhMLyimQcnzGvTPeA4vtnsj_lhQCdLCsjeVTISe40yImNH1NXPfiKkRRyzTEDI_NWNY6BogZIQohL0MSMrqks2GhvZWGgQs17CcFUuET7lXkbYdw">
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<p class="font-medium text-on-surface truncate">Pondok Kenanga Exclusive</p>
+<span class="material-symbols-outlined text-error text-[16px]" title="1 Laporan Aktif">warning</span>
+</div>
+<p class="text-error text-[13px] flex items-center gap-1 mt-0.5 truncate">
+                    Dugaan no. WA bukan pengelola resmi
+                  </p>
+</div>
+</div>
+</td>
+<td class="py-4 px-3 align-middle">
+<span class="inline-flex items-center px-2.5 py-1 rounded font-body-sm text-[12px] font-medium bg-rose-500/10 text-rose-700">
+                Putri
+              </span>
+</td>
+<td class="py-4 px-3 align-middle font-medium text-on-surface">
+              H. Achmad Fauzi
+            </td>
+<td class="py-4 px-3 align-middle font-label-mono text-label-mono text-on-surface">
+              Rp 1.500.000 / Bulan
+            </td>
+<td class="py-4 px-3 align-middle text-on-surface-variant text-[13px]">
+              4 hari lalu
+            </td>
+<td class="py-4 px-3 align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-error-container text-error">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                Dilaporkan
+              </span>
+</td>
+<td class="py-4 pr-4 pl-2 text-right align-middle">
+<div class="inline-flex items-center justify-end gap-1">
+<button class="p-1.5 rounded-md text-error hover:bg-error-container transition" onclick="handleActionFeedback('Investigasi Laporan', 'Pondok Kenanga Exclusive')" title="Investigasi Laporan" type="button">
+<span class="material-symbols-outlined text-[19px]">gavel</span>
+</button>
+<button class="p-1.5 rounded-md text-on-surface-variant hover:text-error hover:bg-surface-container transition" onclick="handleActionFeedback('Tangguhkan Listing', 'Pondok Kenanga Exclusive')" title="Suspend / Bekukan" type="button">
+<span class="material-symbols-outlined text-[19px]">block</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 6: Griya Asri Tambakbayan 2 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-4 pl-4 pr-2 text-center align-middle">
+<input class="kost-row-checkbox rounded bg-surface-container-low text-primary focus:ring-0 cursor-pointer" onchange="updateSelectedCount()" type="checkbox">
+</td>
+<td class="py-4 px-4 align-middle">
+<div class="flex items-center gap-3">
+<img alt="Griya Asri Tambakbayan 2" class="w-12 h-12 rounded-lg object-cover bg-surface-container shrink-0" data-alt="Cozy student dormitory corridor with potted plants, clean floor tiles, natural breeze corridor in Sleman student housing." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjzxfycK51Z8NrM7Bk_nPTD3FUrZYeQmLeu7m_DfVGMT1Y_o_Tr15f3uk9MO0rUWpg6xg6zz-x6il21IRUVVcdbfHlNMP21weJPD0xYCkyuMRaeCyWtZza788g9Mnt79CKzUBIUhT-W7Tm8607QYNALY66jaLpCrhrtMR5oI-63gWRF_RSOSCuEfoScSiJZFpO4_JyaYvzwIU5wq3AW5GLLm1-C6QyTQeFBNgNh697hIkPaUY__yaqew">
+<div class="min-w-0">
+<p class="font-medium text-on-surface truncate">Griya Asri Tambakbayan 2</p>
+<p class="text-on-surface-variant text-[13px] flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[14px] text-kost-green">distance</span>
+                    Jl. Tambakbayan VII No. 12 • 500m dari Kampus 2
+                  </p>
+</div>
+</div>
+</td>
+<td class="py-4 px-3 align-middle">
+<span class="inline-flex items-center px-2.5 py-1 rounded font-body-sm text-[12px] font-medium bg-sky-500/10 text-sky-800">
+                Putra
+              </span>
+</td>
+<td class="py-4 px-3 align-middle font-medium text-on-surface">
+              Bambang Supeno
+            </td>
+<td class="py-4 px-3 align-middle font-label-mono text-label-mono text-on-surface">
+              Rp 700.000 / Bulan
+            </td>
+<td class="py-4 px-3 align-middle text-on-surface-variant text-[13px]">
+              5 hari lalu
+            </td>
+<td class="py-4 px-3 align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-kost-green/15 text-kost-green">
+<span class="w-1.5 h-1.5 rounded-full bg-kost-green"></span>
+                Aktif
+              </span>
+</td>
+<td class="py-4 pr-4 pl-2 text-right align-middle">
+<div class="inline-flex items-center justify-end gap-1">
+<button class="p-1.5 rounded-md text-on-surface-variant hover:text-primary hover:bg-surface-container transition" onclick="handleActionFeedback('Tinjau', 'Griya Asri Tambakbayan 2')" title="Detail &amp; Tinjau" type="button">
+<span class="material-symbols-outlined text-[19px]">visibility</span>
+</button>
+<button class="p-1.5 rounded-md text-on-surface-variant hover:text-secondary hover:bg-surface-container transition" onclick="handleActionFeedback('Edit Status', 'Griya Asri Tambakbayan 2')" title="Ubah Status" type="button">
+<span class="material-symbols-outlined text-[19px]">edit_note</span>
+</button>
+<button class="p-1.5 rounded-md text-on-surface-variant hover:text-error hover:bg-surface-container transition" onclick="handleActionFeedback('Hapus', 'Griya Asri Tambakbayan 2')" title="Hapus Listing" type="button">
+<span class="material-symbols-outlined text-[19px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Pagination Footer -->
+<div class="px-5 py-4 bg-surface-container-lowest flex flex-col sm:flex-row items-center justify-between gap-3">
+<span class="font-body-sm text-body-sm text-on-surface-variant">
+        Menampilkan <strong class="text-on-surface font-medium">1 - 6</strong> dari <strong class="text-on-surface font-medium">48</strong> listing kost
+      </span>
+<div class="inline-flex items-center gap-1">
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition disabled:opacity-40" disabled="" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center font-body-sm text-body-sm font-semibold bg-primary text-on-primary" type="button">
+          1
+        </button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center font-body-sm text-body-sm text-on-surface hover:bg-surface-container transition" type="button">
+          2
+        </button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center font-body-sm text-body-sm text-on-surface hover:bg-surface-container transition" type="button">
+          3
+        </button>
+<span class="px-1 text-on-surface-variant font-body-sm text-body-sm">…</span>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center font-body-sm text-body-sm text-on-surface hover:bg-surface-container transition" type="button">
+          8
+        </button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Operational Notes & Verification Guidelines -->
+<div class="mt-6 p-4 rounded-xl bg-surface-container-low flex items-start gap-3.5">
+<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center text-on-surface shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]">info</span>
+</div>
+<div class="space-y-1">
+<h4 class="font-body-sm text-body-sm font-semibold text-on-surface">Panduan Kurasi &amp; Validasi Lokasi Kost UPN</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+        Setiap entri kost baru wajib divalidasi keakuratan titik koordinat Google Maps serta kesesuaian kontak pengelola untuk mencegah penipuan sewa kamar di sekitar Kampus 1 Condongcatur dan Kampus 2 Babarsari. Entri kategori oper sewa membutuhkan konfirmasi bukti sewa terdahulu dari mahasiswa terkait.
+      </p>
+</div>
+</div>
+</div></main>
+<!-- END: DashboardBody -->
+<!-- BEGIN: DashboardFooter -->
+<footer class="mt-auto border-t border-slate-200/80 bg-white px-8 py-4 text-center sm:flex sm:justify-between sm:text-left text-xs text-slate-400">
+<p class="">© 2026 UPN "Veteran" - Student Hub Management System. Hak cipta dilindungi.</p>
+<div class="mt-2 sm:mt-0 flex justify-center gap-4">
+<a class="hover:underline" href="#">Privasi &amp; Keamanan</a>
+<a class="hover:underline" href="#">Bantuan Teknis</a>
+</div>
+</footer>
+<!-- END: DashboardFooter -->
+</div>
+<!-- END: MainContentWrapper -->
+
+
+</body></html>

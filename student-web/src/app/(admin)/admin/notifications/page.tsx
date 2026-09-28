@@ -5,7 +5,15 @@ import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TableEmpty, TableError, TableLoading } from "@/components/admin-ui";
+import {
+  AdminMetricCard,
+  AdminPageHeader,
+  MetricIcon,
+  StatusPill,
+  TableEmpty,
+  TableError,
+  TableLoading,
+} from "@/components/admin-ui";
 
 type Announcement = {
   id: number;
@@ -28,6 +36,7 @@ function formatDateTime(iso: string): string {
 
 export default function AdminNotificationsPage() {
   const [items, setItems] = useState<Announcement[]>([]);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -44,6 +53,7 @@ export default function AdminNotificationsPage() {
       const res = await apiFetch<AnnouncementListResponse>("/v1/admin/announcements");
       if (signal?.aborted) return;
       setItems(res.data.data);
+      setTotal(res.data.total);
     } catch {
       if (signal?.aborted) return;
       setItems([]);
@@ -94,22 +104,78 @@ export default function AdminNotificationsPage() {
     try {
       await apiFetch(`/v1/admin/announcements/${id}`, { method: "DELETE" });
       setItems((prev) => prev.filter((a) => a.id !== id));
+      setTotal((prev) => Math.max(0, prev - 1));
     } catch {
       setFormError("Gagal menghapus pengumuman. Coba lagi.");
     }
   }
 
+  function focusForm() {
+    document.getElementById("notifikasi-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => document.getElementById("announcement-title")?.focus(), 350);
+  }
+
+  function scrollToHistory() {
+    document.getElementById("notifikasi-riwayat")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  const targetAll = items.filter((a) => a.target_role === "all").length;
+  const targetStudent = items.length - targetAll;
+
   return (
     <div>
-      <div>
-        <h1 className="text-[22px] font-bold tracking-tight text-slate-900 sm:text-[26px]">Notifications</h1>
-        <p className="mt-1 max-w-[600px] text-sm text-slate-500">
-          Kirim pengumuman MVP ke mahasiswa dan kelola riwayat pengumuman.
-        </p>
+      <AdminPageHeader
+        title="Notifikasi & Pengumuman Sistem"
+        subtitle="Kirim pengumuman ke mahasiswa dan kelola riwayat broadcast sistem."
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={scrollToHistory}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              Riwayat Broadcast
+            </button>
+            <button
+              type="button"
+              onClick={focusForm}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800"
+            >
+              <span aria-hidden="true" className="text-base leading-none">+</span> Buat Notifikasi Baru
+            </button>
+          </>
+        }
+      />
+
+      <div className="mb-6 mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <AdminMetricCard
+          label="Total Notifikasi Terkirim"
+          value={total.toLocaleString("id-ID")}
+          icon={<MetricIcon><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 01-3.4 0" /></MetricIcon>}
+          iconClass="bg-blue-500/10 text-blue-600"
+          accentClass="bg-blue-500"
+          footer="akumulasi broadcast"
+        />
+        <AdminMetricCard
+          label="Target Semua Pengguna"
+          value={targetAll.toLocaleString("id-ID")}
+          icon={<MetricIcon><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></MetricIcon>}
+          iconClass="bg-amber-500/10 text-amber-600"
+          accentClass="bg-amber-500"
+          footer="dari data dimuat"
+        />
+        <AdminMetricCard
+          label="Target Mahasiswa"
+          value={targetStudent.toLocaleString("id-ID")}
+          icon={<MetricIcon><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></MetricIcon>}
+          iconClass="bg-emerald-500/10 text-emerald-600"
+          accentClass="bg-emerald-500"
+          footer="dari data dimuat"
+        />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section aria-label="Kirim pengumuman" className="h-fit rounded-xl border border-slate-200 bg-white p-5">
+        <section id="notifikasi-form" aria-label="Kirim pengumuman" className="h-fit scroll-mt-24 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
           <h2 className="text-[15px] font-bold text-slate-900">Pengumuman Baru</h2>
           <form onSubmit={(e) => void handleSend(e)} className="mt-4 space-y-4">
             {formError && (
@@ -156,8 +222,11 @@ export default function AdminNotificationsPage() {
           </form>
         </section>
 
-        <section aria-label="Riwayat pengumuman" className="h-fit rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="text-[15px] font-bold text-slate-900">Riwayat</h2>
+        <section id="notifikasi-riwayat" aria-label="Riwayat pengumuman" className="h-fit scroll-mt-24 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-[15px] font-bold text-slate-900">Riwayat Broadcast</h2>
+            <StatusPill tone="blue">{total} terkirim</StatusPill>
+          </div>
           <div className="mt-3">
             {isLoading ? (
               <TableLoading label="Memuat riwayat pengumuman" columns={2} />

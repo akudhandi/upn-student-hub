@@ -7,11 +7,16 @@ import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  AdminMetricCard,
+  AdminPageHeader,
   FilterTabs,
+  MetricIcon,
   StatusPill,
   TableEmpty,
   TableError,
   TableLoading,
+  ToolbarButton,
+  exportToCsv,
   type PillTone,
 } from "@/components/admin-ui";
 import ListingImage from "@/components/ListingImage";
@@ -139,23 +144,106 @@ export default function AdminEventsPage() {
     }
   }
 
+  function handleExport() {
+    exportToCsv(
+      "events.csv",
+      ["ID", "Judul", "Penyelenggara", "Kategori", "Tanggal", "Lokasi", "Status"],
+      items.map((i) => [
+        i.id,
+        i.title,
+        i.organizer_name,
+        i.category?.name ?? "-",
+        formatDate(i.event_date),
+        i.location,
+        i.status,
+      ])
+    );
+  }
+
+  const publishedCount = items.filter((i) => i.status === "published").length;
+  const pendingCount = items.filter((i) => ["pending", "draft"].includes(i.status)).length;
+  const archivedCount = items.filter((i) => i.status === "archived").length;
+
   return (
     <div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-slate-900 sm:text-[26px]">Event & Informasi</h1>
-          <p className="mt-1 max-w-[600px] text-sm text-slate-500">
-            Full CRUD pengumuman kampus: buat, ubah, publikasikan, arsipkan, atau hapus.
-          </p>
-        </div>
-        <Button onClick={() => router.push("/admin/events/create")}>+ Buat Event</Button>
+      <AdminPageHeader
+        title="Manajemen Event & Informasi"
+        subtitle="Kelola pengumuman kampus: buat, kurasi, publikasikan, arsipkan, atau hapus."
+        actions={
+          <>
+            <ToolbarButton variant="light" onClick={handleExport} ariaLabel="Ekspor data event ke CSV">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-slate-500">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+              </svg>
+              Ekspor (.csv)
+            </ToolbarButton>
+            <button
+              type="button"
+              onClick={() => router.push("/admin/events/create")}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800"
+            >
+              <span aria-hidden="true" className="text-base leading-none">+</span> Tambah Info Kampus
+            </button>
+          </>
+        }
+      />
+
+      <div className="mb-6 mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <AdminMetricCard
+          label="Total Event"
+          value={total.toLocaleString("id-ID")}
+          icon={<MetricIcon><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></MetricIcon>}
+          iconClass="bg-rose-500/10 text-rose-600"
+          accentClass="bg-rose-500"
+          trend={{ text: `${publishedCount} tayang`, className: "text-emerald-600" }}
+          footer="pada filter ini"
+        />
+        <AdminMetricCard
+          label="Published"
+          value={publishedCount.toLocaleString("id-ID")}
+          icon={<MetricIcon><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></MetricIcon>}
+          iconClass="bg-emerald-500/10 text-emerald-600"
+          accentClass="bg-emerald-500"
+          footer="dari data dimuat"
+        />
+        <AdminMetricCard
+          label="Draft / Pending"
+          value={pendingCount.toLocaleString("id-ID")}
+          icon={<MetricIcon><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></MetricIcon>}
+          iconClass="bg-amber-500/10 text-amber-600"
+          accentClass="bg-amber-500"
+          footer="menunggu kurasi"
+        />
+        <AdminMetricCard
+          label="Archived"
+          value={archivedCount.toLocaleString("id-ID")}
+          icon={<MetricIcon><path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v12a2 2 0 002 2h10a2 2 0 002-2V8" /></MetricIcon>}
+          iconClass="bg-slate-500/10 text-slate-600"
+          accentClass="bg-slate-500"
+          footer="dari data dimuat"
+        />
       </div>
 
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <FilterTabs ariaLabel="Filter event berdasarkan status" options={STATUS_TABS} value={filter} onChange={setFilter} />
-        <div className="w-full sm:max-w-[280px]">
-          <label htmlFor="events-search" className="sr-only">Cari event</label>
-          <Input id="events-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari judul / penyelenggara…" />
+      <div className="mb-6 rounded-xl bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative w-full lg:w-96">
+            <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M20 20L16.5 16.5" />
+              </svg>
+            </span>
+            <label htmlFor="events-search" className="sr-only">Cari event</label>
+            <Input
+              id="events-search"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Cari judul, penyelenggara..."
+              className="border-transparent bg-slate-100 pl-10 focus:border-slate-300 focus:bg-white"
+            />
+          </div>
+          <FilterTabs ariaLabel="Filter event berdasarkan status" options={STATUS_TABS} value={filter} onChange={setFilter} />
         </div>
       </div>
 
@@ -175,13 +263,13 @@ export default function AdminEventsPage() {
         ) : (
           <>
             <p className="mb-2 text-xs text-slate-500" role="status">Menampilkan {items.length} dari {total} event</p>
-            <div className="admin-table-wrap admin-table overflow-auto rounded-xl border border-slate-200 bg-white">
+            <div className="admin-table-wrap admin-table overflow-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs">
               <table className="w-full min-w-[900px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                    <th scope="col" className="px-4 py-3 font-semibold">Judul</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Event & Penyelenggara</th>
                     <th scope="col" className="px-4 py-3 font-semibold">Kategori</th>
-                    <th scope="col" className="px-4 py-3 font-semibold">Tanggal</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Jadwal / Tanggal Event</th>
                     <th scope="col" className="px-4 py-3 font-semibold">Status</th>
                     <th scope="col" className="px-4 py-3 font-semibold"><span className="sr-only">Aksi</span>Aksi</th>
                   </tr>
@@ -209,7 +297,10 @@ export default function AdminEventsPage() {
                           </div>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-[13px] text-slate-600">{item.category?.name ?? "-"}</td>
-                        <td className="whitespace-nowrap px-4 py-3 text-[13px] text-slate-600">{formatDate(item.event_date)}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-[13px] text-slate-600">
+                          <p>{formatDate(item.event_date)}</p>
+                          <p className="mt-0.5 max-w-[200px] truncate text-xs text-slate-400">{item.location}</p>
+                        </td>
                         <td className="whitespace-nowrap px-4 py-3"><StatusPill tone={pill.tone}>{pill.label}</StatusPill></td>
                         <td className="whitespace-nowrap px-4 py-3">
                           <div className="flex flex-wrap items-center gap-2">

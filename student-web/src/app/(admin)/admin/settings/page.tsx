@@ -5,7 +5,7 @@ import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { StatusPill, TableError, TableLoading } from "@/components/admin-ui";
+import { AdminPageHeader, StatusPill, TableError, TableLoading } from "@/components/admin-ui";
 
 type AdminProfile = { id: number; email: string; role: string; created_at: string };
 
@@ -104,12 +104,10 @@ export default function AdminSettingsPage() {
 
   return (
     <div>
-      <div>
-        <h1 className="text-[22px] font-bold tracking-tight text-slate-900 sm:text-[26px]">Settings</h1>
-        <p className="mt-1 max-w-[600px] text-sm text-slate-500">
-          Profil admin, keamanan akun, dan status operasional sistem.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Pengaturan Sistem"
+        subtitle="Profil admin, keamanan akun, dan status operasional sistem."
+      />
 
       {isLoading ? (
         <div className="mt-6"><TableLoading label="Memuat pengaturan" columns={2} /></div>
@@ -118,16 +116,17 @@ export default function AdminSettingsPage() {
       ) : (
         <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="space-y-4">
-            <section aria-label="Profil admin" className="rounded-xl border border-slate-200 bg-white p-5">
-              <h2 className="text-[15px] font-bold text-slate-900">Profil Admin</h2>
+            <section aria-label="Informasi admin" className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+              <h2 className="text-[15px] font-bold text-slate-900">Informasi & Identitas Admin</h2>
               <dl className="mt-3 grid grid-cols-1 gap-2.5 text-sm">
                 <div className="flex justify-between gap-3"><dt className="text-slate-500">Email</dt><dd className="font-medium text-slate-900">{profile?.email ?? "-"}</dd></div>
                 <div className="flex justify-between gap-3"><dt className="text-slate-500">Role</dt><dd className="font-medium text-slate-900">{profile?.role ?? "-"}</dd></div>
               </dl>
             </section>
 
-            <section aria-label="Ubah password" className="rounded-xl border border-slate-200 bg-white p-5">
-              <h2 className="text-[15px] font-bold text-slate-900">Ubah Password</h2>
+            <section aria-label="Keamanan akun" className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+              <h2 className="text-[15px] font-bold text-slate-900">Keamanan</h2>
+              <p className="mt-0.5 text-xs text-slate-500">Perbarui password akun administrator.</p>
               <form onSubmit={(e) => void handlePasswordChange(e)} className="mt-4 space-y-3">
                 {formError && (
                   <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{formError}</div>
@@ -154,13 +153,24 @@ export default function AdminSettingsPage() {
             </section>
           </div>
 
-          <section aria-label="Status operasional sistem" className="h-fit rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="text-[15px] font-bold text-slate-900">Status Operasional</h2>
+          <section aria-label="Status operasional sistem" className="h-fit rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+            <h2 className="text-[15px] font-bold text-slate-900">Sistem</h2>
+            <p className="mt-0.5 text-xs text-slate-500">Status operasional dan ringkasan data platform.</p>
             <ul className="mt-2 divide-y divide-slate-100">
               <Indicator ok={system?.database === "connected"} label="Database" detail={system?.database === "connected" ? "Connected" : "Down"} />
               <Indicator ok={system?.storage_writable === true} label="Local storage" detail={system?.storage_writable ? "Writable" : "Error"} />
               <Indicator ok={(system?.totals.reports_pending ?? 1) === 0} label="Antrian moderasi" detail={`${system?.totals.reports_pending ?? "?"} pending`} />
             </ul>
+            {system && Object.keys(system.totals).length > 0 && (
+              <dl className="mt-3 grid grid-cols-2 gap-2 rounded-xl bg-slate-50 p-3 text-sm">
+                {Object.entries(system.totals).map(([key, value]) => (
+                  <div key={key} className="flex items-center justify-between gap-2">
+                    <dt className="truncate text-xs text-slate-500">{key.replace(/_/g, " ")}</dt>
+                    <dd className="text-[13px] font-bold text-slate-900">{value.toLocaleString("id-ID")}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
             <p className="mt-3 text-[11px] text-slate-400">Waktu server: {system?.app_time ?? "-"}</p>
           </section>
         </div>

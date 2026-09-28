@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { AdminPageHeader } from "@/components/admin-ui";
 import { apiFetch } from "@/lib/api";
 
 type RecentUser = {
@@ -75,54 +76,124 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 }
 
+function CardIcon({ children }: { children: React.ReactNode }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {children}
+    </svg>
+  );
+}
+
+const CARD_ICONS: Record<string, { icon: React.ReactNode; iconClass: string; hoverClass: string }> = {
+  users: {
+    icon: (
+      <CardIcon>
+        <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+      </CardIcon>
+    ),
+    iconClass: "bg-blue-50 text-blue-600",
+    hoverClass: "hover:text-blue-600",
+  },
+  marketplace: {
+    icon: (
+      <CardIcon>
+        <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+      </CardIcon>
+    ),
+    iconClass: "bg-amber-50 text-amber-600",
+    hoverClass: "hover:text-amber-600",
+  },
+  services: {
+    icon: (
+      <CardIcon>
+        <path d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </CardIcon>
+    ),
+    iconClass: "bg-indigo-50 text-indigo-600",
+    hoverClass: "hover:text-indigo-600",
+  },
+  kost: {
+    icon: (
+      <CardIcon>
+        <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+      </CardIcon>
+    ),
+    iconClass: "bg-emerald-50 text-emerald-600",
+    hoverClass: "hover:text-emerald-600",
+  },
+  lostfound: {
+    icon: (
+      <CardIcon>
+        <path d="M8 16l2.879-2.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </CardIcon>
+    ),
+    iconClass: "bg-sky-50 text-sky-600",
+    hoverClass: "hover:text-sky-600",
+  },
+  events: {
+    icon: (
+      <CardIcon>
+        <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </CardIcon>
+    ),
+    iconClass: "bg-rose-50 text-rose-600",
+    hoverClass: "hover:text-rose-600",
+  },
+};
+
 function StatCard({
+  cardKey,
   title,
   value,
   href,
   actionLabel,
-  sharePct,
-  warning,
+  subtitle,
+  trend,
+  footerMeta,
 }: {
+  cardKey: keyof typeof CARD_ICONS;
   title: string;
   value: number | null;
   href: string;
   actionLabel: string;
-  /** Share of total platform content, rendered as a progress bar (0-100). */
-  sharePct?: number;
-  /** Pending count that triggers a warning badge when > 0. */
-  warning?: number;
+  subtitle: string;
+  trend?: { text: string; className: string };
+  footerMeta: string;
 }) {
-  const pct = Math.max(0, Math.min(100, sharePct ?? 0));
+  const conf = CARD_ICONS[cardKey];
   return (
     <section
       aria-label={title}
-      className={`rounded-xl border bg-white p-5 ${warning ? "border-amber-300" : "border-slate-200"}`}
+      className="card-transition flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs"
     >
-      <div className="flex items-start justify-between gap-2">
-        <h2 className="text-[13px] font-semibold text-slate-600">{title}</h2>
-        {typeof warning === "number" && warning > 0 && (
-          <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800">
-            {warning} pending
+      <div>
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">{title}</span>
+          <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${conf.iconClass}`}>
+            {conf.icon}
           </span>
-        )}
-      </div>
-      <p className="mt-2 text-[28px] font-bold leading-none tracking-tight text-slate-900" role="status">
-        {value === null ? "…" : value.toLocaleString("id-ID")}
-      </p>
-      {sharePct !== undefined && (
-        <div className="mt-3" role="img" aria-label={`${title}: ${pct.toFixed(0)} persen dari total konten`}>
-          <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-[#0A2342]" style={{ width: `${pct}%` }} />
-          </div>
-          <p className="mt-1 text-[11px] text-slate-500">{pct.toFixed(1)}% dari total konten</p>
         </div>
-      )}
-      <Link
-        href={href}
-        className="mt-3 inline-block text-[13px] font-semibold text-[#0A2342] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2342] focus-visible:ring-offset-2"
-      >
-        {actionLabel} →
-      </Link>
+        <div className="mt-3 flex flex-wrap items-baseline gap-2">
+          <span className="text-3xl font-extrabold tracking-tight text-slate-900" role="status">
+            {value === null ? "…" : value.toLocaleString("id-ID")}
+          </span>
+          {trend && (
+            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${trend.className}`}>
+              {trend.text}
+            </span>
+          )}
+        </div>
+        <p className="mt-1 text-xs text-slate-400">{subtitle}</p>
+      </div>
+      <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
+        <Link
+          href={href}
+          className={`flex items-center gap-1 font-semibold text-slate-700 transition-all ${conf.hoverClass}`}
+        >
+          {actionLabel} <span aria-hidden="true">→</span>
+        </Link>
+        <span className="font-medium text-slate-400">{footerMeta}</span>
+      </div>
     </section>
   );
 }
@@ -137,19 +208,74 @@ function DashboardCards({ stats }: { stats: DashboardStats }) {
   const share = (n: number) => (totalContent > 0 ? (n / totalContent) * 100 : 0);
 
   return (
-    <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-      <StatCard title="Total Users" value={stats.counts.users} href="/admin/users" actionLabel="Kelola users" warning={stats.needs_attention.reported_users} />
-      <StatCard title="Marketplace" value={stats.counts.marketplace} href="/admin/marketplace" actionLabel="Moderasi" sharePct={share(stats.counts.marketplace)} />
-      <StatCard title="Jasa Mahasiswa" value={stats.counts.services} href="/admin/services" actionLabel="Moderasi" sharePct={share(stats.counts.services)} />
-      <StatCard title="Kost" value={stats.counts.kost} href="/admin/kost" actionLabel="Moderasi" sharePct={share(stats.counts.kost)} />
-      <StatCard title="Lost & Found" value={stats.counts.lost_found} href="/admin/lost-found" actionLabel="Moderasi" sharePct={share(stats.counts.lost_found)} />
+    <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3" data-purpose="metrics-grid">
       <StatCard
+        cardKey="users"
+        title="Total Users"
+        value={stats.counts.users}
+        href="/admin/users"
+        actionLabel="Buka Modul"
+        subtitle="Active user"
+        trend={
+          stats.needs_attention.reported_users > 0
+            ? { text: `${stats.needs_attention.reported_users} perlu perhatian`, className: "bg-amber-50 text-amber-700" }
+            : { text: "Terverifikasi", className: "bg-emerald-50 text-emerald-600" }
+        }
+        footerMeta="Terverifikasi"
+      />
+      <StatCard
+        cardKey="marketplace"
+        title="Marketplace"
+        value={stats.counts.marketplace}
+        href="/admin/marketplace"
+        actionLabel="Lihat Semua"
+        subtitle="Listing produk aktif"
+        trend={{ text: `${share(stats.counts.marketplace).toFixed(1)}% konten`, className: "bg-amber-50 text-amber-700" }}
+        footerMeta="Aktif tayang"
+      />
+      <StatCard
+        cardKey="services"
+        title="Jasa Mahasiswa"
+        value={stats.counts.services}
+        href="/admin/services"
+        actionLabel="Lihat Semua"
+        subtitle="Desain, les, cetak & pengetikan"
+        trend={{ text: `${share(stats.counts.services).toFixed(1)}% konten`, className: "bg-slate-100 text-slate-500" }}
+        footerMeta="Tersedia"
+      />
+      <StatCard
+        cardKey="kost"
+        title="Kost"
+        value={stats.counts.kost}
+        href="/admin/kost"
+        actionLabel="Buka Modul"
+        subtitle="Sekitar kampus UPN Condongcatur"
+        trend={{ text: `${share(stats.counts.kost).toFixed(1)}% konten`, className: "bg-emerald-50 text-emerald-600" }}
+        footerMeta="Terverifikasi BAAK"
+      />
+      <StatCard
+        cardKey="lostfound"
+        title="Lost & Found"
+        value={stats.counts.lost_found}
+        href="/admin/lost-found"
+        actionLabel="Lihat Semua"
+        subtitle="Barang hilang & ditemukan"
+        trend={{ text: `${share(stats.counts.lost_found).toFixed(1)}% konten`, className: "bg-sky-50 text-sky-600" }}
+        footerMeta="Kasus aktif"
+      />
+      <StatCard
+        cardKey="events"
         title="Event & Informasi"
         value={stats.counts.events}
         href="/admin/events"
-        actionLabel="Kelola event"
-        sharePct={share(stats.counts.events)}
-        warning={stats.needs_attention.pending_events}
+        actionLabel="Buka Modul"
+        subtitle="Agenda ormawa & pengumuman kampus"
+        trend={
+          stats.needs_attention.pending_events > 0
+            ? { text: `${stats.needs_attention.pending_events} menunggu kurasi`, className: "bg-rose-50 text-rose-600" }
+            : { text: "Kalender aktif", className: "bg-rose-50 text-rose-600" }
+        }
+        footerMeta="Kalender aktif"
       />
     </div>
   );
@@ -188,17 +314,40 @@ export default function AdminDashboardPage() {
 
   return (
     <div>
-      <div>
-        <h1 className="text-[22px] font-bold tracking-tight text-slate-900 sm:text-[26px]">Dashboard</h1>
-        <p className="mt-1 max-w-[600px] text-sm text-slate-500">
-          Ringkasan aktivitas platform, hal yang perlu perhatian, dan aktivitas terbaru.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Dashboard"
+        subtitle="Ringkasan aktivitas platform, hal yang perlu perhatian, dan aktivitas terbaru."
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs transition hover:bg-slate-800"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-slate-200">
+                <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Ekspor Laporan
+            </button>
+            <button
+              type="button"
+              onClick={() => void loadStats()}
+              title="Refresh data"
+              aria-label="Refresh data dashboard"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 shadow-2xs transition hover:bg-slate-50"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-slate-500">
+                <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </>
+        }
+      />
 
       {isLoading ? (
-        <div role="status" aria-busy="true" aria-label="Memuat dashboard" className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div role="status" aria-busy="true" aria-label="Memuat dashboard" className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="rounded-xl border border-slate-200 bg-white p-5">
+            <div key={i} className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
               <div className="h-4 w-32 animate-pulse rounded bg-slate-100" />
               <div className="mt-3 h-7 w-20 animate-pulse rounded bg-slate-100" />
             </div>
@@ -206,13 +355,13 @@ export default function AdminDashboardPage() {
           <span className="sr-only">Memuat dashboard…</span>
         </div>
       ) : error || !stats ? (
-        <div role="alert" className="mt-6 rounded-xl border border-slate-200 bg-white px-6 py-12 text-center">
+        <div role="alert" className="mt-6 rounded-2xl border border-slate-200/80 bg-white px-6 py-12 text-center shadow-xs">
           <p className="text-sm font-semibold text-slate-900">Gagal memuat dashboard</p>
           <p className="mt-1 text-xs text-slate-500">{error}</p>
           <button
             type="button"
             onClick={() => void loadStats()}
-            className="mt-4 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2342] focus-visible:ring-offset-2"
+            className="mt-4 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
           >
             Coba lagi
           </button>
@@ -221,10 +370,13 @@ export default function AdminDashboardPage() {
         <>
           <DashboardCards stats={stats} />
 
-          <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <section aria-label="Perlu perhatian" className="rounded-xl border border-amber-200 bg-white p-5">
-              <h2 className="text-[15px] font-bold text-slate-900">Needs Attention</h2>
-              <ul className="mt-3 divide-y divide-slate-100">
+          <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-3" data-purpose="admin-analytics-overview">
+            <section aria-label="Perlu perhatian" className="rounded-2xl border border-amber-200 bg-white p-5 shadow-xs lg:col-span-1">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <span className="h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />
+                <h2 className="text-sm font-bold text-slate-900">Perlu Tindakan</h2>
+              </div>
+              <ul className="mt-2 divide-y divide-slate-100">
                 <li className="flex items-center justify-between gap-3 py-2.5">
                   <div>
                     <p className="text-[13px] font-semibold text-slate-900">Laporan belum ditangani</p>
@@ -264,9 +416,12 @@ export default function AdminDashboardPage() {
               </ul>
             </section>
 
-            <section aria-label="Aktivitas terbaru" className="rounded-xl border border-slate-200 bg-white p-5">
-              <h2 className="text-[15px] font-bold text-slate-900">Recent Activity</h2>
-              <div className="mt-3 space-y-4">
+            <section aria-label="Aktivitas terbaru" className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs lg:col-span-2">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <span className="h-2 w-2 rounded-full bg-sky-500" aria-hidden="true" />
+                <h2 className="text-sm font-bold text-slate-900">Aktivitas Terbaru</h2>
+              </div>
+              <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">User baru</h3>
                   <ul className="mt-1.5 space-y-1.5">
