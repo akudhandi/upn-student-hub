@@ -133,4 +133,31 @@ class AdminUserController extends Controller
             'data' => $user,
         ]);
     }
+
+    public function bulkStatus(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1|max:100',
+            'ids.*' => 'integer',
+            'status' => 'required|in:active,suspended,banned,inactive',
+        ]);
+
+        $ids = array_values(array_unique($validated['ids']));
+
+        $found = User::whereIn('id', $ids)->pluck('id')->all();
+        $missing = array_values(array_diff($ids, $found));
+        if ($missing !== []) {
+            return response()->json([
+                'message' => 'Sebagian data pengguna tidak ditemukan',
+                'data' => ['missing_ids' => $missing],
+            ], 422);
+        }
+
+        $updated = User::whereIn('id', $ids)->update(['status' => $validated['status']]);
+
+        return response()->json([
+            'message' => 'Status pengguna berhasil diperbarui',
+            'data' => ['updated' => $updated],
+        ]);
+    }
 }

@@ -9,6 +9,7 @@ use App\Models\LostFoundReport;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AdminLostFoundController extends Controller
 {
@@ -86,21 +87,7 @@ class AdminLostFoundController extends Controller
             ], 404);
         }
 
-        if ($validated['action'] === 'hide') {
-            $report->update(['status' => 'hidden']);
-        } elseif ($validated['action'] === 'mark_resolved') {
-            if ($report->trashed()) {
-                $report->restore();
-            }
-            $report->update(['status' => 'resolved']);
-        } elseif ($validated['action'] === 'delete') {
-            $report->delete();
-        } else {
-            if ($report->trashed()) {
-                $report->restore();
-            }
-            $report->update(['status' => 'open']);
-        }
+        $this->applyAction($report, $validated['action']);
 
         $report->load(['user:id,name', 'category:id,name,slug']);
         $report->loadCount('reports');
@@ -109,5 +96,56 @@ class AdminLostFoundController extends Controller
             'message' => 'Status laporan berhasil diperbarui',
             'data' => $report,
         ]);
+    }
+
+    public function bulkStatus(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1|max:100',
+            'ids.*' => 'integer',
+            'action' => 'required|in:hide,restore,mark_resolved,delete',
+        ]);
+
+        $ids = array_values(array_unique($validated['ids']));
+
+        $found = LostFoundReport::withTrashed()->whereIn('id', $ids)->pluck('id')->all();
+        $missing = array_values(array_diff($ids, $found));
+        if ($missing !== []) {
+            return response()->json([
+                'message' => 'Sebagian data laporan tidak ditemukan',
+                'data' => ['missing_ids' => $missing],
+            ], 422);
+        }
+
+        DB::transaction(function () use ($ids, $validated) {
+            $reports = LostFoundReport::withTrashed()->whereIn('id', $ids)->get();
+            foreach ($reports as $report) {
+                $this->applyAction($report, $validated['action']);
+            }
+        });
+
+        return response()->json([
+            'message' => 'Status laporan berhasil diperbarui',
+            'data' => ['updated' => count($ids)],
+        ]);
+    }
+
+    private function applyAction(LostFoundReport $report, string $action): void
+    {
+        if ($action === 'hide') {
+            $report->update(['status' => 'hidden']);
+        } elseif ($action === 'mark_resolved') {
+            if ($report->trashed()) {
+                $report->restore();
+            }
+            $report->update(['status' => 'resolved']);
+        } elseif ($action === 'delete') {
+            $report->delete();
+        } else {
+            if ($report->trashed()) {
+                $report->restore();
+            }
+            $report->update(['status' => 'open']);
+        }
     }
 }

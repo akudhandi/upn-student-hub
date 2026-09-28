@@ -9,6 +9,7 @@ use App\Models\ServiceListing;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AdminServiceController extends Controller
 {
@@ -76,16 +77,7 @@ class AdminServiceController extends Controller
             ], 404);
         }
 
-        if ($validated['action'] === 'hide') {
-            $listing->update(['status' => 'hidden']);
-        } elseif ($validated['action'] === 'delete') {
-            $listing->delete();
-        } else {
-            if ($listing->trashed()) {
-                $listing->restore();
-            }
-            $listing->update(['status' => 'active']);
-        }
+        $this->applyAction($listing, $validated['action']);
 
         $listing->load(['user:id,name', 'category:id,name,slug']);
         $listing->loadCount('reports');
@@ -94,5 +86,51 @@ class AdminServiceController extends Controller
             'message' => 'Status jasa berhasil diperbarui',
             'data' => $listing,
         ]);
+    }
+
+    public function bulkStatus(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1|max:100',
+            'ids.*' => 'integer',
+            'action' => 'required|in:hide,restore,delete',
+        ]);
+
+        $ids = array_values(array_unique($validated['ids']));
+
+        $found = ServiceListing::withTrashed()->whereIn('id', $ids)->pluck('id')->all();
+        $missing = array_values(array_diff($ids, $found));
+        if ($missing !== []) {
+            return response()->json([
+                'message' => 'Sebagian data jasa tidak ditemukan',
+                'data' => ['missing_ids' => $missing],
+            ], 422);
+        }
+
+        DB::transaction(function () use ($ids, $validated) {
+            $listings = ServiceListing::withTrashed()->whereIn('id', $ids)->get();
+            foreach ($listings as $listing) {
+                $this->applyAction($listing, $validated['action']);
+            }
+        });
+
+        return response()->json([
+            'message' => 'Status jasa berhasil diperbarui',
+            'data' => ['updated' => count($ids)],
+        ]);
+    }
+
+    private function applyAction(ServiceListing $listing, string $action): void
+    {
+        if ($action === 'hide') {
+            $listing->update(['status' => 'hidden']);
+        } elseif ($action === 'delete') {
+            $listing->delete();
+        } else {
+            if ($listing->trashed()) {
+                $listing->restore();
+            }
+            $listing->update(['status' => 'active']);
+        }
     }
 }

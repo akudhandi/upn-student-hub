@@ -80,12 +80,16 @@ Route::prefix('v1')->group(function () {
 
         // Content monitoring & moderation (view, hide, restore, delete).
         Route::get('/marketplace', [AdminMarketplaceController::class, 'index']);
+        Route::post('/marketplace/bulk-status', [AdminMarketplaceController::class, 'bulkStatus']);
         Route::patch('/marketplace/{id}/status', [AdminMarketplaceController::class, 'updateStatus']);
         Route::get('/services', [AdminServiceController::class, 'index']);
+        Route::post('/services/bulk-status', [AdminServiceController::class, 'bulkStatus']);
         Route::patch('/services/{id}/status', [AdminServiceController::class, 'updateStatus']);
         Route::get('/kost', [AdminKostController::class, 'index']);
+        Route::post('/kost/bulk-status', [AdminKostController::class, 'bulkStatus']);
         Route::patch('/kost/{id}/status', [AdminKostController::class, 'updateStatus']);
         Route::get('/lost-found', [AdminLostFoundController::class, 'index']);
+        Route::post('/lost-found/bulk-status', [AdminLostFoundController::class, 'bulkStatus']);
         Route::patch('/lost-found/{id}/status', [AdminLostFoundController::class, 'updateStatus']);
 
         // Event & Informasi Kampus (full CRUD + status workflow).
@@ -110,8 +114,10 @@ Route::prefix('v1')->group(function () {
 
         // Users & reports resolution.
         Route::get('/reports', [AdminReportController::class, 'index']);
+        Route::post('/reports/bulk-resolve', [AdminReportController::class, 'bulkResolve']);
         Route::patch('/reports/{id}/resolve', [AdminReportController::class, 'resolve']);
         Route::get('/users', [AdminUserController::class, 'index']);
+        Route::post('/users/bulk-status', [AdminUserController::class, 'bulkStatus']);
         Route::get('/users/{id}', [AdminUserController::class, 'show']);
         Route::patch('/users/{id}/status', [AdminUserController::class, 'toggleStatus']);
 

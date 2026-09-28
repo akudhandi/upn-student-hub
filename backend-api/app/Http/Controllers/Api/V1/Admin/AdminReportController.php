@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AdminReportController extends Controller
 {
@@ -84,17 +85,12 @@ class AdminReportController extends Controller
 
         $report->status = $validated['status'];
 
-        $adminId = $request->user()?->id;
-        if ($adminId !== null) {
-            $report->resolved_by = $adminId;
-        }
-
-        $report->save();
-
-        $targetAction = $validated['target_action'] ?? 'none';
-        if ($targetAction !== 'none' && $report->reportable !== null) {
-            $this->applyTargetAction($report->reportable, $targetAction);
-        }
+        $this->applyResolution(
+            $report,
+            $validated['status'],
+            $validated['target_action'] ?? 'none',
+            $request->user()?->id
+        );
 
         $report->load(['reporter:id,name,email', 'reportable']);
 
@@ -102,6 +98,57 @@ class AdminReportController extends Controller
             'message' => 'Laporan berhasil diproses',
             'data' => $report,
         ]);
+    }
+
+    public function bulkResolve(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1|max:100',
+            'ids.*' => 'integer',
+            'status' => 'required|in:reviewing,resolved,rejected,dismissed',
+            'target_action' => 'nullable|in:none,hide_content,delete_content,suspend_user,ban_user,delete,deactivate',
+        ]);
+
+        $ids = array_values(array_unique($validated['ids']));
+
+        $found = Report::whereIn('id', $ids)->pluck('id')->all();
+        $missing = array_values(array_diff($ids, $found));
+        if ($missing !== []) {
+            return response()->json([
+                'message' => 'Sebagian data laporan tidak ditemukan',
+                'data' => ['missing_ids' => $missing],
+            ], 422);
+        }
+
+        $adminId = $request->user()?->id;
+        $targetAction = $validated['target_action'] ?? 'none';
+
+        DB::transaction(function () use ($ids, $validated, $targetAction, $adminId) {
+            $reports = Report::with('reportable')->whereIn('id', $ids)->get();
+            foreach ($reports as $report) {
+                $this->applyResolution($report, $validated['status'], $targetAction, $adminId);
+            }
+        });
+
+        return response()->json([
+            'message' => 'Laporan berhasil diproses',
+            'data' => ['updated' => count($ids)],
+        ]);
+    }
+
+    private function applyResolution(Report $report, string $status, string $targetAction, ?int $adminId): void
+    {
+        $report->status = $status;
+
+        if ($adminId !== null) {
+            $report->resolved_by = $adminId;
+        }
+
+        $report->save();
+
+        if ($targetAction !== 'none' && $report->reportable !== null) {
+            $this->applyTargetAction($report->reportable, $targetAction);
+        }
     }
 
     private function applyTargetAction(object $target, string $action): void
