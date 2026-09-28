@@ -112,3 +112,61 @@ export async function getAdminProfile(): Promise<AdminUser> {
   }
   return data as AdminUser;
 }
+
+export interface Paginated<T> {
+  data: T[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
+export type MarketplaceStatus =
+  | 'active'
+  | 'hidden'
+  | 'sold'
+  | 'inactive'
+  | 'deleted';
+
+export interface MarketplaceListingItem {
+  id: number;
+  user_id: number;
+  category_id: number | null;
+  title: string;
+  description: string;
+  price: number | string;
+  condition: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  user?: { id: number; name: string } | null;
+  category?: { id: number; name: string; slug: string } | null;
+  images?: { id: number; file_path: string; sort_order: number }[];
+  reports_count?: number;
+}
+
+export type ListingAction = 'hide' | 'restore' | 'delete';
+
+export async function getAdminMarketplace(params: {
+  page?: number;
+  status?: string;
+  search?: string;
+}): Promise<Paginated<MarketplaceListingItem>> {
+  const { data } = await api.get<{
+    message: string;
+    data: Paginated<MarketplaceListingItem>;
+  }>('/admin/marketplace', { params });
+  return data.data;
+}
+
+export async function updateMarketplaceStatus(
+  id: number,
+  action: ListingAction,
+): Promise<MarketplaceListingItem> {
+  const { data } = await api.patch<{
+    message: string;
+    data: MarketplaceListingItem;
+  }>(`/admin/marketplace/${id}/status`, { action });
+  return data.data;
+}
