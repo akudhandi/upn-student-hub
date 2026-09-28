@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { getToken, clearAuth, getUser, type AuthUser } from "@/lib/auth";
 import DevUserSwitcher from "@/components/DevUserSwitcher";
+import NotificationBell from "@/components/NotificationBell";
 
 type NavItem = {
   label: string;
@@ -355,17 +356,7 @@ export default function AppLayout({
           {/* Right actions */}
           <div className="flex items-center gap-2 sm:gap-3">
             <DevUserSwitcher />
-            <button
-              type="button"
-              aria-label="Notifikasi"
-              className="relative inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-            >
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M8 2.5C5.7 2.5 4 4 4 6V10L3 11.5H13L12 10V6C12 4 10.3 2.5 8 2.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-                <path d="M6.5 13C6.5 13.8 7.1 14.5 8 14.5C8.9 14.5 9.5 13.8 9.5 13H6.5Z" stroke="currentColor" strokeWidth="1.2" />
-              </svg>
-              <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />
-            </button>
+            <NotificationBell />
             <button
               type="button"
               aria-label="Bantuan"

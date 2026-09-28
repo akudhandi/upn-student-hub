@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Admin\AdminServiceController;
 use App\Http\Controllers\Api\V1\Admin\AdminSettingsController;
 use App\Http\Controllers\Api\V1\Admin\AdminUserController;
 use App\Http\Controllers\Api\V1\AdminAuthController;
+use App\Http\Controllers\Api\V1\AnnouncementController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\EventController;
@@ -59,6 +60,9 @@ Route::prefix('v1')->group(function () {
     Route::get('/events', [EventController::class, 'index']);
     Route::post('/events', [EventController::class, 'store']);
     Route::get('/events/{id}', [EventController::class, 'show']);
+
+    // Pengumuman dari admin untuk mahasiswa (dibaca via bel notifikasi).
+    Route::get('/announcements', [AnnouncementController::class, 'index']);
 
     // Polymorphic Interactions
     Route::get('/favorites', [FavoriteController::class, 'index']);
