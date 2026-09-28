@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { getUser } from "@/lib/auth";
@@ -64,6 +64,25 @@ function formatThreadTime(isoDate: string | null): string {
   yesterday.setDate(now.getDate() - 1);
   if (date.toDateString() === yesterday.toDateString()) return "Kemarin";
   return date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+}
+
+function dayKeyOf(isoDate: string): string {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return "";
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function formatDayLabel(isoDate: string): string {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return "";
+  const now = new Date();
+  if (date.toDateString() === now.toDateString()) return "Hari ini";
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) return "Kemarin";
+  return date.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function contextDetailHref(context: ChatContext | null): string | null {
@@ -489,7 +508,7 @@ function MessagesContent() {
                   Belum ada pesan. Sapa dulu untuk memulai percakapan.
                 </p>
               ) : (
-                messages.map((m) => {
+                messages.map((m, index) => {
                   // Own messages: optimistic (-1) or matching logged-in user id.
                   // Fallback when logged out: anything not from the recipient.
                   const self =
@@ -497,8 +516,22 @@ function MessagesContent() {
                     (myId !== null
                       ? m.sender_id === myId
                       : active.recipient !== null && m.sender_id !== active.recipient.id);
-                  return self ? (
-                    <div key={m.id} className="flex justify-end">
+                  // Day separator (WhatsApp-style): show once when the local
+                  // calendar day changes between consecutive messages.
+                  const showDay =
+                    index === 0 ||
+                    dayKeyOf(m.created_at) !== dayKeyOf(messages[index - 1].created_at);
+                  return (
+                    <Fragment key={`${m.id}-${index}`}>
+                      {showDay && (
+                        <div className="flex justify-center">
+                          <span className="rounded-full bg-slate-200/90 px-3 py-1 text-[11px] font-semibold text-slate-600 shadow-sm">
+                            {formatDayLabel(m.created_at)}
+                          </span>
+                        </div>
+                      )}
+                      {self ? (
+                    <div className="flex justify-end">
                       <div className="max-w-[75%]">
                         <div className="rounded-2xl rounded-br-md bg-[#002147] px-3.5 py-2.5 text-sm leading-6 text-white">
                           <p>{m.body}</p>
@@ -521,6 +554,8 @@ function MessagesContent() {
                         <p className="mt-1 text-[11px] text-slate-400">{formatClock(m.created_at)}</p>
                       </div>
                     </div>
+                      )}
+                    </Fragment>
                   );
                 })
               )}
