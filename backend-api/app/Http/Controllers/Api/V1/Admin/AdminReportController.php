@@ -18,6 +18,10 @@ class AdminReportController extends Controller
     {
         $validated = $request->validate([
             'status' => 'nullable|in:pending,reviewing,resolved,rejected,dismissed',
+            'search' => 'nullable|string|max:255',
+            'reportable_type' => 'nullable|string|max:255',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
         ]);
 
         $query = Report::query()
@@ -29,6 +33,29 @@ class AdminReportController extends Controller
 
         if (! empty($validated['status'])) {
             $query->where('status', $validated['status']);
+        }
+
+        if (! empty($validated['search'])) {
+            $keyword = (string) $validated['search'];
+            $query->where(function ($q) use ($keyword) {
+                $q->where('reason', 'like', "%{$keyword}%")
+                    ->orWhere('description', 'like', "%{$keyword}%")
+                    ->orWhereHas('reporter', function ($reporter) use ($keyword) {
+                        $reporter->where('name', 'like', "%{$keyword}%");
+                    });
+            });
+        }
+
+        if (! empty($validated['reportable_type'])) {
+            $query->where('reportable_type', $validated['reportable_type']);
+        }
+
+        if (! empty($validated['date_from'])) {
+            $query->whereDate('created_at', '>=', $validated['date_from']);
+        }
+
+        if (! empty($validated['date_to'])) {
+            $query->whereDate('created_at', '<=', $validated['date_to']);
         }
 
         $reports = $query->paginate(15);

@@ -19,6 +19,8 @@ class AdminUserController extends Controller
             'search' => 'nullable|string|max:255',
             'status' => 'nullable|in:active,suspended,banned,inactive',
             'faculty' => 'nullable|string|max:100',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
         ]);
 
         $query = User::query()
@@ -46,6 +48,14 @@ class AdminUserController extends Controller
                             ->orWhere('nim', 'like', "%{$keyword}%");
                     });
             });
+        }
+
+        if (! empty($validated['date_from'])) {
+            $query->whereDate('users.created_at', '>=', $validated['date_from']);
+        }
+
+        if (! empty($validated['date_to'])) {
+            $query->whereDate('users.created_at', '<=', $validated['date_to']);
         }
 
         $users = $query->paginate(15);

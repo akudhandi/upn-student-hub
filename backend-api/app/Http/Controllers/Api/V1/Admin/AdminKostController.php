@@ -17,6 +17,9 @@ class AdminKostController extends Controller
         $validated = $request->validate([
             'status' => 'nullable|in:available,hidden,full,inactive,deleted',
             'search' => 'nullable|string|max:255',
+            'gender_type' => 'nullable|in:putra,putri,campur',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
         ]);
 
         $query = KostListing::query()
@@ -38,6 +41,18 @@ class AdminKostController extends Controller
                 $q->where('title', 'like', "%{$keyword}%")
                     ->orWhere('address', 'like', "%{$keyword}%");
             });
+        }
+
+        if (! empty($validated['gender_type'])) {
+            $query->where('gender_type', $validated['gender_type']);
+        }
+
+        if (! empty($validated['date_from'])) {
+            $query->whereDate('created_at', '>=', $validated['date_from']);
+        }
+
+        if (! empty($validated['date_to'])) {
+            $query->whereDate('created_at', '<=', $validated['date_to']);
         }
 
         return response()->json([

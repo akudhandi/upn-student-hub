@@ -19,6 +19,9 @@ class AdminEventController extends Controller
         $validated = $request->validate([
             'status' => 'nullable|in:draft,pending,published,rejected,archived',
             'search' => 'nullable|string|max:255',
+            'category_id' => 'nullable|integer|exists:categories,id',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
         ]);
 
         $query = Event::query()
@@ -39,6 +42,18 @@ class AdminEventController extends Controller
                 $q->where('title', 'like', "%{$keyword}%")
                     ->orWhere('organizer_name', 'like', "%{$keyword}%");
             });
+        }
+
+        if (! empty($validated['category_id'])) {
+            $query->where('category_id', $validated['category_id']);
+        }
+
+        if (! empty($validated['date_from'])) {
+            $query->whereDate('event_date', '>=', $validated['date_from']);
+        }
+
+        if (! empty($validated['date_to'])) {
+            $query->whereDate('event_date', '<=', $validated['date_to']);
         }
 
         return response()->json([
