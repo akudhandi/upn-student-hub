@@ -77,6 +77,8 @@ Route::prefix('v1')->group(function () {
     Route::post('/conversations', [ChatController::class, 'store']);
     Route::get('/conversations/{id}', [ChatController::class, 'show']);
     Route::post('/conversations/{id}/messages', [ChatController::class, 'sendMessage']);
+    Route::put('/conversations/{id}/messages/{messageId}', [ChatController::class, 'updateMessage']);
+    Route::delete('/conversations/{id}/messages/{messageId}', [ChatController::class, 'destroyMessage']);
     Route::patch('/conversations/{id}/read', [ChatController::class, 'markAsRead']);
 
     // Admin Portal (dashboard, content moderation, events, users, master data)

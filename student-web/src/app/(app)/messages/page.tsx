@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import {
+  deleteChatMessage,
   fetchConversation,
   fetchConversations,
   markConversationRead,
   sendChatMessage,
+  updateChatMessage,
   type ChatContext,
   type ChatMessageItem,
   type ConversationItem,
@@ -131,6 +133,12 @@ function MessagesContent() {
   const [isSending, setIsSending] = useState(false);
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
   const [myId] = useState<number | null>(() => getUser()?.id ?? null);
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingDraft, setEditingDraft] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const loadThreads = useCallback(async (signal?: AbortSignal) => {
@@ -251,6 +259,67 @@ function MessagesContent() {
   function openChat(id: number) {
     setActiveId(id);
     setMobileView("chat");
+    setOpenMenuId(null);
+    setEditingId(null);
+    setActionError(null);
+  }
+
+  async function refreshActive(id: number) {
+    await loadMessages(id, false);
+    try {
+      const data = await fetchConversations();
+      setThreads(data);
+    } catch {
+      // Non-fatal: thread preview refreshes on next poll.
+    }
+  }
+
+  function startEdit(message: ChatMessageItem) {
+    setEditingId(message.id);
+    setEditingDraft(message.body);
+    setOpenMenuId(null);
+    setActionError(null);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditingDraft("");
+  }
+
+  async function saveEdit(messageId: number) {
+    const text = editingDraft.trim();
+    if (!text || activeId === null || isSavingEdit) return;
+    setIsSavingEdit(true);
+    setActionError(null);
+    try {
+      const updated = await updateChatMessage(activeId, messageId, text);
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? updated : m)));
+      setEditingId(null);
+      setEditingDraft("");
+      await refreshActive(activeId);
+    } catch {
+      setActionError("Gagal mengubah pesan. Coba lagi.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  }
+
+  async function removeMessage(messageId: number) {
+    if (activeId === null || deletingId !== null) return;
+    const ok = window.confirm("Hapus pesan ini? Pesan akan tampil sebagai “Pesan ini telah dihapus”.");
+    if (!ok) return;
+    setDeletingId(messageId);
+    setOpenMenuId(null);
+    setActionError(null);
+    try {
+      const updated = await deleteChatMessage(activeId, messageId);
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? updated : m)));
+      await refreshActive(activeId);
+    } catch {
+      setActionError("Gagal menghapus pesan. Coba lagi.");
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   async function sendMessage(e?: React.FormEvent) {
@@ -521,6 +590,12 @@ function MessagesContent() {
                   const showDay =
                     index === 0 ||
                     dayKeyOf(m.created_at) !== dayKeyOf(messages[index - 1].created_at);
+                  const deleted = Boolean(m.is_deleted);
+                  const edited = Boolean(m.is_edited) && !deleted;
+                  const isEditing = editingId === m.id;
+                  // Only persisted own messages can be edited/deleted.
+                  const canManage = self && !deleted && !isEditing && m.sender_id !== -1;
+                  const editedLabel = edited ? " · telah diedit" : "";
                   return (
                     <Fragment key={`${m.id}-${index}`}>
                       {showDay && (
@@ -533,10 +608,104 @@ function MessagesContent() {
                       {self ? (
                     <div className="flex justify-end">
                       <div className="max-w-[75%]">
-                        <div className="rounded-2xl rounded-br-md bg-[#002147] px-3.5 py-2.5 text-sm leading-6 text-white">
-                          <p>{m.body}</p>
+                        {deleted ? (
+                          <div className="rounded-2xl rounded-br-md border border-dashed border-slate-300 bg-slate-100 px-3.5 py-2.5 text-sm leading-6 text-slate-500">
+                            <p className="flex items-center gap-1.5 italic">
+                              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
+                                <path d="M2.5 4H4M4 4H12M4 4V3C4 2.4 4.4 2 5 2H7C7.6 2 8 2.4 8 3V4M4 4L5 13.5C5 13.8 5.2 14 5.5 14H10.5C10.8 14 11 13.8 11 13.5L12 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                              Pesan ini telah dihapus
+                            </p>
+                          </div>
+                        ) : isEditing ? (
+                          <div className="rounded-2xl rounded-br-md bg-[#002147] px-3.5 py-2.5">
+                            <label htmlFor={`edit-chat-${m.id}`} className="sr-only">
+                              Ubah pesan
+                            </label>
+                            <input
+                              id={`edit-chat-${m.id}`}
+                              value={editingDraft}
+                              onChange={(e) => setEditingDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") void saveEdit(m.id);
+                                if (e.key === "Escape") cancelEdit();
+                              }}
+                              autoFocus
+                              maxLength={2000}
+                              className="w-full rounded-md border border-white/30 bg-white/10 px-2.5 py-1.5 text-sm leading-6 text-white placeholder:text-slate-300 focus:border-white focus:outline-none"
+                            />
+                            <div className="mt-2 flex justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={cancelEdit}
+                                disabled={isSavingEdit}
+                                className="rounded-md px-2.5 py-1 text-xs font-medium text-slate-200 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50"
+                              >
+                                Batal
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void saveEdit(m.id)}
+                                disabled={isSavingEdit || editingDraft.trim() === ""}
+                                className="rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-[#002147] hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50"
+                              >
+                                {isSavingEdit ? "Menyimpan…" : "Simpan"}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="rounded-2xl rounded-br-md bg-[#002147] px-3.5 py-2.5 text-sm leading-6 text-white">
+                            <p>{m.body}</p>
+                          </div>
+                        )}
+                        <div className="mt-1 flex items-center justify-end gap-1">
+                          <p className="text-[11px] text-slate-400">
+                            {formatClock(m.created_at)}
+                            {editedLabel}
+                          </p>
+                          {canManage && (
+                            <span className="relative">
+                              <button
+                                type="button"
+                                onClick={() => setOpenMenuId(openMenuId === m.id ? null : m.id)}
+                                aria-label="Opsi pesan"
+                                aria-expanded={openMenuId === m.id}
+                                aria-haspopup="menu"
+                                className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-200 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147]"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+                                  <circle cx="6" cy="2" r="1.3" />
+                                  <circle cx="6" cy="6" r="1.3" />
+                                  <circle cx="6" cy="10" r="1.3" />
+                                </svg>
+                              </button>
+                              {openMenuId === m.id && (
+                                <span
+                                  role="menu"
+                                  className="absolute bottom-7 right-0 z-10 w-32 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+                                >
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={() => startEdit(m)}
+                                    className="block w-full px-3 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-100"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={() => void removeMessage(m.id)}
+                                    disabled={deletingId === m.id}
+                                    className="block w-full px-3 py-1.5 text-left text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                                  >
+                                    {deletingId === m.id ? "Menghapus…" : "Hapus"}
+                                  </button>
+                                </span>
+                              )}
+                            </span>
+                          )}
                         </div>
-                        <p className="mt-1 text-right text-[11px] text-slate-400">{formatClock(m.created_at)}</p>
                       </div>
                     </div>
                   ) : (
@@ -548,10 +717,24 @@ function MessagesContent() {
                         {initialsOf(active.recipient?.name ?? "?")}
                       </span>
                       <div className="max-w-[75%]">
-                        <div className="rounded-2xl rounded-bl-md border border-slate-200 bg-white px-3.5 py-2.5 text-sm leading-6 text-slate-800 shadow-sm">
-                          <p>{m.body}</p>
-                        </div>
-                        <p className="mt-1 text-[11px] text-slate-400">{formatClock(m.created_at)}</p>
+                        {deleted ? (
+                          <div className="rounded-2xl rounded-bl-md border border-dashed border-slate-300 bg-slate-50 px-3.5 py-2.5 text-sm leading-6 text-slate-500 shadow-sm">
+                            <p className="flex items-center gap-1.5 italic">
+                              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
+                                <path d="M2.5 4H4M4 4H12M4 4V3C4 2.4 4.4 2 5 2H7C7.6 2 8 2.4 8 3V4M4 4L5 13.5C5 13.8 5.2 14 5.5 14H10.5C10.8 14 11 13.8 11 13.5L12 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                              Pesan ini telah dihapus
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="rounded-2xl rounded-bl-md border border-slate-200 bg-white px-3.5 py-2.5 text-sm leading-6 text-slate-800 shadow-sm">
+                            <p>{m.body}</p>
+                          </div>
+                        )}
+                        <p className="mt-1 text-[11px] text-slate-400">
+                          {formatClock(m.created_at)}
+                          {editedLabel}
+                        </p>
                       </div>
                     </div>
                       )}
@@ -564,6 +747,11 @@ function MessagesContent() {
 
             {/* Input */}
             <div className="border-t border-slate-200 bg-white px-4 pb-3 pt-2.5">
+              {actionError && (
+                <p role="alert" className="mb-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs text-rose-700">
+                  {actionError}
+                </p>
+              )}
               <form onSubmit={sendMessage} className="flex items-center gap-2">
                 <label htmlFor="chat-input" className="sr-only">
                   Ketik pesan

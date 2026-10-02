@@ -14,7 +14,19 @@ class ChatMessage extends Model
         'chat_room_id',
         'user_id',
         'message',
+        'is_edited',
+        'edited_at',
+        'is_deleted',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_edited' => 'boolean',
+            'is_deleted' => 'boolean',
+            'edited_at' => 'datetime',
+        ];
+    }
 
     public function chatRoom(): BelongsTo
     {

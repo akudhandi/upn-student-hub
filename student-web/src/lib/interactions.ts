@@ -106,7 +106,7 @@ export type ChatContext = {
 export type ConversationItem = {
   id: number;
   recipient: { id: number; name: string } | null;
-  last_message: { body: string; sender_id: number; created_at: string } | null;
+  last_message: { body: string; sender_id: number; is_edited?: boolean; is_deleted?: boolean; created_at: string } | null;
   unread_count: number;
   context: ChatContext | null;
   updated_at: string;
@@ -117,7 +117,11 @@ export type ChatMessageItem = {
   body: string;
   sender_id: number;
   sender_name?: string | null;
+  is_edited?: boolean;
+  edited_at?: string | null;
+  is_deleted?: boolean;
   created_at: string;
+  updated_at?: string;
 };
 
 export async function fetchConversations(): Promise<ConversationItem[]> {
@@ -173,6 +177,34 @@ export async function markConversationRead(id: number | string): Promise<void> {
   await apiFetch(`/v1/conversations/${encodeURIComponent(String(id))}/read`, {
     method: "PATCH",
   });
+}
+
+export async function updateChatMessage(
+  conversationId: number | string,
+  messageId: number | string,
+  body: string
+): Promise<ChatMessageItem> {
+  const res = await apiFetch<{ message: string; data: ChatMessageItem }>(
+    `/v1/conversations/${encodeURIComponent(String(conversationId))}/messages/${encodeURIComponent(String(messageId))}`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ body }),
+    }
+  );
+  return res.data;
+}
+
+export async function deleteChatMessage(
+  conversationId: number | string,
+  messageId: number | string
+): Promise<ChatMessageItem> {
+  const res = await apiFetch<{ message: string; data: ChatMessageItem }>(
+    `/v1/conversations/${encodeURIComponent(String(conversationId))}/messages/${encodeURIComponent(String(messageId))}`,
+    {
+      method: "DELETE",
+    }
+  );
+  return res.data;
 }
 
 // Optimistic favorite toggle for detail pages. Reverts on API failure.

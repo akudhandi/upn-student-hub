@@ -27,6 +27,23 @@ class ChatController extends Controller
         return $room->participants->contains('user_id', $userId);
     }
 
+    private function messagePayload(ChatMessage $message): array
+    {
+        $isDeleted = (bool) $message->is_deleted;
+
+        return [
+            'id' => $message->id,
+            'body' => $isDeleted ? 'Pesan ini telah dihapus' : $message->message,
+            'sender_id' => $message->user_id,
+            'sender_name' => $message->user?->name,
+            'is_edited' => (bool) $message->is_edited,
+            'edited_at' => $message->edited_at,
+            'is_deleted' => $isDeleted,
+            'created_at' => $message->created_at,
+            'updated_at' => $message->updated_at,
+        ];
+    }
+
     private function conversationPayload(ChatRoom $room, int $userId): array
     {
         $room->loadMissing(['participants.user:id,name', 'contextable']);
@@ -50,8 +67,10 @@ class ChatController extends Controller
                 'name' => $other->user->name,
             ] : null,
             'last_message' => $latest ? [
-                'body' => $latest->message,
+                'body' => $latest->is_deleted ? 'Pesan ini telah dihapus' : $latest->message,
                 'sender_id' => $latest->user_id,
+                'is_edited' => (bool) $latest->is_edited,
+                'is_deleted' => (bool) $latest->is_deleted,
                 'created_at' => $latest->created_at,
             ] : null,
             'unread_count' => $this->unreadCount($room->id, $userId),
@@ -69,7 +88,8 @@ class ChatController extends Controller
 
         $query = ChatMessage::query()
             ->where('chat_room_id', $roomId)
-            ->where('user_id', '!=', $userId);
+            ->where('user_id', '!=', $userId)
+            ->where('is_deleted', false);
 
         if ($participant?->last_read_at) {
             $query->where('created_at', '>', $participant->last_read_at);
@@ -199,13 +219,7 @@ class ChatController extends Controller
             ->with('user:id,name')
             ->orderBy('created_at', 'asc')
             ->get()
-            ->map(fn (ChatMessage $message) => [
-                'id' => $message->id,
-                'body' => $message->message,
-                'sender_id' => $message->user_id,
-                'sender_name' => $message->user?->name,
-                'created_at' => $message->created_at,
-            ]);
+            ->map(fn (ChatMessage $message) => $this->messagePayload($message));
 
         $payload = $this->conversationPayload($room, $userId);
 
@@ -239,16 +253,124 @@ class ChatController extends Controller
         ]);
 
         $message = $this->appendMessage($room, $userId, $validated['body']);
+        $message->loadMissing('user:id,name');
 
         return response()->json([
             'message' => 'Pesan berhasil dikirim',
-            'data' => [
-                'id' => $message->id,
-                'body' => $message->message,
-                'sender_id' => $message->user_id,
-                'created_at' => $message->created_at,
-            ],
+            'data' => $this->messagePayload($message),
         ], 201);
+    }
+
+    public function updateMessage(Request $request, string $id, string $messageId): JsonResponse
+    {
+        $userId = $this->currentUserId($request);
+
+        $room = ChatRoom::query()
+            ->with('participants')
+            ->where('id', $id)
+            ->first();
+
+        if ($room === null || !$this->isParticipant($room, $userId)) {
+            return response()->json([
+                'message' => 'Percakapan tidak ditemukan',
+                'data' => null,
+            ], 404);
+        }
+
+        $message = ChatMessage::query()
+            ->where('id', $messageId)
+            ->where('chat_room_id', $room->id)
+            ->first();
+
+        if ($message === null) {
+            return response()->json([
+                'message' => 'Pesan tidak ditemukan',
+                'data' => null,
+            ], 404);
+        }
+
+        if ((int) $message->user_id !== $userId) {
+            return response()->json([
+                'message' => 'Hanya pengirim yang dapat mengubah pesan ini',
+                'data' => null,
+            ], 403);
+        }
+
+        if ((bool) $message->is_deleted) {
+            return response()->json([
+                'message' => 'Pesan yang sudah dihapus tidak dapat diubah',
+                'data' => null,
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'body' => 'required|string|max:2000',
+        ]);
+
+        $message->update([
+            'message' => $validated['body'],
+            'is_edited' => true,
+            'edited_at' => now(),
+        ]);
+        $message->loadMissing('user:id,name');
+        $room->touch();
+
+        return response()->json([
+            'message' => 'Pesan berhasil diubah',
+            'data' => $this->messagePayload($message->fresh()),
+        ]);
+    }
+
+    public function destroyMessage(Request $request, string $id, string $messageId): JsonResponse
+    {
+        $userId = $this->currentUserId($request);
+
+        $room = ChatRoom::query()
+            ->with('participants')
+            ->where('id', $id)
+            ->first();
+
+        if ($room === null || !$this->isParticipant($room, $userId)) {
+            return response()->json([
+                'message' => 'Percakapan tidak ditemukan',
+                'data' => null,
+            ], 404);
+        }
+
+        $message = ChatMessage::query()
+            ->where('id', $messageId)
+            ->where('chat_room_id', $room->id)
+            ->first();
+
+        if ($message === null) {
+            return response()->json([
+                'message' => 'Pesan tidak ditemukan',
+                'data' => null,
+            ], 404);
+        }
+
+        if ((int) $message->user_id !== $userId) {
+            return response()->json([
+                'message' => 'Hanya pengirim yang dapat menghapus pesan ini',
+                'data' => null,
+            ], 403);
+        }
+
+        if ((bool) $message->is_deleted) {
+            return response()->json([
+                'message' => 'Pesan sudah dihapus',
+                'data' => null,
+            ], 422);
+        }
+
+        $message->update(['is_deleted' => true]);
+        $message->loadMissing('user:id,name');
+        $room->touch();
+
+        return response()->json([
+            'message' => 'Pesan berhasil dihapus',
+            'data' => $this->messagePayload($message->fresh()),
+        ]);
     }
 
     public function markAsRead(Request $request, string $id): JsonResponse
