@@ -14,14 +14,17 @@ use App\Http\Controllers\Api\V1\Admin\AdminUserController;
 use App\Http\Controllers\Api\V1\AdminAuthController;
 use App\Http\Controllers\Api\V1\AnnouncementController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\FavoriteController;
 use App\Http\Controllers\Api\V1\LostFoundController;
 use App\Http\Controllers\Api\V1\MarketplaceController;
+use App\Http\Controllers\Api\V1\MediaController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\ServiceController;
+use App\Http\Controllers\Api\V1\UserProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -35,20 +38,35 @@ Route::prefix('v1')->group(function () {
         });
     });
 
+    // Student Profile & Unified Media Upload
+    Route::get('/users/me', [UserProfileController::class, 'me']);
+    Route::put('/users/profile', [UserProfileController::class, 'updateProfile']);
+    Route::post('/media/upload', [MediaController::class, 'upload']);
+    Route::get('/categories', [CategoryController::class, 'index']);
+
     // Marketplace Routes
     Route::get('/marketplace', [MarketplaceController::class, 'index']);
     Route::post('/marketplace', [MarketplaceController::class, 'store']);
     Route::get('/marketplace/{id}', [MarketplaceController::class, 'show']);
+    Route::put('/marketplace/{id}', [MarketplaceController::class, 'update']);
+    Route::patch('/marketplace/{id}/status', [MarketplaceController::class, 'updateStatus']);
+    Route::delete('/marketplace/{id}', [MarketplaceController::class, 'destroy']);
 
     // Service Routes
     Route::get('/services', [ServiceController::class, 'index']);
     Route::post('/services', [ServiceController::class, 'store']);
     Route::get('/services/{id}', [ServiceController::class, 'show']);
+    Route::put('/services/{id}', [ServiceController::class, 'update']);
+    Route::patch('/services/{id}/status', [ServiceController::class, 'updateStatus']);
+    Route::delete('/services/{id}', [ServiceController::class, 'destroy']);
 
     // Lost & Found Routes
     Route::get('/lost-found', [LostFoundController::class, 'index']);
     Route::post('/lost-found', [LostFoundController::class, 'store']);
     Route::get('/lost-found/{id}', [LostFoundController::class, 'show']);
+    Route::put('/lost-found/{id}', [LostFoundController::class, 'update']);
+    Route::patch('/lost-found/{id}/status', [LostFoundController::class, 'updateStatus']);
+    Route::delete('/lost-found/{id}', [LostFoundController::class, 'destroy']);
 
     // Event & Informasi Kampus Routes
     Route::get('/events', [EventController::class, 'index']);

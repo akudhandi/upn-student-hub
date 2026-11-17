@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Http\Controllers\Api\V1\Concerns\ResolvesStudentUser;
+use App\Http\Controllers\Api\V1\Concerns\SyncsListingImages;
 use App\Http\Controllers\Controller;
 use App\Models\LostFoundReport;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -12,6 +14,8 @@ use Illuminate\Http\Request;
 
 class LostFoundController extends Controller
 {
+    use ResolvesStudentUser, SyncsListingImages;
+
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -23,17 +27,27 @@ class LostFoundController extends Controller
             'description' => 'required|string',
             'contact_info' => 'required|string|max:50',
             'reward' => 'nullable|string|max:255',
+            'image_paths' => 'nullable|array|max:3',
+            'image_paths.*' => 'string|max:500',
         ]);
+
+        $imagePaths = $validated['image_paths'] ?? null;
+        unset($validated['image_paths']);
 
         $report = LostFoundReport::create([
             ...$validated,
-            'user_id' => $request->user()?->id ?? 1,
+            'user_id' => $this->resolveStudentUserId($request),
             'status' => 'active',
         ]);
+
+        if (is_array($imagePaths) && $imagePaths !== []) {
+            $this->syncImages($report, $imagePaths);
+        }
 
         $report->load([
             'user:id,name',
             'category:id,name,slug',
+            'images',
         ]);
 
         return response()->json([
@@ -83,6 +97,7 @@ class LostFoundController extends Controller
                 ->with([
                     'user:id,name',
                     'category:id,name,slug',
+                    'images',
                 ])
                 ->where('id', $id)
                 ->firstOrFail();
@@ -91,11 +106,118 @@ class LostFoundController extends Controller
                 'message' => 'Detail laporan berhasil diambil',
                 'data' => $report,
             ]);
-        } catch (ModelNotFoundException $e) {
+        } catch (ModelNotFoundException) {
             return response()->json([
                 'message' => 'Data laporan tidak ditemukan',
                 'data' => null,
             ], 404);
         }
+    }
+
+    public function update(Request $request, string $id): JsonResponse
+    {
+        try {
+            $report = LostFoundReport::where('id', $id)->firstOrFail();
+        } catch (ModelNotFoundException) {
+            return response()->json([
+                'message' => 'Data laporan tidak ditemukan',
+                'data' => null,
+            ], 404);
+        }
+
+        if (! $this->isListingOwner($report, $this->resolveStudentUserId($request))) {
+            return response()->json([
+                'message' => 'Anda tidak berhak mengubah laporan ini.',
+                'data' => null,
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'type' => 'sometimes|required|in:lost,found',
+            'title' => 'sometimes|required|string|max:255',
+            'category_id' => 'nullable|exists:categories,id',
+            'location' => 'sometimes|required|string|max:255',
+            'date_event' => 'nullable|date',
+            'description' => 'sometimes|required|string',
+            'contact_info' => 'sometimes|required|string|max:50',
+            'reward' => 'nullable|string|max:255',
+            'image_paths' => 'nullable|array|max:3',
+            'image_paths.*' => 'string|max:500',
+        ]);
+
+        $hasImages = array_key_exists('image_paths', $validated);
+        $imagePaths = $validated['image_paths'] ?? [];
+        unset($validated['image_paths']);
+
+        if ($validated !== []) {
+            $report->update($validated);
+        }
+        if ($hasImages && is_array($imagePaths)) {
+            $this->syncImages($report, $imagePaths);
+        }
+
+        $report->load(['user:id,name', 'category:id,name,slug', 'images']);
+
+        return response()->json([
+            'message' => 'Laporan berhasil diperbarui',
+            'data' => $report,
+        ]);
+    }
+
+    public function updateStatus(Request $request, string $id): JsonResponse
+    {
+        try {
+            $report = LostFoundReport::where('id', $id)->firstOrFail();
+        } catch (ModelNotFoundException) {
+            return response()->json([
+                'message' => 'Data laporan tidak ditemukan',
+                'data' => null,
+            ], 404);
+        }
+
+        if (! $this->isListingOwner($report, $this->resolveStudentUserId($request))) {
+            return response()->json([
+                'message' => 'Anda tidak berhak mengubah status laporan ini.',
+                'data' => null,
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'status' => 'required|in:active,open,resolved,closed',
+        ]);
+
+        $report->update(['status' => $validated['status']]);
+        $report->load(['user:id,name', 'category:id,name,slug', 'images']);
+
+        return response()->json([
+            'message' => 'Status laporan berhasil diperbarui',
+            'data' => $report,
+        ]);
+    }
+
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        try {
+            $report = LostFoundReport::where('id', $id)->firstOrFail();
+        } catch (ModelNotFoundException) {
+            return response()->json([
+                'message' => 'Data laporan tidak ditemukan',
+                'data' => null,
+            ], 404);
+        }
+
+        if (! $this->isListingOwner($report, $this->resolveStudentUserId($request))) {
+            return response()->json([
+                'message' => 'Anda tidak berhak menghapus laporan ini.',
+                'data' => null,
+            ], 403);
+        }
+
+        $report->delete();
+
+        return response()->json([
+            'message' => 'Laporan berhasil dihapus',
+            'data' => null,
+        ]);
     }
 }

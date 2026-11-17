@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\V1\Concerns\ResolvesMorphType;
+use App\Http\Controllers\Api\V1\Concerns\ResolvesStudentUser;
 use App\Http\Controllers\Controller;
 use App\Models\Rating;
 use Illuminate\Http\JsonResponse;
@@ -12,7 +13,7 @@ use Illuminate\Http\Request;
 
 class ReviewController extends Controller
 {
-    use ResolvesMorphType;
+    use ResolvesMorphType, ResolvesStudentUser;
 
     public function index(Request $request): JsonResponse
     {
@@ -83,7 +84,7 @@ class ReviewController extends Controller
         }
 
         $rating = Rating::create([
-            'user_id' => $request->user()?->id ?? 1,
+            'user_id' => $this->resolveStudentUserId($request),
             'rateable_type' => $class,
             'rateable_id' => $target->id,
             'rating' => $validated['rating'],

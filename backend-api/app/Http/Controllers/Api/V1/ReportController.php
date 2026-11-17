@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\V1\Concerns\ResolvesMorphType;
+use App\Http\Controllers\Api\V1\Concerns\ResolvesStudentUser;
 use App\Http\Controllers\Controller;
 use App\Models\Report;
 use Illuminate\Http\JsonResponse;
@@ -12,7 +13,7 @@ use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
-    use ResolvesMorphType;
+    use ResolvesMorphType, ResolvesStudentUser;
 
     public function store(Request $request): JsonResponse
     {
@@ -40,7 +41,7 @@ class ReportController extends Controller
         }
 
         $report = Report::create([
-            'reporter_id' => $request->user()?->id ?? 1,
+            'reporter_id' => $this->resolveStudentUserId($request),
             'reportable_type' => $class,
             'reportable_id' => $target->id,
             'reason' => $validated['reason'],

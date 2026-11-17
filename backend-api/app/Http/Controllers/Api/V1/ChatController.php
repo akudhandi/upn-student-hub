@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\V1\Concerns\ResolvesMorphType;
+use App\Http\Controllers\Api\V1\Concerns\ResolvesStudentUser;
 use App\Http\Controllers\Controller;
 use App\Models\ChatMessage;
 use App\Models\ChatParticipant;
@@ -15,11 +16,11 @@ use Illuminate\Http\Request;
 
 class ChatController extends Controller
 {
-    use ResolvesMorphType;
+    use ResolvesMorphType, ResolvesStudentUser;
 
     private function currentUserId(Request $request): int
     {
-        return $request->user()?->id ?? 1;
+        return $this->resolveStudentUserId($request);
     }
 
     private function isParticipant(ChatRoom $room, int $userId): bool

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\V1\Concerns\ResolvesMorphType;
+use App\Http\Controllers\Api\V1\Concerns\ResolvesStudentUser;
 use App\Http\Controllers\Controller;
 use App\Models\Favorite;
 use Illuminate\Http\JsonResponse;
@@ -12,7 +13,7 @@ use Illuminate\Http\Request;
 
 class FavoriteController extends Controller
 {
-    use ResolvesMorphType;
+    use ResolvesMorphType, ResolvesStudentUser;
 
     public function toggle(Request $request): JsonResponse
     {
@@ -37,7 +38,7 @@ class FavoriteController extends Controller
             ], 404);
         }
 
-        $userId = $request->user()?->id ?? 1;
+        $userId = $this->resolveStudentUserId($request);
 
         $favorite = Favorite::query()
             ->where('user_id', $userId)
@@ -65,7 +66,7 @@ class FavoriteController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $userId = $request->user()?->id ?? 1;
+        $userId = $this->resolveStudentUserId($request);
 
         $favorites = Favorite::query()
             ->with('favoritable')

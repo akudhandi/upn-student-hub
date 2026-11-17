@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Http\Controllers\Api\V1\Concerns\ResolvesStudentUser;
+use App\Http\Controllers\Api\V1\Concerns\SyncsListingImages;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -13,6 +15,8 @@ use Illuminate\Support\Str;
 
 class EventController extends Controller
 {
+    use ResolvesStudentUser, SyncsListingImages;
+
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -38,23 +42,32 @@ class EventController extends Controller
             'documents.*.name' => 'required|string|max:255',
             'documents.*.meta' => 'nullable|string|max:255',
             'description' => 'required|string',
+            'image_paths' => 'nullable|array|max:3',
+            'image_paths.*' => 'string|max:500',
         ]);
+
+        $imagePaths = $validated['image_paths'] ?? null;
+        unset($validated['image_paths']);
 
         $event = Event::create([
             ...$validated,
-            'user_id' => $request->user()?->id ?? 1,
+            'user_id' => $this->resolveStudentUserId($request),
             'slug' => Str::slug($request->title).'-'.Str::lower(Str::random(5)),
             'status' => 'published',
         ]);
 
-        // Deterministic, unique event code derived from the new id.
         $event->update([
             'event_code' => sprintf('EVT-%s-%04d', $event->created_at->format('Y'), $event->id),
         ]);
 
+        if (is_array($imagePaths) && $imagePaths !== []) {
+            $this->syncImages($event, $imagePaths);
+        }
+
         $event->load([
             'user:id,name',
             'category:id,name,slug',
+            'images',
         ]);
 
         return response()->json([
@@ -102,6 +115,7 @@ class EventController extends Controller
                 ->with([
                     'user:id,name',
                     'category:id,name,slug',
+                    'images',
                 ])
                 ->where('id', $id)
                 ->firstOrFail();
@@ -110,7 +124,7 @@ class EventController extends Controller
                 'message' => 'Detail event berhasil diambil',
                 'data' => $event,
             ]);
-        } catch (ModelNotFoundException $e) {
+        } catch (ModelNotFoundException) {
             return response()->json([
                 'message' => 'Data event tidak ditemukan',
                 'data' => null,
