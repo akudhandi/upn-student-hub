@@ -3,7 +3,13 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiFetch, type ApiError } from "@/lib/api";
+import {
+  apiFetch,
+  fetchPublicCategories,
+  uploadMedia,
+  type ApiError,
+  type PublicCategory,
+} from "@/lib/api";
 import ListingImage from "@/components/ListingImage";
 import type { ApiImage } from "@/lib/images";
 
@@ -194,7 +200,8 @@ export function LostAndFoundContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reportType, setReportType] = useState<ReportType>("lost");
   const [formData, setFormData] = useState(EMPTY_FORM);
-  const [photos, setPhotos] = useState<{ id: number; url: string }[]>([]);
+  const [photos, setPhotos] = useState<{ id: number; url: string; file: File }[]>([]);
+  const [backendCategories, setBackendCategories] = useState<PublicCategory[]>([]);
   const photoIdRef = useRef(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -224,6 +231,18 @@ export function LostAndFoundContent() {
 
   useEffect(() => {
     const controller = new AbortController();
+    fetchPublicCategories("lost_found")
+      .then((cats) => {
+        if (!controller.signal.aborted) setBackendCategories(cats);
+      })
+      .catch(() => {});
+    return () => {
+      controller.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch must populate state on mount and when the type filter changes
     void loadReports(typeFilter, controller.signal);
     return () => {
@@ -241,13 +260,16 @@ export function LostAndFoundContent() {
 
   const categoryOptions = useMemo(() => {
     const byId = new Map<number, string>();
+    for (const cat of backendCategories) {
+      byId.set(cat.id, cat.name);
+    }
     for (const item of items) {
       if (item.category?.id && item.category?.name) {
         byId.set(item.category.id, item.category.name);
       }
     }
     return [...byId.entries()].map(([id, name]) => ({ id, name }));
-  }, [items]);
+  }, [backendCategories, items]);
 
   function updateForm<K extends keyof typeof EMPTY_FORM>(key: K, value: string) {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -257,7 +279,7 @@ export function LostAndFoundContent() {
     if (!files) return;
     const next = Array.from(files).map((file) => {
       photoIdRef.current += 1;
-      return { id: photoIdRef.current, url: URL.createObjectURL(file) };
+      return { id: photoIdRef.current, url: URL.createObjectURL(file), file };
     });
     setPhotos((prev) => [...prev, ...next].slice(0, 3));
   }
@@ -318,6 +340,10 @@ export function LostAndFoundContent() {
     setIsSubmitting(true);
     setSubmitError(null);
     try {
+      const uploaded =
+        photos.length > 0
+          ? await Promise.all(photos.map((p) => uploadMedia(p.file, "lost-found")))
+          : [];
       await apiFetch<LostFoundCreateResponse>("/v1/lost-found", {
         method: "POST",
         body: JSON.stringify({
@@ -332,6 +358,7 @@ export function LostAndFoundContent() {
               : `Rp ${Number(rewardRaw).toLocaleString("id-ID")}`,
           description: formData.description.trim(),
           contact_info: formData.contact_info.trim(),
+          image_paths: uploaded.map((u) => u.path),
         }),
       });
       const createdType = reportType;

@@ -3,7 +3,13 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiFetch, type ApiError } from "@/lib/api";
+import {
+  apiFetch,
+  fetchPublicCategories,
+  uploadMedia,
+  type ApiError,
+  type PublicCategory,
+} from "@/lib/api";
 import ListingImage from "@/components/ListingImage";
 import type { ApiImage } from "@/lib/images";
 
@@ -157,13 +163,15 @@ function MarketplaceContent() {
   const [targetFakultas, setTargetFakultas] = useState<string[]>([...TARGET_FAKULTAS_OPTIONS]);
   const [isNegotiable, setIsNegotiable] = useState(true);
   const [codLocation, setCodLocation] = useState("Perpustakaan Pusat UPN Lantai 1 / Gazebo FTI");
-  const [photos, setPhotos] = useState<{ id: number; url: string }[]>([]);
+  const [photos, setPhotos] = useState<{ id: number; url: string; file: File }[]>([]);
+  const [backendCategories, setBackendCategories] = useState<PublicCategory[]>([]);
   const photoIdRef = useRef(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const createRequested = searchParams.get("action") === "create";
+  const urlSearchQuery = (searchParams.get("q") ?? "").trim();
 
   const loadItems = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -188,6 +196,11 @@ function MarketplaceContent() {
     const controller = new AbortController();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch must populate state on mount
     void loadItems(controller.signal);
+    fetchPublicCategories("marketplace")
+      .then((cats) => {
+        if (!controller.signal.aborted) setBackendCategories(cats);
+      })
+      .catch(() => {});
     return () => {
       controller.abort();
     };
@@ -230,6 +243,9 @@ function MarketplaceContent() {
 
   const categoryOptions = useMemo(() => {
     const byId = new Map<number, string>();
+    for (const cat of backendCategories) {
+      byId.set(cat.id, cat.name);
+    }
     for (const item of items) {
       if (item.category?.id && item.category?.name) {
         byId.set(item.category.id, item.category.name);
@@ -237,16 +253,13 @@ function MarketplaceContent() {
     }
     const merged = [...byId.entries()].map(([id, name]) => ({ id, name }));
     const known = new Set(merged.map((c) => normalizeName(c.name)));
-    // Static suggestions resolve against seeded backend categories by
-    // name; entries without a backend match are skipped so the select
-    // only ever submits a valid category_id.
     CATEGORY_SUGGESTIONS.forEach((name, i) => {
       if (!known.has(normalizeName(name))) {
         merged.push({ id: -(i + 1), name });
       }
     });
     return merged;
-  }, [items]);
+  }, [backendCategories, items]);
 
   function updateForm<K extends keyof typeof EMPTY_FORM>(key: K, value: string) {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -268,7 +281,7 @@ function MarketplaceContent() {
     if (!files) return;
     const next = Array.from(files).map((file) => {
       photoIdRef.current += 1;
-      return { id: photoIdRef.current, url: URL.createObjectURL(file) };
+      return { id: photoIdRef.current, url: URL.createObjectURL(file), file };
     });
     setPhotos((prev) => [...prev, ...next].slice(0, 6));
   }
@@ -311,6 +324,10 @@ function MarketplaceContent() {
     setIsSubmitting(true);
     setSubmitError(null);
     try {
+      const uploaded =
+        photos.length > 0
+          ? await Promise.all(photos.map((p) => uploadMedia(p.file, "marketplace")))
+          : [];
       await apiFetch<MarketplaceCreateResponse>("/v1/marketplace", {
         method: "POST",
         body: JSON.stringify({
@@ -319,6 +336,7 @@ function MarketplaceContent() {
           condition: formData.condition,
           price: Number(formData.price),
           description: formData.description.trim(),
+          image_paths: uploaded.map((u) => u.path),
         }),
       });
       setIsModalOpen(false);
@@ -344,6 +362,10 @@ function MarketplaceContent() {
   const filtered = items.filter((item) => {
     const categoryName = item.category?.name ?? "";
     const price = Number(item.price);
+    if (urlSearchQuery !== "") {
+      const haystack = `${item.title} ${item.description ?? ""} ${categoryName}`.toLowerCase();
+      if (!haystack.includes(urlSearchQuery.toLowerCase())) return false;
+    }
     if (activeCategory !== "Semua" && categoryName !== activeCategory) return false;
     if (conditionFilter !== "any" && item.condition !== conditionFilter) return false;
     if (priceFilter === "under500" && price >= 500000) return false;

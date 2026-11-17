@@ -1,5 +1,6 @@
 export const TOKEN_KEY = "upn_student_hub_token";
 export const USER_KEY = "upn_student_hub_user";
+export const USER_UPDATED_EVENT = "upn-user-updated";
 
 export type AuthUser = {
   id: number;
@@ -10,6 +11,8 @@ export type AuthUser = {
     name?: string;
     nim?: string | null;
     faculty?: string | null;
+    bio?: string | null;
+    avatar?: string | null;
   } | null;
   // allow additional fields from backend without breaking
   [key: string]: unknown;
@@ -34,7 +37,6 @@ export function getUser(): AuthUser | null {
 export function getStoredUserDisplayName(): string | null {
   const user = getUser();
   if (!user) return null;
-  // Prefer profile.name, fallback to user.name
   if (user.profile && typeof user.profile === "object" && "name" in user.profile) {
     const profileName = (user.profile as { name?: string }).name;
     if (profileName) return profileName;
@@ -46,12 +48,20 @@ export function setAuth(token: string, user: AuthUser): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+  window.dispatchEvent(new Event(USER_UPDATED_EVENT));
+}
+
+export function updateStoredUser(user: AuthUser): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  window.dispatchEvent(new Event(USER_UPDATED_EVENT));
 }
 
 export function clearAuth(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  window.dispatchEvent(new Event(USER_UPDATED_EVENT));
 }
 
 export function isAuthenticated(): boolean {

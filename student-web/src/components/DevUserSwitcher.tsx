@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getUser, setAuth, getToken, type AuthUser } from "@/lib/auth";
+import { getUser, setAuth, type AuthUser } from "@/lib/auth";
 
 // ---------------------------------------------------------------------------
 // Dev-only user switcher for 1-on-1 chat testing. Swaps the client-side mock
@@ -51,10 +51,9 @@ export default function DevUserSwitcher() {
   if (process.env.NODE_ENV === "production") return null;
 
   function switchTo(user: AuthUser) {
-    // Preserve the existing session token; only the mock identity changes.
-    // The backend resolves guests to a default user, so this switch drives
-    // client-side ownership guards (ChatButton self-chat state, etc.).
-    setAuth(getToken() ?? "dev-token", user);
+    // Switch local dev identity and mark token as dev-token so X-Dev-User-Id
+    // drives both client-side and non-production backend ownership checks.
+    setAuth("dev-token", user);
     window.location.reload();
   }
 

@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiFetch, type ApiError } from "@/lib/api";
+import {
+  apiFetch,
+  fetchPublicCategories,
+  uploadMedia,
+  type ApiError,
+} from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // API types — GET /api/v1/events is reused to resolve backend category ids
@@ -102,6 +107,7 @@ export default function EventCreatePage() {
   const [benefitInput, setBenefitInput] = useState("");
   const [description, setDescription] = useState("");
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
+  const [posterFile, setPosterFile] = useState<File | null>(null);
   const [docs, setDocs] = useState<DocForm[]>([]);
   const [pics, setPics] = useState<PicForm[]>([{ localId: 1, name: "", whatsapp: "" }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -114,13 +120,18 @@ export default function EventCreatePage() {
     const controller = new AbortController();
     void (async () => {
       try {
+        const cats = await fetchPublicCategories("event");
+        if (controller.signal.aborted) return;
+        if (cats.length > 0) {
+          setCategoryOptions(cats.map((c) => ({ id: c.id, name: c.name })));
+          return;
+        }
         const res = await apiFetch<EventListResponse>("/v1/events");
         if (controller.signal.aborted) return;
         const byId = new Map<number, string>();
         for (const item of res.data.data) {
           if (item.category?.id && item.category?.name) byId.set(item.category.id, item.category.name);
         }
-        // Category lookup populates once on mount.
         setCategoryOptions([...byId.entries()].map(([id, name]) => ({ id, name })));
       } catch {
         if (!controller.signal.aborted) setCategoryOptions([]);
@@ -188,6 +199,7 @@ export default function EventCreatePage() {
   function setPoster(files: FileList | null) {
     if (!files || files.length === 0) return;
     if (posterUrl) URL.revokeObjectURL(posterUrl);
+    setPosterFile(files[0]);
     setPosterUrl(URL.createObjectURL(files[0]));
   }
 
@@ -224,6 +236,7 @@ export default function EventCreatePage() {
   const revokeAllPreviews = useCallback(() => {
     if (posterUrl) URL.revokeObjectURL(posterUrl);
     setPosterUrl(null);
+    setPosterFile(null);
     setSpeakers((prev) => {
       prev.forEach((s) => {
         if (s.photoUrl) URL.revokeObjectURL(s.photoUrl);
@@ -239,6 +252,9 @@ export default function EventCreatePage() {
     try {
       const match = ACTIVITY_TYPES.find((t) => t.value === activityType)?.match ?? null;
       const categoryId = match ? (categoryByName.get(match.toLowerCase()) ?? null) : null;
+      const uploadedPoster = posterFile
+        ? await uploadMedia(posterFile, "events")
+        : null;
       const res = await apiFetch<EventCreateResponse>("/v1/events", {
         method: "POST",
         body: JSON.stringify({
@@ -249,6 +265,7 @@ export default function EventCreatePage() {
           event_time: eventTime.trim() === "" ? null : eventTime.trim(),
           location: location.trim(),
           description: description.trim(),
+          image_paths: uploadedPoster ? [uploadedPoster.path] : [],
           speakers: speakers
             .filter((s) => s.name.trim() !== "")
             .map((s) => ({

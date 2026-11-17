@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { getToken, clearAuth, getUser, type AuthUser } from "@/lib/auth";
+import {
+  getToken,
+  clearAuth,
+  getUser,
+  USER_UPDATED_EVENT,
+  type AuthUser,
+} from "@/lib/auth";
+import { resolveStorageUrl } from "@/lib/images";
 import DevUserSwitcher from "@/components/DevUserSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 
@@ -161,6 +168,7 @@ export default function AppLayout({
   const [checked, setChecked] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [searchInput, setSearchInput] = useState("");
 
   useEffect(() => {
     const token = getToken();
@@ -171,6 +179,14 @@ export default function AppLayout({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate from localStorage on mount is required
     setUser(getUser());
     setChecked(true);
+
+    function syncUser() {
+      setUser(getUser());
+    }
+    window.addEventListener(USER_UPDATED_EVENT, syncUser);
+    return () => {
+      window.removeEventListener(USER_UPDATED_EVENT, syncUser);
+    };
   }, [router]);
 
   function handleLogout() {
@@ -206,7 +222,12 @@ export default function AppLayout({
   const displayFaculty =
     (user?.profile && typeof user.profile === "object" && "faculty" in user.profile
       ? (user.profile as { faculty?: string | null }).faculty
-      : null) || "Informatika '21";
+      : null) || "Mahasiswa UPN";
+  const avatarPath =
+    user?.profile && typeof user.profile === "object" && "avatar" in user.profile
+      ? (user.profile as { avatar?: string | null }).avatar
+      : null;
+  const avatarUrl = avatarPath ? resolveStorageUrl(avatarPath) : null;
   const displayEmail = typeof user?.email === "string" ? user.email : "";
   const initials = displayName
     .split(" ")
@@ -288,8 +309,13 @@ export default function AppLayout({
             <IconPlus /> {pathname?.startsWith("/events") ? "Ajukan Event" : "Pasang Iklan"}
           </button>
           <div className="mt-3 flex items-center gap-3 px-1">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
-              {initials}
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                initials
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[13px] font-semibold text-slate-900">{displayName}</p>
@@ -324,7 +350,18 @@ export default function AppLayout({
           </button>
 
           {/* Search */}
-          <div className="flex flex-1 items-center">
+          <form
+            className="flex flex-1 items-center"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const q = searchInput.trim();
+              if (!q) {
+                router.push("/marketplace");
+                return;
+              }
+              router.push(`/marketplace?q=${encodeURIComponent(q)}`);
+            }}
+          >
             <label htmlFor="dashboard-search" className="sr-only">
               Cari
             </label>
@@ -337,11 +374,14 @@ export default function AppLayout({
               </span>
               <input
                 id="dashboard-search"
+                type="search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Cari buku, jasa skripsi, event kampus..."
                 className="h-9 w-full rounded border border-slate-200 bg-[#F8F9FB] py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
               />
             </div>
-          </div>
+          </form>
 
           {/* Right actions */}
           <div className="flex items-center gap-2 sm:gap-3">
@@ -365,14 +405,24 @@ export default function AppLayout({
                   <p className="text-xs font-semibold leading-none text-slate-900">{displayName}</p>
                   <p className="mt-0.5 text-[11px] leading-none text-slate-500">{displayEmail || displayFaculty}</p>
                 </div>
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
-                  {initials}
+                <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
+                  {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    initials
+                  )}
                 </div>
               </div>
             </div>
             {/* Mobile user */}
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white sm:hidden">
-              {initials}
+            <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-900 text-xs font-semibold text-white sm:hidden">
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                initials
+              )}
             </div>
           </div>
         </header>

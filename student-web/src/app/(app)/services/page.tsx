@@ -3,7 +3,13 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiFetch, type ApiError } from "@/lib/api";
+import {
+  apiFetch,
+  fetchPublicCategories,
+  uploadMedia,
+  type ApiError,
+  type PublicCategory,
+} from "@/lib/api";
 import ListingImage from "@/components/ListingImage";
 import type { ApiImage } from "@/lib/images";
 
@@ -206,7 +212,8 @@ function ServicesContent() {
   const [pricingType, setPricingType] = useState<string>("starting_from");
   const [paymentMethod, setPaymentMethod] = useState<string>("flexible");
   const [targetFakultas, setTargetFakultas] = useState<string[]>([...TARGET_FAKULTAS_OPTIONS]);
-  const [photos, setPhotos] = useState<{ id: number; url: string }[]>([]);
+  const [photos, setPhotos] = useState<{ id: number; url: string; file: File }[]>([]);
+  const [backendCategories, setBackendCategories] = useState<PublicCategory[]>([]);
   const photoIdRef = useRef(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -237,6 +244,11 @@ function ServicesContent() {
     const controller = new AbortController();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch must populate state on mount
     void loadServices(controller.signal);
+    fetchPublicCategories("service")
+      .then((cats) => {
+        if (!controller.signal.aborted) setBackendCategories(cats);
+      })
+      .catch(() => {});
     return () => {
       controller.abort();
     };
@@ -252,13 +264,16 @@ function ServicesContent() {
 
   const categoryOptions = useMemo(() => {
     const byId = new Map<number, string>();
+    for (const cat of backendCategories) {
+      byId.set(cat.id, cat.name);
+    }
     for (const item of items) {
       if (item.category?.id && item.category?.name) {
         byId.set(item.category.id, item.category.name);
       }
     }
     return [...byId.entries()].map(([id, name]) => ({ id, name }));
-  }, [items]);
+  }, [backendCategories, items]);
 
   function updateForm<K extends keyof typeof EMPTY_FORM>(key: K, value: string) {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -280,7 +295,7 @@ function ServicesContent() {
     if (!files) return;
     const next = Array.from(files).map((file) => {
       photoIdRef.current += 1;
-      return { id: photoIdRef.current, url: URL.createObjectURL(file) };
+      return { id: photoIdRef.current, url: URL.createObjectURL(file), file };
     });
     setPhotos((prev) => [...prev, ...next].slice(0, 6));
   }
@@ -357,6 +372,10 @@ function ServicesContent() {
     setIsSubmitting(true);
     setSubmitError(null);
     try {
+      const uploaded =
+        photos.length > 0
+          ? await Promise.all(photos.map((p) => uploadMedia(p.file, "services")))
+          : [];
       await apiFetch<ServiceCreateResponse>("/v1/services", {
         method: "POST",
         body: JSON.stringify({
@@ -371,6 +390,7 @@ function ServicesContent() {
             formData.whatsapp_number.trim() === "" ? null : formData.whatsapp_number.trim(),
           target_faculties: targetFakultas,
           description: formData.description.trim(),
+          image_paths: uploaded.map((u) => u.path),
         }),
       });
       setIsModalOpen(false);

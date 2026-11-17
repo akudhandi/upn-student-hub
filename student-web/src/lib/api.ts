@@ -1,3 +1,5 @@
+import { getToken, getUser, type AuthUser } from "./auth";
+
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
 ).replace(/\/$/, "");
@@ -8,22 +10,38 @@ export type ApiError = Error & {
   data?: unknown;
 };
 
+function buildAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token && token !== "dev-token") {
+    headers.Authorization = `Bearer ${token}`;
+  } else if (token === "dev-token") {
+    const user = getUser();
+    if (user?.id) {
+      headers["X-Dev-User-Id"] = String(user.id);
+    }
+  }
+  return headers;
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  const isFormData =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
 
   const res = await fetch(url, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       Accept: "application/json",
+      ...buildAuthHeaders(),
       ...(options.headers || {}),
     },
   });
 
-  // Try to parse JSON even on error responses
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
@@ -42,6 +60,47 @@ export async function apiFetch<T>(
   return data as T;
 }
 
+export async function uploadMedia(
+  file: File,
+  folder:
+    | "listings"
+    | "marketplace"
+    | "services"
+    | "lost-found"
+    | "events"
+    | "avatars" = "listings"
+): Promise<{ path: string; url: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("folder", folder);
+
+  const res = await apiFetch<{
+    message: string;
+    data: { path: string; url: string };
+  }>("/v1/media/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  return res.data;
+}
+
+export type PublicCategory = {
+  id: number;
+  name: string;
+  slug: string;
+  type: string;
+};
+
+export async function fetchPublicCategories(
+  type: "marketplace" | "service" | "lost_found" | "event"
+): Promise<PublicCategory[]> {
+  const res = await apiFetch<{ message: string; data: PublicCategory[] }>(
+    `/v1/categories?type=${type}`
+  );
+  return res.data;
+}
+
 // ---- Auth helpers ----
 
 export type LoginPayload = {
@@ -56,8 +115,6 @@ export type RegisterPayload = {
   password_confirmation: string;
   nim?: string;
 };
-
-import type { AuthUser } from "./auth";
 
 export type AuthResponse = {
   message: string;
