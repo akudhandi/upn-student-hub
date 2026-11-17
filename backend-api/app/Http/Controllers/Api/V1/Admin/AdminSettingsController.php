@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use App\Models\Event;
-use App\Models\KostListing;
 use App\Models\LostFoundReport;
 use App\Models\MarketplaceListing;
 use App\Models\Report;
@@ -89,7 +88,6 @@ class AdminSettingsController extends Controller
                     'users' => User::count(),
                     'marketplace' => MarketplaceListing::count(),
                     'services' => ServiceListing::count(),
-                    'kost' => KostListing::count(),
                     'lost_found' => LostFoundReport::count(),
                     'events' => Event::count(),
                     'reports_pending' => Report::where('status', 'pending')->count(),

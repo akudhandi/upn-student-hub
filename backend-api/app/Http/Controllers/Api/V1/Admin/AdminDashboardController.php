@@ -6,7 +6,6 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
-use App\Models\KostListing;
 use App\Models\LostFoundReport;
 use App\Models\MarketplaceListing;
 use App\Models\Report;
@@ -22,12 +21,10 @@ class AdminDashboardController extends Controller
 
         $marketplaceCount = MarketplaceListing::count();
         $servicesCount = ServiceListing::count();
-        $kostCount = KostListing::count();
         $lostFoundCount = LostFoundReport::count();
         $eventsCount = Event::count();
 
         $activeListings = MarketplaceListing::where('status', 'active')->count()
-            + KostListing::where('status', 'available')->count()
             + ServiceListing::where('status', 'active')->count()
             + LostFoundReport::where('status', 'open')->count();
 
@@ -57,7 +54,6 @@ class AdminDashboardController extends Controller
                     'users' => $usersCount,
                     'marketplace' => $marketplaceCount,
                     'services' => $servicesCount,
-                    'kost' => $kostCount,
                     'lost_found' => $lostFoundCount,
                     'events' => $eventsCount,
                 ],

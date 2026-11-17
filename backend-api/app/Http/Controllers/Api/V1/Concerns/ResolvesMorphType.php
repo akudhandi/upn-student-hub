@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Concerns;
 
 use App\Models\Event;
-use App\Models\KostListing;
 use App\Models\LostFoundReport;
 use App\Models\MarketplaceListing;
 use App\Models\ServiceListing;
@@ -20,7 +19,6 @@ trait ResolvesMorphType
      */
     protected static array $morphAliases = [
         'marketplace' => MarketplaceListing::class,
-        'kost' => KostListing::class,
         'service' => ServiceListing::class,
         'lostfound' => LostFoundReport::class,
         'event' => Event::class,

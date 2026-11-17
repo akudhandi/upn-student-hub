@@ -78,20 +78,6 @@ class CategorySeeder extends Seeder
                 'type' => 'service',
             ],
 
-            // Kost Categories
-            [
-                'name' => 'Kost Putra',
-                'type' => 'kost',
-            ],
-            [
-                'name' => 'Kost Putri',
-                'type' => 'kost',
-            ],
-            [
-                'name' => 'Kost Campur',
-                'type' => 'kost',
-            ],
-
             // Lost & Found Categories (jenis barang, bukan jenis laporan)
             // NOTE: slugs must stay globally unique (slug column is unique),
             // so L&F names that overlap other modules get an -lf suffix.

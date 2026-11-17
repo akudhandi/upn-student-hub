@@ -5,7 +5,6 @@ use App\Http\Controllers\Api\V1\Admin\AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\AdminController;
 use App\Http\Controllers\Api\V1\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\AdminEventController;
-use App\Http\Controllers\Api\V1\Admin\AdminKostController;
 use App\Http\Controllers\Api\V1\Admin\AdminLostFoundController;
 use App\Http\Controllers\Api\V1\Admin\AdminMarketplaceController;
 use App\Http\Controllers\Api\V1\Admin\AdminReportController;
@@ -18,7 +17,6 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\FavoriteController;
-use App\Http\Controllers\Api\V1\KostController;
 use App\Http\Controllers\Api\V1\LostFoundController;
 use App\Http\Controllers\Api\V1\MarketplaceController;
 use App\Http\Controllers\Api\V1\ReportController;
@@ -41,11 +39,6 @@ Route::prefix('v1')->group(function () {
     Route::get('/marketplace', [MarketplaceController::class, 'index']);
     Route::post('/marketplace', [MarketplaceController::class, 'store']);
     Route::get('/marketplace/{id}', [MarketplaceController::class, 'show']);
-
-    // Kost Routes
-    Route::get('/kost', [KostController::class, 'index']);
-    Route::post('/kost', [KostController::class, 'store']);
-    Route::get('/kost/{id}', [KostController::class, 'show']);
 
     // Service Routes
     Route::get('/services', [ServiceController::class, 'index']);
@@ -94,10 +87,6 @@ Route::prefix('v1')->group(function () {
         Route::get('/services/export', [AdminServiceController::class, 'export']);
         Route::post('/services/bulk-status', [AdminServiceController::class, 'bulkStatus']);
         Route::patch('/services/{id}/status', [AdminServiceController::class, 'updateStatus']);
-        Route::get('/kost', [AdminKostController::class, 'index']);
-        Route::get('/kost/export', [AdminKostController::class, 'export']);
-        Route::post('/kost/bulk-status', [AdminKostController::class, 'bulkStatus']);
-        Route::patch('/kost/{id}/status', [AdminKostController::class, 'updateStatus']);
         Route::get('/lost-found', [AdminLostFoundController::class, 'index']);
         Route::get('/lost-found/export', [AdminLostFoundController::class, 'export']);
         Route::post('/lost-found/bulk-status', [AdminLostFoundController::class, 'bulkStatus']);

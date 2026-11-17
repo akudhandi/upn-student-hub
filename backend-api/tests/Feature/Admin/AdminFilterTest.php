@@ -6,7 +6,6 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Category;
 use App\Models\Event;
-use App\Models\KostListing;
 use App\Models\LostFoundReport;
 use App\Models\MarketplaceListing;
 use App\Models\Report;
@@ -53,18 +52,6 @@ class AdminFilterTest extends TestCase
         ServiceListing::factory()->create(['category_id' => $other->id]);
 
         $response = $this->getJson("/api/v1/admin/services?category_id={$cat->id}");
-
-        $response->assertOk();
-        $this->assertSame(1, $response->json('data.total'));
-        $this->assertSame($wanted->id, $response->json('data.data.0.id'));
-    }
-
-    public function test_kost_can_filter_by_gender_type(): void
-    {
-        $wanted = KostListing::factory()->create(['gender_type' => 'putra']);
-        KostListing::factory()->create(['gender_type' => 'putri']);
-
-        $response = $this->getJson('/api/v1/admin/kost?gender_type=putra');
 
         $response->assertOk();
         $this->assertSame(1, $response->json('data.total'));

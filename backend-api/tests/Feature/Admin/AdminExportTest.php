@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
-use App\Models\KostListing;
 use App\Models\MarketplaceListing;
 use App\Models\Report;
 use App\Models\User;
@@ -46,19 +45,6 @@ class AdminExportTest extends TestCase
         $this->assertCount(2, $lines);
         $this->assertStringContainsString('Judul', $lines[0]);
         $this->assertStringContainsString('Kalkulator Ekspor', $lines[1]);
-    }
-
-    public function test_kost_export_respects_gender_filter(): void
-    {
-        KostListing::factory()->create(['gender_type' => 'putra', 'title' => 'Kost Putra Ekspor']);
-        KostListing::factory()->create(['gender_type' => 'putri']);
-
-        $response = $this->get('/api/v1/admin/kost/export?gender_type=putra');
-
-        $response->assertOk();
-        $lines = $this->csvLines($response->streamedContent());
-        $this->assertCount(2, $lines);
-        $this->assertStringContainsString('Kost Putra Ekspor', $lines[1]);
     }
 
     public function test_users_export_includes_profile_columns(): void

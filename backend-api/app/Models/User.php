@@ -65,11 +65,6 @@ class User extends Authenticatable
         return $this->hasMany(ServiceListing::class);
     }
 
-    public function kostListings(): HasMany
-    {
-        return $this->hasMany(KostListing::class);
-    }
-
     public function lostFoundReports(): HasMany
     {
         return $this->hasMany(LostFoundReport::class);

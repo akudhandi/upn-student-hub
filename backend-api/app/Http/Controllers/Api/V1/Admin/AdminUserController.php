@@ -122,7 +122,6 @@ class AdminUserController extends Controller
 
         $listingsCount = $user->marketplaceListings()->count()
             + $user->serviceListings()->count()
-            + $user->kostListings()->count()
             + $user->lostFoundReports()->count();
 
         $reportsHistory = Report::with('reporter:id,name')

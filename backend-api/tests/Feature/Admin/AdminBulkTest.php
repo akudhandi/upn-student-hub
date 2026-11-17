@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
-use App\Models\KostListing;
 use App\Models\LostFoundReport;
 use App\Models\MarketplaceListing;
 use App\Models\Report;
@@ -76,19 +75,6 @@ class AdminBulkTest extends TestCase
         $this->assertSame(2, $response->json('data.updated'));
         $this->assertSame('hidden', $a->fresh()->status);
         $this->assertSame('hidden', $b->fresh()->status);
-    }
-
-    public function test_kost_bulk_delete_soft_deletes(): void
-    {
-        $listing = KostListing::factory()->create(['status' => 'available']);
-
-        $response = $this->postJson('/api/v1/admin/kost/bulk-status', [
-            'ids' => [$listing->id],
-            'action' => 'delete',
-        ]);
-
-        $response->assertOk();
-        $this->assertTrue($listing->fresh()->trashed());
     }
 
     public function test_lost_found_bulk_mark_resolved(): void
