@@ -20,6 +20,7 @@ class StudentPriorityOneTest extends TestCase
     public function test_media_upload_stores_file_on_public_disk_and_returns_relative_path(): void
     {
         Storage::fake('public');
+        Sanctum::actingAs(User::factory()->create(['status' => 'active']));
 
         // 1x1 valid PNG binary (tests real finfo + getimagesize validation without GD imagejpeg)
         $pngBytes = base64_decode(

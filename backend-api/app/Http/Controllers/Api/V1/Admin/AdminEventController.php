@@ -6,10 +6,12 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -113,9 +115,18 @@ class AdminEventController extends Controller
         $validated = $this->validatePayload($request, false);
         $validated['status'] ??= 'draft';
 
+        $ownerUserId = $request->user() instanceof User
+            ? $request->user()->id
+            : (User::query()->value('id') ?? User::query()->create([
+                'name' => 'UPN Kemahasiswaan',
+                'email' => 'kemahasiswaan@upnjatim.ac.id',
+                'password' => Hash::make(Str::random(32)),
+                'status' => 'active',
+            ])->id);
+
         $event = Event::create([
             ...$validated,
-            'user_id' => $request->user()?->id ?? 1,
+            'user_id' => $ownerUserId,
             'slug' => Str::slug($validated['title']).'-'.Str::lower(Str::random(5)),
         ]);
 

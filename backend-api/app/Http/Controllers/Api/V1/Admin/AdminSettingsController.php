@@ -20,9 +20,12 @@ use Illuminate\Support\Facades\Storage;
 
 class AdminSettingsController extends Controller
 {
-    public function profile(): JsonResponse
+    public function profile(Request $request): JsonResponse
     {
-        $admin = Admin::first(['id', 'email', 'role', 'created_at']);
+        $actor = $request->user();
+        $admin = $actor instanceof Admin
+            ? Admin::where('id', $actor->id)->first(['id', 'email', 'role', 'created_at'])
+            : null;
 
         if ($admin === null) {
             return response()->json([
@@ -44,7 +47,8 @@ class AdminSettingsController extends Controller
             'password' => 'required|string|min:8|confirmed',
         ]);
 
-        $admin = Admin::first();
+        $actor = $request->user();
+        $admin = $actor instanceof Admin ? Admin::find($actor->id) : null;
 
         if ($admin === null) {
             return response()->json([
@@ -83,7 +87,7 @@ class AdminSettingsController extends Controller
             'data' => [
                 'app_time' => now()->toDateTimeString(),
                 'database' => $database,
-                'storage_writable' => is_writable(Storage::disk('local')->path('')),
+                'storage_writable' => is_writable(Storage::disk('public')->path('')),
                 'totals' => [
                     'users' => User::count(),
                     'marketplace' => MarketplaceListing::count(),

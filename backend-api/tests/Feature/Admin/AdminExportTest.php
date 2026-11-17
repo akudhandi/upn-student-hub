@@ -4,15 +4,29 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Admin;
 use App\Models\MarketplaceListing;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class AdminExportTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Sanctum::actingAs(Admin::create([
+            'email' => 'admin-export@upnjatim.ac.id',
+            'password' => Hash::make('password'),
+            'role' => 'admin',
+        ]));
+    }
 
     /**
      * @return list<string>

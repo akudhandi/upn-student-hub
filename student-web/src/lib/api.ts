@@ -1,4 +1,4 @@
-import { getToken, getUser, type AuthUser } from "./auth";
+import { clearAuth, getToken, getUser, type AuthUser } from "./auth";
 
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
@@ -17,9 +17,7 @@ function buildAuthHeaders(): Record<string, string> {
     headers.Authorization = `Bearer ${token}`;
   } else if (token === "dev-token") {
     const user = getUser();
-    if (user?.id) {
-      headers["X-Dev-User-Id"] = String(user.id);
-    }
+    headers["X-Dev-User-Id"] = String(user?.id || 1);
   }
   return headers;
 }
@@ -45,6 +43,16 @@ export async function apiFetch<T>(
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
+    if (
+      res.status === 401 &&
+      typeof window !== "undefined" &&
+      !path.startsWith("/v1/auth/")
+    ) {
+      clearAuth();
+      if (window.location.pathname !== "/login") {
+        window.location.replace("/login");
+      }
+    }
     const message =
       (data as { message?: string }).message ||
       (data as { error?: string }).error ||

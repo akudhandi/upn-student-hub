@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminUserController extends Controller
@@ -168,6 +169,9 @@ class AdminUserController extends Controller
         }
 
         $user->save();
+        if ($user->status !== 'active') {
+            $user->tokens()->delete();
+        }
         $user->load('profile');
 
         return response()->json([
@@ -196,6 +200,12 @@ class AdminUserController extends Controller
         }
 
         $updated = User::whereIn('id', $ids)->update(['status' => $validated['status']]);
+        if ($validated['status'] !== 'active') {
+            PersonalAccessToken::query()
+                ->where('tokenable_type', User::class)
+                ->whereIn('tokenable_id', $ids)
+                ->delete();
+        }
 
         return response()->json([
             'message' => 'Status pengguna berhasil diperbarui',

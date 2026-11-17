@@ -21,6 +21,9 @@ RUN apk add --no-cache pcre-dev $PHPIZE_DEPS \
     && docker-php-ext-enable redis \
     && apk del $PHPIZE_DEPS
 
+# Apply PHP upload & security configuration
+COPY security.ini /usr/local/etc/php/conf.d/zz-security.ini
+
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 

@@ -27,73 +27,91 @@ use App\Http\Controllers\Api\V1\ServiceController;
 use App\Http\Controllers\Api\V1\UserProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('v1')->group(function () {
+Route::prefix('v1')->middleware('throttle:api')->group(function () {
     // Student Authentication Routes
     Route::prefix('auth')->group(function () {
-        Route::post('/register', [AuthController::class, 'register']);
-        Route::post('/login', [AuthController::class, 'login']);
+        Route::middleware('throttle:auth-attempts')->group(function () {
+            Route::post('/register', [AuthController::class, 'register']);
+            Route::post('/login', [AuthController::class, 'login']);
+        });
 
-        Route::middleware('auth:sanctum')->group(function () {
+        Route::middleware('student.auth')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
         });
     });
 
-    // Student Profile & Unified Media Upload
-    Route::get('/users/me', [UserProfileController::class, 'me']);
-    Route::put('/users/profile', [UserProfileController::class, 'updateProfile']);
-    Route::post('/media/upload', [MediaController::class, 'upload']);
+    // Public Read-Only Endpoints (Guests & Students)
     Route::get('/categories', [CategoryController::class, 'index']);
-
-    // Marketplace Routes
     Route::get('/marketplace', [MarketplaceController::class, 'index']);
-    Route::post('/marketplace', [MarketplaceController::class, 'store']);
     Route::get('/marketplace/{id}', [MarketplaceController::class, 'show']);
-    Route::put('/marketplace/{id}', [MarketplaceController::class, 'update']);
-    Route::patch('/marketplace/{id}/status', [MarketplaceController::class, 'updateStatus']);
-    Route::delete('/marketplace/{id}', [MarketplaceController::class, 'destroy']);
-
-    // Service Routes
     Route::get('/services', [ServiceController::class, 'index']);
-    Route::post('/services', [ServiceController::class, 'store']);
     Route::get('/services/{id}', [ServiceController::class, 'show']);
-    Route::put('/services/{id}', [ServiceController::class, 'update']);
-    Route::patch('/services/{id}/status', [ServiceController::class, 'updateStatus']);
-    Route::delete('/services/{id}', [ServiceController::class, 'destroy']);
-
-    // Lost & Found Routes
     Route::get('/lost-found', [LostFoundController::class, 'index']);
-    Route::post('/lost-found', [LostFoundController::class, 'store']);
     Route::get('/lost-found/{id}', [LostFoundController::class, 'show']);
-    Route::put('/lost-found/{id}', [LostFoundController::class, 'update']);
-    Route::patch('/lost-found/{id}/status', [LostFoundController::class, 'updateStatus']);
-    Route::delete('/lost-found/{id}', [LostFoundController::class, 'destroy']);
-
-    // Event & Informasi Kampus Routes
     Route::get('/events', [EventController::class, 'index']);
-    Route::post('/events', [EventController::class, 'store']);
     Route::get('/events/{id}', [EventController::class, 'show']);
-
-    // Pengumuman dari admin untuk mahasiswa (dibaca via bel notifikasi).
     Route::get('/announcements', [AnnouncementController::class, 'index']);
-
-    // Polymorphic Interactions
-    Route::get('/favorites', [FavoriteController::class, 'index']);
-    Route::post('/favorites/toggle', [FavoriteController::class, 'toggle']);
     Route::get('/reviews', [ReviewController::class, 'index']);
-    Route::post('/reviews', [ReviewController::class, 'store']);
-    Route::post('/reports', [ReportController::class, 'store']);
 
-    // 1-on-1 Chat (facade over chat_rooms / chat_participants / chat_messages)
-    Route::get('/conversations', [ChatController::class, 'index']);
-    Route::post('/conversations', [ChatController::class, 'store']);
-    Route::get('/conversations/{id}', [ChatController::class, 'show']);
-    Route::post('/conversations/{id}/messages', [ChatController::class, 'sendMessage']);
-    Route::put('/conversations/{id}/messages/{messageId}', [ChatController::class, 'updateMessage']);
-    Route::delete('/conversations/{id}/messages/{messageId}', [ChatController::class, 'destroyMessage']);
-    Route::patch('/conversations/{id}/read', [ChatController::class, 'markAsRead']);
+    // Unified Media Upload (Active Student or Admin)
+    Route::post('/media/upload', [MediaController::class, 'upload'])
+        ->middleware(['uploader.auth', 'throttle:media-uploads']);
 
-    // Admin Portal (dashboard, content moderation, events, users, master data)
-    Route::prefix('admin')->group(function () {
+    // Authenticated Active Student Routes
+    Route::middleware(['student.auth', 'throttle:student-writes'])->group(function () {
+        // Profile
+        Route::get('/users/me', [UserProfileController::class, 'me']);
+        Route::put('/users/profile', [UserProfileController::class, 'updateProfile']);
+
+        // Marketplace write & owner management
+        Route::post('/marketplace', [MarketplaceController::class, 'store']);
+        Route::put('/marketplace/{id}', [MarketplaceController::class, 'update']);
+        Route::patch('/marketplace/{id}/status', [MarketplaceController::class, 'updateStatus']);
+        Route::delete('/marketplace/{id}', [MarketplaceController::class, 'destroy']);
+
+        // Student Services write & owner management
+        Route::post('/services', [ServiceController::class, 'store']);
+        Route::put('/services/{id}', [ServiceController::class, 'update']);
+        Route::patch('/services/{id}/status', [ServiceController::class, 'updateStatus']);
+        Route::delete('/services/{id}', [ServiceController::class, 'destroy']);
+
+        // Lost & Found write & owner management
+        Route::post('/lost-found', [LostFoundController::class, 'store']);
+        Route::put('/lost-found/{id}', [LostFoundController::class, 'update']);
+        Route::patch('/lost-found/{id}/status', [LostFoundController::class, 'updateStatus']);
+        Route::delete('/lost-found/{id}', [LostFoundController::class, 'destroy']);
+
+        // Student event submission (pending moderation)
+        Route::post('/events', [EventController::class, 'store']);
+
+        // Polymorphic Interactions
+        Route::get('/favorites', [FavoriteController::class, 'index']);
+        Route::post('/favorites/toggle', [FavoriteController::class, 'toggle']);
+        Route::post('/reviews', [ReviewController::class, 'store']);
+        Route::post('/reports', [ReportController::class, 'store']);
+
+        // 1-on-1 Chat
+        Route::get('/conversations', [ChatController::class, 'index']);
+        Route::post('/conversations', [ChatController::class, 'store']);
+        Route::get('/conversations/{id}', [ChatController::class, 'show']);
+        Route::post('/conversations/{id}/messages', [ChatController::class, 'sendMessage']);
+        Route::put('/conversations/{id}/messages/{messageId}', [ChatController::class, 'updateMessage']);
+        Route::delete('/conversations/{id}/messages/{messageId}', [ChatController::class, 'destroyMessage']);
+        Route::patch('/conversations/{id}/read', [ChatController::class, 'markAsRead']);
+    });
+
+    // Admin Authentication Routes
+    Route::prefix('admin/auth')->group(function () {
+        Route::post('/login', [AdminAuthController::class, 'login'])
+            ->middleware('throttle:auth-attempts');
+
+        Route::middleware('admin.auth')->group(function () {
+            Route::post('/logout', [AdminAuthController::class, 'logout']);
+        });
+    });
+
+    // Admin Portal (Guarded strictly for authenticated Admin models)
+    Route::prefix('admin')->middleware('admin.auth')->group(function () {
         Route::get('/stats', [AdminDashboardController::class, 'stats']);
 
         // Content monitoring & moderation (view, hide, restore, delete).
@@ -147,20 +165,9 @@ Route::prefix('v1')->group(function () {
         Route::patch('/profile/password', [AdminSettingsController::class, 'updatePassword']);
         Route::get('/system-status', [AdminSettingsController::class, 'systemStatus']);
 
-        // Kelola akun admin (khusus superadmin, wajib token Sanctum).
-        Route::middleware('auth:sanctum')->group(function () {
-            Route::get('/admins', [AdminController::class, 'index']);
-            Route::post('/admins', [AdminController::class, 'store']);
-            Route::delete('/admins/{id}', [AdminController::class, 'destroy']);
-        });
-    });
-
-    // Admin Authentication Routes
-    Route::prefix('admin/auth')->group(function () {
-        Route::post('/login', [AdminAuthController::class, 'login']);
-
-        Route::middleware('auth:sanctum')->group(function () {
-            Route::post('/logout', [AdminAuthController::class, 'logout']);
-        });
+        // Kelola akun admin (khusus superadmin).
+        Route::get('/admins', [AdminController::class, 'index']);
+        Route::post('/admins', [AdminController::class, 'store']);
+        Route::delete('/admins/{id}', [AdminController::class, 'destroy']);
     });
 });

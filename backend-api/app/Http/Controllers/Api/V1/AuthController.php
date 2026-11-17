@@ -59,9 +59,9 @@ class AuthController extends Controller
             ], 401);
         }
 
-        if ($user->status === 'banned') {
+        if ($user->status !== 'active') {
             return response()->json([
-                'message' => 'Akun Anda telah dinonaktifkan/diblokir.',
+                'message' => 'Akun Anda sedang ditangguhkan atau dinonaktifkan.',
             ], 403);
         }
 

@@ -219,6 +219,7 @@ class AdminReportController extends Controller
 
             if ($target instanceof User) {
                 $target->update(['status' => 'suspended']);
+                $target->tokens()->delete();
 
                 return;
             }
@@ -233,6 +234,7 @@ class AdminReportController extends Controller
 
             if ($target instanceof User) {
                 $target->update(['status' => $status]);
+                $target->tokens()->delete();
 
                 return;
             }
@@ -240,6 +242,7 @@ class AdminReportController extends Controller
             $owner = $target->user ?? null;
             if ($owner instanceof User) {
                 $owner->update(['status' => $status]);
+                $owner->tokens()->delete();
             }
         }
     }
