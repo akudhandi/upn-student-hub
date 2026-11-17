@@ -27,7 +27,6 @@ const AVATAR_TONES = [
 
 const CONTEXT_COLORS: Record<string, string> = {
   marketplace: "text-amber-600",
-  kost: "text-emerald-600",
   service: "text-teal-600",
   lostfound: "text-indigo-600",
   event: "text-sky-600",
@@ -92,8 +91,6 @@ function contextDetailHref(context: ChatContext | null): string | null {
   switch (context.type as InteractableType) {
     case "marketplace":
       return `/marketplace/${context.id}`;
-    case "kost":
-      return `/kost/${context.id}`;
     case "service":
       return `/services/${context.id}`;
     case "lostfound":

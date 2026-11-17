@@ -53,15 +53,6 @@ function normalizeEntry(entry: FavoriteEntry): SavedItem | null {
         sortPrice: item.price !== undefined ? Number(item.price) : null,
         meta: item.user?.name ?? "Mahasiswa UPN",
       };
-    case "kost":
-      return {
-        ...base,
-        title: item.title ?? "Tanpa judul",
-        badge: `Kost ${item.gender_type ?? ""}`.trim(),
-        priceText: item.price !== undefined ? `${formatRupiah(item.price)} / bulan` : undefined,
-        sortPrice: item.price !== undefined ? Number(item.price) : null,
-        meta: item.address ?? "",
-      };
     case "service": {
       const hasRange =
         item.price_max !== null &&
@@ -108,8 +99,6 @@ function detailHref(item: SavedItem): string {
   switch (item.type) {
     case "marketplace":
       return `/marketplace/${item.refId}`;
-    case "kost":
-      return `/kost/${item.refId}`;
     case "service":
       return `/services/${item.refId}`;
     case "lostfound":
@@ -122,7 +111,6 @@ function detailHref(item: SavedItem): string {
 const FILTERS: { key: SavedItemType | "all"; label: string }[] = [
   { key: "all", label: "Semua" },
   { key: "marketplace", label: "Marketplace" },
-  { key: "kost", label: "Kost" },
   { key: "service", label: "Layanan" },
   { key: "lostfound", label: "Lost & Found" },
   { key: "event", label: "Event" },
@@ -139,15 +127,6 @@ function IconHeart() {
         strokeWidth="1.3"
         strokeLinejoin="round"
       />
-    </svg>
-  );
-}
-
-function IconPin() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
-      <path d="M8 14.5C8 14.5 3.5 9.6 3.5 6.5C3.5 4 5.5 2 8 2C10.5 2 12.5 4 12.5 6.5C12.5 9.6 8 14.5 8 14.5Z" stroke="currentColor" strokeWidth="1.2" />
-      <circle cx="8" cy="6.5" r="1.8" stroke="currentColor" strokeWidth="1.2" />
     </svg>
   );
 }
@@ -188,7 +167,6 @@ function IconChevronDown() {
 }
 
 function MetaIcon({ type }: { type: SavedItemType }) {
-  if (type === "kost") return <IconPin />;
   if (type === "service") return <IconCap />;
   if (type === "lostfound" || type === "event") return <IconClock />;
   return <IconUser />;
@@ -263,7 +241,7 @@ export default function FavoritesPage() {
       {/* Header */}
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Favorit Saya</h1>
       <p className="mt-1 text-sm text-slate-500">
-        Barang, kost, layanan, laporan, dan event yang Anda simpan untuk dilihat kembali.
+        Barang, layanan, laporan, dan event yang Anda simpan untuk dilihat kembali.
       </p>
 
       {/* Filter & sort bar */}

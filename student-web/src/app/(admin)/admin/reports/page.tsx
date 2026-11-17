@@ -69,7 +69,6 @@ const REASON_LABELS: Record<string, string> = {
 
 function targetTypeLabel(reportableType: string): string {
   if (reportableType.includes("MarketplaceListing")) return "Listing";
-  if (reportableType.includes("KostListing")) return "Listing";
   if (reportableType.includes("ServiceListing")) return "Listing";
   if (reportableType.includes("LostFoundReport")) return "Listing";
   if (reportableType.includes("Event")) return "Listing";
@@ -82,7 +81,6 @@ function targetTypeLabel(reportableType: string): string {
 function moduleOf(reportableType: string): string {
   if (reportableType.includes("MarketplaceListing")) return "Marketplace";
   if (reportableType.includes("ServiceListing")) return "Jasa";
-  if (reportableType.includes("KostListing")) return "Kost";
   if (reportableType.includes("LostFoundReport")) return "Lost & Found";
   if (reportableType.includes("Event")) return "Event";
   if (reportableType.endsWith("\\User") || reportableType === "User") return "Users";

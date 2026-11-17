@@ -41,13 +41,6 @@ function IconServices() {
     </svg>
   );
 }
-function IconKost() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M2 7L8 2L14 7V13H10V9.5H6V13H2V7Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-    </svg>
-  );
-}
 function IconLostFound() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -112,7 +105,6 @@ const MAIN_NAV_ITEMS: NavItem[] = [
   { label: "Beranda", href: "/dashboard", icon: <IconDashboard /> },
   { label: "Marketplace", href: "/marketplace", icon: <IconMarketplace /> },
   { label: "Jasa & Layanan", href: "/services", icon: <IconServices /> },
-  { label: "Info Kost", href: "/kost", icon: <IconKost /> },
   { label: "Barang Hilang", href: "/lost-found", icon: <IconLostFound /> },
   { label: "Event & Info", href: "/events", icon: <IconEvent /> },
 ];
@@ -190,8 +182,6 @@ export default function AppLayout({
     setMobileOpen(false);
     if (pathname?.startsWith("/services")) {
       router.push("/services?action=create");
-    } else if (pathname?.startsWith("/kost")) {
-      router.push("/kost?action=create");
     } else if (pathname?.startsWith("/lost-found") || pathname?.startsWith("/lost-and-found")) {
       router.push("/lost-found?action=create");
     } else if (pathname?.startsWith("/events")) {
@@ -347,7 +337,7 @@ export default function AppLayout({
               </span>
               <input
                 id="dashboard-search"
-                placeholder="Cari buku, kost, jasa skripsi..."
+                placeholder="Cari buku, jasa skripsi, event kampus..."
                 className="h-9 w-full rounded border border-slate-200 bg-[#F8F9FB] py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
               />
             </div>

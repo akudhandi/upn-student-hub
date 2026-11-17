@@ -9,7 +9,7 @@
 // render broken or empty.
 // ---------------------------------------------------------------------------
 
-export type ImageModule = "marketplace" | "kost" | "service" | "lostfound" | "event";
+export type ImageModule = "marketplace" | "service" | "lostfound" | "event";
 
 export type ApiImage = {
   file_path?: string | null;
@@ -33,11 +33,6 @@ const POOLS: Record<string, string[]> = {
     u("1481627834876-b7833e8f5570"),
     u("1441986300917-64674bd600d8"),
     u("1555041469-a586c61ea9bc"),
-  ],
-  kost: [
-    u("1522708323590-d24dbb6b0267"),
-    u("1505693416388-ac5ce068fe85"),
-    u("1560448204-e02f11c3d0e2"),
   ],
   "service:desain": [u("1561070791-2526d30994b5"), u("1499750310107-5fef28a66643")],
   "service:foto": [u("1516035069371-29a1b244cc32")],

@@ -8,7 +8,7 @@ import { apiFetch } from "@/lib/api";
 // (GET/POST /v1/favorites, /v1/reviews, /v1/reports). Type aliases match the
 // backend ResolvesMorphType map.
 // ---------------------------------------------------------------------------
-export type InteractableType = "marketplace" | "kost" | "service" | "lostfound" | "event";
+export type InteractableType = "marketplace" | "service" | "lostfound" | "event";
 
 export const REPORT_REASONS = [
   { value: "spam", label: "Spam / promosi" },

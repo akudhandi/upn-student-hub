@@ -50,7 +50,6 @@ type DashboardStats = {
     users: number;
     marketplace: number;
     services: number;
-    kost: number;
     lost_found: number;
     events: number;
   };
@@ -111,15 +110,6 @@ const CARD_ICONS: Record<string, { icon: React.ReactNode; iconClass: string; hov
     ),
     iconClass: "bg-indigo-50 text-indigo-600",
     hoverClass: "hover:text-indigo-600",
-  },
-  kost: {
-    icon: (
-      <CardIcon>
-        <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-      </CardIcon>
-    ),
-    iconClass: "bg-emerald-50 text-emerald-600",
-    hoverClass: "hover:text-emerald-600",
   },
   lostfound: {
     icon: (
@@ -202,7 +192,6 @@ function DashboardCards({ stats }: { stats: DashboardStats }) {
   const totalContent =
     stats.counts.marketplace +
     stats.counts.services +
-    stats.counts.kost +
     stats.counts.lost_found +
     stats.counts.events;
   const share = (n: number) => (totalContent > 0 ? (n / totalContent) * 100 : 0);
@@ -242,16 +231,6 @@ function DashboardCards({ stats }: { stats: DashboardStats }) {
         subtitle="Desain, les, cetak & pengetikan"
         trend={{ text: `${share(stats.counts.services).toFixed(1)}% konten`, className: "bg-slate-100 text-slate-500" }}
         footerMeta="Tersedia"
-      />
-      <StatCard
-        cardKey="kost"
-        title="Kost"
-        value={stats.counts.kost}
-        href="/admin/kost"
-        actionLabel="Buka Modul"
-        subtitle="Sekitar kampus UPN Rungkut"
-        trend={{ text: `${share(stats.counts.kost).toFixed(1)}% konten`, className: "bg-emerald-50 text-emerald-600" }}
-        footerMeta="Terverifikasi BAAK"
       />
       <StatCard
         cardKey="lostfound"

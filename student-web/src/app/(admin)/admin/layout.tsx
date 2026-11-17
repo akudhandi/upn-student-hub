@@ -45,11 +45,6 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M2.5 10L8 12.5L13.5 10" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
     </Svg>
   ),
-  kost: (
-    <Svg>
-      <path d="M2 7L8 2L14 7V13H10V9.5H6V13H2V7Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-    </Svg>
-  ),
   lostfound: (
     <Svg>
       <rect x="2.5" y="2.5" width="11" height="11" rx="1" stroke="currentColor" strokeWidth="1.2" />
@@ -114,7 +109,6 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       nav("/admin/marketplace", "Marketplace", "marketplace"),
       nav("/admin/services", "Jasa Mahasiswa", "services"),
-      nav("/admin/kost", "Kost", "kost"),
       nav("/admin/lost-found", "Lost & Found", "lostfound"),
       nav("/admin/events", "Event & Informasi", "event"),
     ],

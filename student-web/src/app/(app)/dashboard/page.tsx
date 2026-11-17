@@ -22,11 +22,6 @@ const MODULES: ModuleCard[] = [
     href: "/services",
   },
   {
-    title: "Kost",
-    description: "Temukan kost dan teman sekamar di sekitar kampus.",
-    href: "/kost",
-  },
-  {
     title: "Lost & Found",
     description: "Laporkan atau temukan barang hilang di kampus.",
     href: "/lost-found",
@@ -43,10 +38,6 @@ function ModuleIcon({ title }: { title: string }) {
     Services: {
       wrapper: "bg-[#ECFDF5] border-emerald-200",
       icon: "text-[#047857]",
-    },
-    Kost: {
-      wrapper: "bg-[#EFF6FF] border-blue-200",
-      icon: "text-[#1D4ED8]",
     },
     "Lost & Found": {
       wrapper: "bg-[#F5F3FF] border-violet-200",
@@ -69,12 +60,6 @@ function ModuleIcon({ title }: { title: string }) {
         <path d="M8 3.5L2.5 6L8 8.5L13.5 6L8 3.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
         <path d="M2.5 8L8 10.5L13.5 8" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
         <path d="M2.5 10L8 12.5L13.5 10" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-      </svg>
-    );
-  } else if (title === "Kost") {
-    icon = (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M2 7L8 2L14 7V13H10V9.5H6V13H2V7Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
       </svg>
     );
   } else {
@@ -164,7 +149,7 @@ export default function DashboardPage() {
             {studentMeta} <span className="mx-1.5 text-slate-300">·</span> Portal Mahasiswa
           </p>
         ) : (
-          <p className="mt-1 max-w-[560px] text-sm leading-5 text-slate-500">Aktivitas kampusmu sekilas — marketplace, kost, dan kabar komunitas.</p>
+          <p className="mt-1 max-w-[560px] text-sm leading-5 text-slate-500">Aktivitas kampusmu sekilas — marketplace, layanan, dan kabar komunitas.</p>
         )}
         <p className="mt-1.5 max-w-[560px] text-xs leading-5 text-slate-500 sm:text-[13px]">Jelajahi modul di bawah. Aktivitas terbaru dan pesanmu akan muncul setelah modul backend terhubung.</p>
       </section>
@@ -174,7 +159,7 @@ export default function DashboardPage() {
         <h2 id="quick-access-heading" className="sr-only">
           Akses cepat
         </h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
+        <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
           {MODULES.map((m) => (
             <Link
               key={m.title}
@@ -214,7 +199,7 @@ export default function DashboardPage() {
             <EmptyActivityIllustration />
             <h3 className="mt-4 text-sm font-semibold text-slate-900">Belum ada aktivitas komunitas</h3>
             <p className="mt-1.5 max-w-[360px] text-xs leading-5 text-slate-500">
-              Iklan terbaru dari Marketplace, Kost, dan Lost &amp; Found akan muncul di sini setelah modul terhubung ke API.
+              Iklan terbaru dari Marketplace, Jasa, dan Lost &amp; Found akan muncul di sini setelah modul terhubung ke API.
             </p>
             <div className="mt-5 flex flex-wrap justify-center gap-2">
               <Link
@@ -222,12 +207,6 @@ export default function DashboardPage() {
                 className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
               >
                 Jelajahi Marketplace
-              </Link>
-              <Link
-                href="/kost"
-                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-              >
-                Cari Kost
               </Link>
             </div>
           </div>
