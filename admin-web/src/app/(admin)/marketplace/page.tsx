@@ -6,6 +6,7 @@ import EmptyState from "@/components/admin/EmptyState";
 import Pagination from "@/components/admin/Pagination";
 import StatusBadge from "@/components/admin/StatusBadge";
 import {
+  downloadAdminCsv,
   getAdminMarketplace,
   updateMarketplaceStatus,
   type ListingAction,
@@ -194,6 +195,7 @@ export default function MarketplacePage() {
     action: ListingAction;
   } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [detail, setDetail] = useState<MarketplaceListingItem | null>(null);
 
@@ -259,19 +261,62 @@ export default function MarketplacePage() {
     }
   }
 
+  async function handleExport() {
+    setExporting(true);
+    setActionError(null);
+    try {
+      await downloadAdminCsv(
+        "/admin/marketplace/export",
+        {
+          status: status || undefined,
+          search: debouncedSearch || undefined,
+        },
+        "marketplace.csv",
+      );
+    } catch {
+      setActionError("Gagal mengekspor CSV. Coba lagi.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:p-8">
-      <section>
-        <p className="text-[11px] font-medium tracking-wide text-slate-400 uppercase">
-          Katalog Mahasiswa
-        </p>
-        <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-          Manajemen Marketplace
-        </h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Pantau, filter, dan kelola listing barang/produk jual-beli mahasiswa
-          UPN.
-        </p>
+      <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-[11px] font-medium tracking-wide text-slate-400 uppercase">
+            Katalog Mahasiswa
+          </p>
+          <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            Manajemen Marketplace
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Pantau, filter, dan kelola listing barang/produk jual-beli mahasiswa
+            UPN.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={exporting}
+          className="inline-flex items-center gap-1.5 self-start rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 disabled:opacity-60 sm:self-auto"
+        >
+          <svg
+            className="h-4 w-4 text-slate-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+            />
+          </svg>
+          {exporting ? "Mengekspor…" : "Ekspor CSV"}
+        </button>
       </section>
 
       {actionError && (
