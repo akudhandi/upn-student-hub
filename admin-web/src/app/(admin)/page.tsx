@@ -190,7 +190,7 @@ export default function DashboardPage() {
           aria-label="Memuat statistik"
           className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
         >
-          {Array.from({ length: 6 }).map((_, i) => (
+          {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
               className="h-44 animate-pulse rounded-2xl border border-slate-200/80 bg-white"
@@ -233,18 +233,6 @@ export default function DashboardPage() {
                 "M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
               )}
               iconClass="bg-indigo-50 text-indigo-600"
-            />
-            <StatCard
-              label="Kost"
-              value={formatNumber(stats.counts.kost)}
-              sub="Hunian sekitar kampus"
-              href="/kost"
-              linkLabel="Buka Modul"
-              footnote="Tersedia"
-              icon={cardIcon(
-                "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6",
-              )}
-              iconClass="bg-emerald-50 text-emerald-600"
             />
             <StatCard
               label="Lost & Found"

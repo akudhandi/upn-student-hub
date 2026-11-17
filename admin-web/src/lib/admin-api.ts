@@ -11,7 +11,6 @@ export interface DashboardCounts {
   users: number;
   marketplace: number;
   services: number;
-  kost: number;
   lost_found: number;
   events: number;
 }
