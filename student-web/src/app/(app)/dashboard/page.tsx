@@ -14,31 +14,48 @@ import {
 import type { ApiImage, ImageModule } from "@/lib/images";
 import { fetchConversations, type ConversationItem } from "@/lib/interactions";
 
+type ModuleKey = "marketplace" | "services" | "lostFound" | "events";
+
 type ModuleCard = {
+  key: ModuleKey;
   title: string;
   description: string;
+  actionLabel: string;
+  unitLabel: string;
   href: string;
 };
 
 const MODULES: ModuleCard[] = [
   {
+    key: "marketplace",
     title: "Marketplace",
-    description: "Jual beli buku kuliah, elektronik, dan perlengkapan.",
+    description: "Jual beli buku kuliah, perangkat, dan kebutuhan kos.",
+    actionLabel: "Buka katalog",
+    unitLabel: "iklan",
     href: "/marketplace",
   },
   {
+    key: "services",
     title: "Jasa & Layanan",
-    description: "Les privat, desain, dan servis oleh sesama mahasiswa.",
+    description: "Bimbingan belajar, desain, dan servis dari mahasiswa.",
+    actionLabel: "Lihat layanan",
+    unitLabel: "jasa",
     href: "/services",
   },
   {
+    key: "lostFound",
     title: "Barang Hilang",
-    description: "Laporkan atau temukan barang hilang di kampus.",
+    description: "Laporan kehilangan dan temuan barang di area kampus.",
+    actionLabel: "Cek laporan",
+    unitLabel: "laporan",
     href: "/lost-found",
   },
   {
+    key: "events",
     title: "Event & Info",
-    description: "Seminar, lomba, agenda UKM, dan info resmi kampus.",
+    description: "Agenda seminar, lomba, dan kegiatan resmi terverifikasi.",
+    actionLabel: "Lihat jadwal",
+    unitLabel: "acara",
     href: "/events",
   },
 ];
@@ -74,12 +91,7 @@ type UpcomingEventItem = {
   is_verified: boolean;
 };
 
-type ModuleCounts = {
-  marketplace: number;
-  services: number;
-  lostFound: number;
-  events: number;
-};
+type ModuleCounts = Record<ModuleKey, number>;
 
 type FeedFilter = "all" | ImageModule;
 
@@ -108,44 +120,65 @@ function formatTimeAgo(iso: string | null): string {
   if (Number.isNaN(ms) || ms < 0) return "";
   const mins = Math.floor(ms / 60000);
   if (mins < 1) return "Baru saja";
-  if (mins < 60) return `${mins}m lalu`;
+  if (mins < 60) return `${mins} menit lalu`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}j lalu`;
+  if (hrs < 24) return `${hrs} jam lalu`;
   const days = Math.floor(hrs / 24);
-  if (days < 30) return `${days}h lalu`;
+  if (days < 30) return `${days} hari lalu`;
   return new Date(iso).toLocaleDateString("id-ID", {
     day: "numeric",
     month: "short",
   });
 }
 
-function ModuleIcon({ title }: { title: string }) {
+function ArrowGlyph() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+      className="shrink-0 transition-transform duration-150 ease-[cubic-bezier(.2,.8,.2,1)] group-hover:translate-x-[3px]"
+    >
+      <path
+        d="M3.5 8h9M8.5 4l4 4-4 4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ModuleIcon({ moduleKey }: { moduleKey: ModuleKey }) {
   let icon: React.ReactNode;
-  if (title === "Marketplace") {
+  if (moduleKey === "marketplace") {
     icon = (
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path d="M6 8h12l-1 11H7L6 8z" stroke="currentColor" strokeWidth="1.65" strokeLinejoin="round" />
         <path d="M9.5 8V6.5a2.5 2.5 0 015 0V8" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" />
       </svg>
     );
-  } else if (title === "Jasa & Layanan") {
+  } else if (moduleKey === "services") {
     icon = (
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <rect x="3" y="7" width="18" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.65" />
         <path d="M8.5 7V5a1.5 1.5 0 011.5-1.5h4A1.5 1.5 0 0115.5 5v2" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M3 12h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
     );
-  } else if (title === "Event & Info") {
+  } else if (moduleKey === "events") {
     icon = (
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <rect x="4" y="5.5" width="16" height="14.5" rx="3" stroke="currentColor" strokeWidth="1.65" />
         <path d="M8 3.5v3M16 3.5v3M4 10h16" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" />
       </svg>
     );
   } else {
     icon = (
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <circle cx="11" cy="11" r="6" stroke="currentColor" strokeWidth="1.65" />
         <path d="M15.5 15.5L20 20" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" />
       </svg>
@@ -153,7 +186,7 @@ function ModuleIcon({ title }: { title: string }) {
   }
 
   return (
-    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F4F1EE] text-[#141416] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105 group-hover:bg-[#141416] group-hover:text-white">
+    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F4F1EE] text-[#141416] transition-colors duration-180 ease-[cubic-bezier(.2,.8,.2,1)] group-hover:bg-[#141416] group-hover:text-white">
       {icon}
     </span>
   );
@@ -286,10 +319,10 @@ export default function DashboardPage() {
           key: `mkt-${item.id}`,
           module: "marketplace",
           moduleBadge: "Marketplace",
-          badgeClass: "bg-[#FBEAD8] text-[#8E581A]",
+          badgeClass: "bg-[#FBEAD8] text-[#7C4A12]",
           id: item.id,
           title: item.title,
-          subtitle: `${item.category?.name ?? "Produk"} · oleh ${item.user?.name ?? "Mahasiswa"}`,
+          subtitle: `${item.category?.name ?? "Produk"} · ${item.user?.name ?? "Mahasiswa"}`,
           metaRight: formatRupiah(item.price),
           href: `/marketplace/${item.id}`,
           createdAt: item.created_at,
@@ -302,10 +335,10 @@ export default function DashboardPage() {
           key: `svc-${item.id}`,
           module: "service",
           moduleBadge: "Jasa",
-          badgeClass: "bg-[#E4F2EA] text-[#226A46]",
+          badgeClass: "bg-[#E4F2EA] text-[#1E603E]",
           id: item.id,
           title: item.title,
-          subtitle: `${item.category?.name ?? "Layanan"} · oleh ${item.user?.name ?? "Mahasiswa"}`,
+          subtitle: `${item.category?.name ?? "Layanan"} · ${item.user?.name ?? "Mahasiswa"}`,
           metaRight: `Mulai ${formatRupiah(item.price_min)}`,
           href: `/services/${item.id}`,
           createdAt: item.created_at,
@@ -320,11 +353,11 @@ export default function DashboardPage() {
           moduleBadge: item.type === "lost" ? "Hilang" : "Ditemukan",
           badgeClass:
             item.type === "lost"
-              ? "bg-[#FCEAE9] text-[#A43F3F]"
-              : "bg-[#ECEAF9] text-[#53469B]",
+              ? "bg-[#FCEAE9] text-[#9A3434]"
+              : "bg-[#E7EEF9] text-[#2D4880]",
           id: item.id,
           title: item.title,
-          subtitle: `${item.location} · oleh ${item.user?.name ?? "Mahasiswa"}`,
+          subtitle: `${item.location} · ${item.user?.name ?? "Mahasiswa"}`,
           metaRight: formatTimeAgo(item.created_at),
           href: `/lost-found/${item.id}`,
           createdAt: item.created_at,
@@ -337,7 +370,7 @@ export default function DashboardPage() {
           key: `evt-${item.id}`,
           module: "event",
           moduleBadge: "Event",
-          badgeClass: "bg-[#E7EEF9] text-[#35518C]",
+          badgeClass: "bg-[#EFECE8] text-[#27272A]",
           id: item.id,
           title: item.title,
           subtitle: item.organizer_name,
@@ -420,9 +453,9 @@ export default function DashboardPage() {
 
   const greeting = (() => {
     const h = new Date().getHours();
-    if (h < 12) return "Selamat Pagi";
-    if (h < 18) return "Selamat Siang";
-    return "Selamat Malam";
+    if (h < 12) return "Selamat pagi";
+    if (h < 18) return "Selamat siang";
+    return "Selamat malam";
   })();
 
   const studentMeta = (() => {
@@ -442,338 +475,279 @@ export default function DashboardPage() {
     return parts.join(" · ");
   })();
 
-  const summaryStats = [
-    {
-      label: "Marketplace Aktif",
-      value: counts ? counts.marketplace : null,
-      href: "/marketplace",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M6 8h12l-1 11H7L6 8z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-          <path d="M9.5 8V6.5a2.5 2.5 0 015 0V8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        </svg>
-      ),
-    },
-    {
-      label: "Jasa & Layanan",
-      value: counts ? counts.services : null,
-      href: "/services",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <rect x="3" y="7" width="18" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.6" />
-          <path d="M8.5 7V5a1.5 1.5 0 011.5-1.5h4A1.5 1.5 0 0115.5 5v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M3 12h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      ),
-    },
-    {
-      label: "Laporan Temuan",
-      value: counts ? counts.lostFound : null,
-      href: "/lost-found",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="11" cy="11" r="6" stroke="currentColor" strokeWidth="1.6" />
-          <path d="M15.5 15.5L20 20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        </svg>
-      ),
-    },
-    {
-      label: "Event Kampus",
-      value: counts ? counts.events : null,
-      href: "/events",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <rect x="4" y="5.5" width="16" height="14.5" rx="3" stroke="currentColor" strokeWidth="1.6" />
-          <path d="M8 3.5v3M16 3.5v3M4 10h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        </svg>
-      ),
-    },
-  ];
+  const canSubmitEvent = isOfficialAccount(user);
 
   return (
-    <div className="auth-shell-enter mx-auto max-w-[1160px] space-y-6 lg:space-y-7">
-      {/* Planex-inspired Greeting & Primary Action Header */}
-      <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-[#141416] sm:text-[30px]">
-            {firstName ? `${greeting}, ${firstName}` : greeting}
+    <div className="auth-shell-enter mx-auto max-w-[1200px] space-y-8">
+      {/* Header Section: Two-sentence heading + 44px verb+object buttons */}
+      <section className="flex flex-col justify-between gap-5 border-b border-[#E5E0DA] pb-6 lg:flex-row lg:items-end">
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] font-medium text-[#6E6A66]">
+            <span>{studentMeta || "Portal Mahasiswa UPN Veteran Jawa Timur"}</span>
+            <span aria-hidden="true" className="text-[#CFC8BF]">
+              ·
+            </span>
+            <Link
+              href="/profile"
+              className="text-[#141416] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+            >
+              Lihat profil &amp; KTM
+            </Link>
+            <span aria-hidden="true" className="text-[#CFC8BF]">
+              ·
+            </span>
+            <Link
+              href="/favorites"
+              className="text-[#141416] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+            >
+              Buka item tersimpan
+            </Link>
+          </div>
+
+          <h1 className="font-display text-2xl font-semibold tracking-[-0.02em] text-[#141416] sm:text-[32px] sm:leading-[1.18]">
+            {firstName ? `${greeting}, ${firstName}.` : `${greeting}.`}{" "}
+            <span className="font-normal text-[#6E6A66]">
+              Ringkasan aktivitas kampus hari ini.
+            </span>
           </h1>
-          <p className="mt-1 text-xs font-medium text-[#787470] sm:text-[13px]">
-            {studentMeta
-              ? `${studentMeta} · Ringkasan aktivitas portal mahasiswa Anda.`
-              : "Ringkasan aktivitas marketplace, jasa, temuan, dan agenda kampus Anda."}
-          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          {isOfficialAccount(user) && (
+        <div className="flex flex-wrap items-center gap-3">
+          {canSubmitEvent && (
             <Link
               href="/events/create"
-              className="inline-flex h-10 items-center justify-center rounded-full border border-[#E2DDD7] bg-white px-4 text-xs font-medium text-[#27272A] transition-all duration-200 hover:-translate-y-[1px] hover:border-[#D2CBC3] hover:bg-[#FAF8F6]"
+              className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-6 text-[14px] font-medium text-[#141416] transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:border-[#141416] hover:bg-[#FAF8F6] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
             >
-              Ajukan Event
+              Ajukan kegiatan
             </Link>
           )}
           <Link
             href="/marketplace?action=create"
-            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-[#141416] px-5 text-xs font-medium text-white transition-all duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-[1px] hover:bg-[#242428] hover:shadow-[0_12px_24px_-12px_rgba(20,20,22,0.42)] active:translate-y-0 active:scale-[0.99]"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2"
           >
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
             </svg>
-            Pasang Iklan
+            Pasang iklan baru
           </Link>
         </div>
       </section>
 
-      {/* Open Warm-Alabaster Live Metric Row (Planex Style) */}
-      <section
-        aria-label="Ringkasan jumlah konten portal"
-        className="grid grid-cols-2 gap-4 border-y border-[#E6E1DC] py-5 lg:grid-cols-4 lg:gap-6"
-      >
-        {summaryStats.map((stat) => (
-          <Link
-            key={stat.label}
-            href={stat.href}
-            className="group flex flex-col justify-between rounded-2xl px-2 py-1 transition-colors hover:bg-white/60"
-          >
-            <div className="flex items-center gap-2.5">
-              <span className="text-[#85817C] transition-colors group-hover:text-[#141416]">
-                {stat.icon}
-              </span>
-              {stat.value === null ? (
-                <span className="h-7 w-12 animate-pulse rounded-md bg-[#E6E1DC]" />
-              ) : (
-                <span className="font-display text-2xl font-semibold tracking-tight text-[#141416] sm:text-[28px]">
-                  {stat.value}
-                </span>
-              )}
-            </div>
-            <p className="mt-1 text-xs font-medium text-[#787470] transition-colors group-hover:text-[#141416]">
-              {stat.label}
-            </p>
-          </Link>
-        ))}
-      </section>
-
-      {/* Main 2-Column Workspace Grid */}
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-[1.65fr_0.95fr]">
-        {/* Left Primary Column */}
-        <div className="space-y-6">
-          {/* Community Activity Table/Feed Card */}
-          <div className="rounded-[24px] border border-[#E7E2DD] bg-white p-5 sm:p-6">
-            <div className="flex flex-col justify-between gap-4 border-b border-[#F1EDE9] pb-4 sm:flex-row sm:items-center">
-              <div>
-                <h2 className="font-display text-base font-semibold tracking-tight text-[#141416]">
-                  Aktivitas Komunitas Terbaru
-                </h2>
-                <p className="mt-0.5 text-xs text-[#787470]">
-                  Pembaruan terkini dari seluruh modul portal mahasiswa
-                </p>
-              </div>
+      {/* Single Unified 4-Module Overview Row (No duplicate module cards) */}
+      <section aria-label="Empat modul utama kampus">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {MODULES.map((m) => {
+            const countVal = counts ? counts[m.key] : null;
+            return (
               <Link
-                href="/marketplace"
-                className="inline-flex h-8 shrink-0 items-center justify-center rounded-full bg-[#F4F1EE] px-3.5 text-xs font-medium text-[#3F3D3A] transition-colors hover:bg-[#EAE6E2] hover:text-[#141416]"
+                key={m.key}
+                href={m.href}
+                className="group flex flex-col justify-between rounded-[20px] border border-[#E5E0DA] bg-white p-5 transition-all duration-180 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[2px] hover:border-[#CFC8BF] hover:shadow-[0_14px_28px_-14px_rgba(20,20,22,0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
               >
-                Jelajahi Katalog →
-              </Link>
-            </div>
+                <div>
+                  <div className="flex items-center justify-between gap-3">
+                    <ModuleIcon moduleKey={m.key} />
+                    {countVal === null ? (
+                      <span className="h-6 w-16 animate-pulse rounded-full bg-[#EFECE8]" />
+                    ) : (
+                      <span className="rounded-full bg-[#F4F1EE] px-3 py-1 text-[13px] font-medium text-[#57534E]">
+                        {countVal} {m.unitLabel}
+                      </span>
+                    )}
+                  </div>
 
-            {/* Interactive Module Filter Pills */}
-            <div
-              role="tablist"
-              aria-label="Filter aktivitas komunitas"
-              className="mt-4 flex flex-wrap items-center gap-1.5"
-            >
-              {FEED_FILTERS.map((f) => {
-                const selected = activeFilter === f.id;
-                return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={selected}
-                    onClick={() => setActiveFilter(f.id)}
-                    className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
-                      selected
-                        ? "bg-[#141416] text-white shadow-2xs"
-                        : "bg-[#F4F1EE] text-[#6E6A66] hover:bg-[#EAE6E2] hover:text-[#141416]"
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Feed Rows */}
-            <div className="mt-4">
-              {!filteredFeed ? (
-                <div className="space-y-3 py-1">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-16 animate-pulse rounded-2xl bg-[#F4F1EE]"
-                    />
-                  ))}
-                </div>
-              ) : filteredFeed.length === 0 ? (
-                <div className="flex flex-col items-center rounded-2xl bg-[#FAF8F6] px-6 py-10 text-center">
-                  <h3 className="font-display text-sm font-semibold text-[#141416]">
-                    Belum ada aktivitas pada kategori ini
-                  </h3>
-                  <p className="mt-1 max-w-[340px] text-xs leading-5 text-[#787470]">
-                    Jadilah yang pertama memasang iklan barang, menawarkan jasa, atau membuat laporan.
+                  <h2 className="mt-4 font-display text-[17px] font-semibold tracking-tight text-[#141416]">
+                    {m.title}
+                  </h2>
+                  <p className="mt-1.5 text-[14px] leading-relaxed text-[#57534E]">
+                    {m.description}
                   </p>
-                  <Link
-                    href="/marketplace?action=create"
-                    className="mt-4 inline-flex h-9 items-center rounded-full bg-[#141416] px-4 text-xs font-medium text-white transition-colors hover:bg-[#27272A]"
-                  >
-                    + Pasang Iklan
-                  </Link>
                 </div>
-              ) : (
-                <ul className="divide-y divide-[#F3EFEA]">
-                  {filteredFeed.map((item) => (
-                    <li key={item.key}>
-                      <Link
-                        href={item.href}
-                        className="group -mx-2 flex items-center gap-3.5 rounded-2xl px-2 py-3.5 transition-colors hover:bg-[#FAF8F6]"
-                      >
-                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-[#EAE5DF] bg-[#F4F1EE]">
-                          <ListingImage
-                            module={item.module}
-                            seed={item.id}
-                            images={item.images}
-                            hint={item.title}
-                            alt={item.title}
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium ${item.badgeClass}`}
-                            >
-                              {item.moduleBadge}
-                            </span>
-                            <span className="text-[11px] text-[#9A958F]">
-                              {formatTimeAgo(item.createdAt)}
-                            </span>
-                          </div>
-                          <p className="mt-1 truncate text-[13px] font-semibold text-[#141416] group-hover:underline">
-                            {item.title}
-                          </p>
-                          <p className="flex items-center gap-1 text-xs text-[#787470]">
-                            <span className="truncate">{item.subtitle}</span>
-                            {item.isVerified && <VerifiedBadge size="xs" />}
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <span className="text-xs font-semibold text-[#141416]">
-                            {item.metaRight}
-                          </span>
-                          <span
-                            aria-hidden="true"
-                            className="text-xs text-[#A8A39E] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[#141416]"
-                          >
-                            ›
-                          </span>
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+
+                <span className="mt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#141416]">
+                  <span>{m.actionLabel}</span>
+                  <ArrowGlyph />
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Main 12-Column Equal-Edge Workspace */}
+      <section className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+        {/* Left 7 Columns: Community Activity Feed */}
+        <div className="rounded-[20px] border border-[#E5E0DA] bg-white p-6 lg:col-span-7">
+          <div className="flex flex-col justify-between gap-4 border-b border-[#EFECE8] pb-5 sm:flex-row sm:items-center">
+            <h2 className="font-display text-[19px] font-semibold tracking-tight text-[#141416]">
+              Aktivitas komunitas.{" "}
+              <span className="font-normal text-[#6E6A66]">
+                Kiriman terbaru dari empat modul.
+              </span>
+            </h2>
+            <Link
+              href="/marketplace"
+              className="group inline-flex shrink-0 items-center gap-1.5 text-[13px] font-semibold text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+            >
+              <span>Lihat katalog</span>
+              <ArrowGlyph />
+            </Link>
           </div>
 
-          {/* Warm Stone Quick Module Bento */}
-          <div className="rounded-[24px] border border-[#E6E1DC] bg-[#ECE8E4]/80 p-4 sm:p-5">
-            <div className="mb-3.5 flex items-center justify-between px-1">
-              <h2 className="font-display text-sm font-semibold text-[#141416]">
-                Akses Cepat Modul
-              </h2>
-              <span className="text-[11px] font-medium text-[#787470]">
-                4 Layanan Kampus
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {MODULES.map((m) => (
-                <Link
-                  key={m.title}
-                  href={m.href}
-                  className="group flex items-start gap-3.5 rounded-2xl border border-[#E5E0DA] bg-white p-4 shadow-[0_6px_18px_-14px_rgba(20,20,22,0.12)] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-[#D5CEC6] hover:shadow-[0_14px_26px_-14px_rgba(20,20,22,0.18)]"
+          {/* Filter Tabs */}
+          <div
+            role="tablist"
+            aria-label="Filter aktivitas komunitas"
+            className="mt-4 flex flex-wrap items-center gap-2"
+          >
+            {FEED_FILTERS.map((f) => {
+              const selected = activeFilter === f.id;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  onClick={() => setActiveFilter(f.id)}
+                  className={`min-h-[38px] rounded-full px-4 py-1.5 text-[13px] font-medium transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
+                    selected
+                      ? "bg-[#141416] text-white"
+                      : "bg-[#F4F1EE] text-[#57534E] hover:bg-[#EAE6E2] hover:text-[#141416]"
+                  }`}
                 >
-                  <ModuleIcon title={m.title} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-display text-[13px] font-semibold text-[#141416]">
-                        {m.title}
-                      </h3>
-                      <span
-                        aria-hidden="true"
-                        className="text-xs text-[#A8A39E] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[#141416]"
-                      >
-                        ›
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs leading-relaxed text-[#787470]">
-                      {m.description}
-                    </p>
-                  </div>
+                  {f.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Feed List */}
+          <div className="mt-5">
+            {!filteredFeed ? (
+              <div className="space-y-3 py-1">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-20 animate-pulse rounded-2xl bg-[#F4F1EE]"
+                  />
+                ))}
+              </div>
+            ) : filteredFeed.length === 0 ? (
+              <div className="flex flex-col items-center rounded-2xl bg-[#FAF8F6] px-6 py-12 text-center">
+                <h3 className="font-display text-[16px] font-semibold text-[#141416]">
+                  Belum ada kiriman pada kategori ini
+                </h3>
+                <p className="mt-1.5 max-w-[360px] text-[14px] leading-relaxed text-[#6E6A66]">
+                  Mulai publikasikan barang preloved, jasa mahasiswa, atau laporan temuan baru.
+                </p>
+                <Link
+                  href="/marketplace?action=create"
+                  className="mt-5 inline-flex h-11 items-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985]"
+                >
+                  Pasang iklan baru
                 </Link>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <ul className="divide-y divide-[#F1EDE8]">
+                {filteredFeed.map((item) => (
+                  <li key={item.key}>
+                    <Link
+                      href={item.href}
+                      className="group -mx-3 flex items-center gap-4 rounded-2xl px-3 py-4 transition-colors duration-150 hover:bg-[#FAF8F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                    >
+                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-[#E7E2DD] bg-[#F4F1EE]">
+                        <ListingImage
+                          module={item.module}
+                          seed={item.id}
+                          images={item.images}
+                          hint={item.title}
+                          alt={item.title}
+                          className="h-full w-full object-cover transition-transform duration-600 ease-[cubic-bezier(.2,.8,.2,1)] group-hover:scale-[1.03]"
+                        />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-[13px] font-medium ${item.badgeClass}`}
+                          >
+                            {item.moduleBadge}
+                          </span>
+                          <span className="text-[13px] text-[#787470]">
+                            {formatTimeAgo(item.createdAt)}
+                          </span>
+                        </div>
+
+                        <p className="mt-1 truncate text-[15px] font-semibold text-[#141416] group-hover:underline">
+                          {item.title}
+                        </p>
+
+                        <p className="mt-0.5 flex items-center gap-1.5 text-[14px] text-[#57534E]">
+                          <span className="truncate">{item.subtitle}</span>
+                          {item.isVerified && <VerifiedBadge size="xs" />}
+                        </p>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-2.5 pl-2">
+                        <span className="text-[14px] font-semibold text-[#141416]">
+                          {item.metaRight}
+                        </span>
+                        <ArrowGlyph />
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 
-        {/* Right Companion Column */}
-        <div className="space-y-6">
-          {/* Calendar & Upcoming Events Card (Planex Right Panel Signature) */}
-          <div className="rounded-[24px] border border-[#E7E2DD] bg-white p-5">
-            <div className="flex items-center justify-between gap-2">
+        {/* Right 5 Columns: Agenda Kampus & Pesan Pribadi */}
+        <div className="space-y-6 lg:col-span-5">
+          {/* Agenda Kampus Card */}
+          <div className="rounded-[20px] border border-[#E5E0DA] bg-white p-6">
+            <div className="flex items-start justify-between gap-3 border-b border-[#EFECE8] pb-4">
               <div>
-                <h2 className="font-display text-base font-semibold tracking-tight text-[#141416]">
-                  Agenda Kampus
+                <h2 className="font-display text-[18px] font-semibold tracking-tight text-[#141416]">
+                  Agenda kampus.{" "}
+                  <span className="font-normal capitalize text-[#6E6A66]">
+                    {calendarMeta.monthLabel}.
+                  </span>
                 </h2>
-                <p className="text-xs capitalize text-[#787470]">
-                  {calendarMeta.monthLabel}
-                </p>
               </div>
               <Link
                 href="/events"
-                className="inline-flex h-8 items-center justify-center rounded-full bg-[#141416] px-3.5 text-[11px] font-medium text-white transition-colors hover:bg-[#27272A]"
+                className="group inline-flex shrink-0 items-center gap-1 text-[13px] font-semibold text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
               >
-                Semua Event
+                <span>Semua acara</span>
+                <ArrowGlyph />
               </Link>
             </div>
 
-            {/* Clean Current Week Strip */}
-            <div className="mt-4 grid grid-cols-7 gap-1.5 rounded-2xl bg-[#F6F4F1] p-2">
+            {/* 7-Day Week Strip (Minimum 13px Typography) */}
+            <div className="mt-4 grid grid-cols-7 gap-1.5 rounded-2xl bg-[#F4F1EE] p-2">
               {calendarMeta.days.map((day) => (
                 <div
                   key={`${day.label}-${day.dayNum}`}
-                  className={`flex flex-col items-center rounded-xl py-2 text-center transition-colors ${
+                  className={`flex flex-col items-center rounded-xl py-2 text-center ${
                     day.isToday
-                      ? "bg-[#141416] text-white shadow-xs"
+                      ? "bg-[#141416] text-white"
                       : "text-[#57534E]"
                   }`}
                 >
                   <span
-                    className={`text-[10px] font-medium ${
-                      day.isToday ? "text-white/75" : "text-[#8C8782]"
+                    className={`text-[13px] font-medium ${
+                      day.isToday ? "text-white/80" : "text-[#6E6A66]"
                     }`}
                   >
                     {day.label}
                   </span>
-                  <span className="mt-1 font-display text-xs font-semibold">
+                  <span className="mt-1 font-display text-[14px] font-semibold">
                     {day.dayNum}
                   </span>
                   <span
                     aria-hidden="true"
-                    className={`mt-1 h-1 w-1 rounded-full ${
+                    className={`mt-1.5 h-1.5 w-1.5 rounded-full ${
                       day.hasEvent
                         ? day.isToday
                           ? "bg-white"
@@ -785,42 +759,42 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            {/* Real Upcoming Events */}
+            {/* Upcoming Verified Events List */}
             <div className="mt-4">
               {!upcomingEvents ? (
-                <div className="space-y-2.5">
-                  <div className="h-12 animate-pulse rounded-xl bg-[#F4F1EE]" />
-                  <div className="h-12 animate-pulse rounded-xl bg-[#F4F1EE]" />
+                <div className="space-y-3">
+                  <div className="h-16 animate-pulse rounded-xl bg-[#F4F1EE]" />
+                  <div className="h-16 animate-pulse rounded-xl bg-[#F4F1EE]" />
                 </div>
               ) : upcomingEvents.length === 0 ? (
-                <div className="rounded-xl bg-[#FAF8F6] px-4 py-5 text-center">
-                  <p className="text-xs font-medium text-[#57534E]">
-                    Belum ada agenda event mendatang.
+                <div className="rounded-2xl bg-[#FAF8F6] px-4 py-6 text-center">
+                  <p className="text-[14px] font-medium text-[#57534E]">
+                    Belum ada kegiatan mendatang yang terjadwal.
                   </p>
-                  <div className="mt-2 flex items-center justify-center gap-3 text-[11px] font-semibold">
-                    {isOfficialAccount(user) && (
+                  <div className="mt-3 flex items-center justify-center gap-3 text-[13px] font-semibold">
+                    {canSubmitEvent && (
                       <>
                         <Link
                           href="/events/create"
                           className="text-[#141416] underline-offset-4 hover:underline"
                         >
-                          + Ajukan Event
+                          Ajukan kegiatan
                         </Link>
-                        <span className="text-[#D5CEC6]" aria-hidden="true">
+                        <span className="text-[#CFC8BF]" aria-hidden="true">
                           ·
                         </span>
                       </>
                     )}
                     <Link
                       href="/events"
-                      className="text-[#787470] underline-offset-4 hover:text-[#141416] hover:underline"
+                      className="text-[#6E6A66] underline-offset-4 hover:text-[#141416] hover:underline"
                     >
-                      Lihat Riwayat
+                      Lihat arsip kegiatan
                     </Link>
                   </div>
                 </div>
               ) : (
-                <ul className="space-y-2">
+                <ul className="space-y-2.5">
                   {upcomingEvents.map((evt) => {
                     const d = new Date(evt.event_date);
                     const dayText = Number.isNaN(d.getTime())
@@ -833,31 +807,26 @@ export default function DashboardPage() {
                       <li key={evt.id}>
                         <Link
                           href={`/events/${evt.id}`}
-                          className="group flex items-center gap-3 rounded-xl border border-[#F1EDE9] bg-[#FAF8F6]/70 p-2.5 transition-all hover:border-[#DFD9D2] hover:bg-white"
+                          className="group flex items-center gap-3.5 rounded-xl border border-[#EAE5DF] bg-[#FAF8F6] p-3 transition-all duration-180 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[2px] hover:border-[#CFC8BF] hover:bg-white hover:shadow-[0_10px_22px_-12px_rgba(20,20,22,0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
                         >
-                          <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-xl bg-white text-center shadow-2xs">
-                            <span className="font-display text-xs font-bold leading-none text-[#141416]">
+                          <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl border border-[#E7E2DD] bg-white text-center">
+                            <span className="font-display text-[15px] font-bold leading-none text-[#141416]">
                               {dayText}
                             </span>
-                            <span className="mt-0.5 text-[9px] font-medium uppercase text-[#787470]">
+                            <span className="mt-1 text-[13px] font-medium leading-none text-[#6E6A66]">
                               {monthText}
                             </span>
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-xs font-semibold text-[#141416] group-hover:underline">
+                            <p className="truncate text-[15px] font-semibold text-[#141416] group-hover:underline">
                               {evt.title}
                             </p>
-                            <p className="mt-0.5 flex items-center gap-1 text-[11px] text-[#787470]">
+                            <p className="mt-1 flex items-center gap-1.5 text-[13px] text-[#57534E]">
                               <span className="truncate">{evt.organizer_name}</span>
                               {evt.is_verified && <VerifiedBadge size="xs" />}
                             </p>
                           </div>
-                          <span
-                            aria-hidden="true"
-                            className="text-xs text-[#A8A39E] group-hover:text-[#141416]"
-                          >
-                            ›
-                          </span>
+                          <ArrowGlyph />
                         </Link>
                       </li>
                     );
@@ -867,55 +836,60 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Recent 1-on-1 Messages Card */}
-          <div className="rounded-[24px] border border-[#E7E2DD] bg-white p-5">
-            <div className="flex items-center justify-between border-b border-[#F1EDE9] pb-3.5">
-              <h2 className="font-display text-base font-semibold tracking-tight text-[#141416]">
-                Pesan Terbaru
+          {/* Pesan Pribadi Card */}
+          <div className="rounded-[20px] border border-[#E5E0DA] bg-white p-6">
+            <div className="flex items-center justify-between border-b border-[#EFECE8] pb-4">
+              <h2 className="font-display text-[18px] font-semibold tracking-tight text-[#141416]">
+                Pesan pribadi.{" "}
+                <span className="font-normal text-[#6E6A66]">
+                  Chat 1-on-1.
+                </span>
               </h2>
               <Link
                 href="/messages"
-                className="text-xs font-medium text-[#787470] transition-colors hover:text-[#141416]"
+                className="group inline-flex items-center gap-1 text-[13px] font-semibold text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
               >
-                Lihat Semua
+                <span>Buka pesan</span>
+                <ArrowGlyph />
               </Link>
             </div>
 
             {!conversations ? (
-              <div className="mt-3 space-y-2.5">
+              <div className="mt-4 space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div
                     key={i}
-                    className="h-12 animate-pulse rounded-xl bg-[#F4F1EE]"
+                    className="h-14 animate-pulse rounded-xl bg-[#F4F1EE]"
                   />
                 ))}
               </div>
             ) : conversations.length === 0 ? (
-              <div className="mt-3 flex flex-col items-center rounded-2xl bg-[#FAF8F6] px-5 py-7 text-center">
-                <p className="text-xs font-semibold text-[#141416]">
-                  Belum ada percakapan
+              <div className="mt-4 flex flex-col items-center rounded-2xl bg-[#FAF8F6] px-5 py-7 text-center">
+                <p className="text-[15px] font-semibold text-[#141416]">
+                  Belum ada percakapan aktif
                 </p>
-                <p className="mt-1 max-w-[230px] text-xs leading-5 text-[#787470]">
-                  Mulai chat 1-on-1 dari halaman detail produk, jasa, atau barang hilang.
+                <p className="mt-1 max-w-[260px] text-[13px] leading-relaxed text-[#6E6A66]">
+                  Hubungi penjual, penyedia jasa, atau pelapor barang langsung dari halaman detail.
                 </p>
                 <Link
                   href="/messages"
-                  className="mt-3 text-xs font-semibold text-[#141416] underline-offset-4 hover:underline"
+                  className="group mt-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#141416] underline-offset-4 hover:underline"
                 >
-                  Buka Kotak Pesan →
+                  <span>Buka kotak pesan</span>
+                  <ArrowGlyph />
                 </Link>
               </div>
             ) : (
-              <ul className="mt-2 divide-y divide-[#F3EFEA]">
+              <ul className="mt-3 divide-y divide-[#F1EDE8]">
                 {conversations.map((conv) => {
                   const recipientName = conv.recipient?.name ?? "Mahasiswa UPN";
                   return (
                     <li key={conv.id}>
                       <Link
                         href={`/messages?conversation_id=${conv.id}`}
-                        className="group -mx-2 flex items-center gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-[#FAF8F6]"
+                        className="group -mx-2 flex items-center gap-3.5 rounded-xl px-2 py-3.5 transition-colors duration-150 hover:bg-[#FAF8F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
                       >
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#141416] text-[11px] font-semibold text-white">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#141416] text-[13px] font-semibold text-white">
                           {recipientName
                             .split(" ")
                             .map((w) => w[0])
@@ -925,21 +899,21 @@ export default function DashboardPage() {
                         </span>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="truncate text-xs font-semibold text-[#141416]">
+                            <p className="truncate text-[15px] font-semibold text-[#141416]">
                               {recipientName}
                             </p>
-                            <span className="shrink-0 text-[10px] text-[#9A958F]">
+                            <span className="shrink-0 text-[13px] text-[#787470]">
                               {formatTimeAgo(
                                 conv.last_message?.created_at ?? conv.updated_at
                               )}
                             </span>
                           </div>
-                          <p className="mt-0.5 truncate text-xs text-[#787470]">
+                          <p className="mt-0.5 truncate text-[14px] text-[#57534E]">
                             {conv.last_message?.body ?? "Belum ada pesan"}
                           </p>
                         </div>
                         {conv.unread_count > 0 && (
-                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#141416] px-1.5 text-[10px] font-semibold text-white">
+                          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#141416] px-2 text-[13px] font-semibold text-white">
                             {conv.unread_count}
                           </span>
                         )}
@@ -949,41 +923,6 @@ export default function DashboardPage() {
                 })}
               </ul>
             )}
-          </div>
-
-          {/* Compact Shortcuts Card */}
-          <div className="grid grid-cols-2 gap-3">
-            <Link
-              href="/profile"
-              className="group rounded-2xl border border-[#E7E2DD] bg-white p-4 transition-all duration-250 hover:-translate-y-0.5 hover:border-[#D5CEC6] hover:shadow-xs"
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#F4F1EE] text-[#141416] transition-colors group-hover:bg-[#141416] group-hover:text-white">
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <rect x="2.5" y="2.5" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="1.25" />
-                  <circle cx="8" cy="6.8" r="1.9" stroke="currentColor" strokeWidth="1.25" />
-                  <path d="M5 12C5 10.4 6.3 9.2 8 9.2C9.7 9.2 11 10.4 11 12" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-                </svg>
-              </span>
-              <p className="mt-3 font-display text-xs font-semibold text-[#141416]">
-                KTM &amp; Iklan Saya
-              </p>
-              <p className="mt-0.5 text-[11px] text-[#787470]">Kelola profil</p>
-            </Link>
-
-            <Link
-              href="/favorites"
-              className="group rounded-2xl border border-[#E7E2DD] bg-white p-4 transition-all duration-250 hover:-translate-y-0.5 hover:border-[#D5CEC6] hover:shadow-xs"
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#F4F1EE] text-[#141416] transition-colors group-hover:bg-[#141416] group-hover:text-white">
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path d="M4.5 2.5H11.5C11.78 2.5 12 2.72 12 3V13.5L8 11L4 13.5V3C4 2.72 4.22 2.5 4.5 2.5Z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" />
-                </svg>
-              </span>
-              <p className="mt-3 font-display text-xs font-semibold text-[#141416]">
-                Tersimpan
-              </p>
-              <p className="mt-0.5 text-[11px] text-[#787470]">Daftar favorit</p>
-            </Link>
           </div>
         </div>
       </section>

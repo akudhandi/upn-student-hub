@@ -136,16 +136,16 @@ function NavLink({
     <Link
       href={item.href}
       onClick={onNavigate}
-      className={`group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+      className={`group flex min-h-[42px] items-center gap-3 rounded-xl px-3.5 py-2 text-[14px] font-medium transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
         isActive
-          ? "border border-[#E5E0DA] bg-white text-[#141416] shadow-[0_4px_14px_-6px_rgba(20,20,22,0.12)]"
-          : "border border-transparent text-[#6E6A66] hover:bg-white/65 hover:text-[#141416]"
+          ? "border border-[#E5E0DA] bg-white text-[#141416] shadow-[0_4px_14px_-6px_rgba(20,20,22,0.10)]"
+          : "border border-transparent text-[#57534E] hover:bg-white/70 hover:text-[#141416]"
       }`}
       aria-current={isActive ? "page" : undefined}
     >
       <span
         className={`transition-colors ${
-          isActive ? "text-[#141416]" : "text-[#85817C] group-hover:text-[#141416]"
+          isActive ? "text-[#141416]" : "text-[#787470] group-hover:text-[#141416]"
         }`}
       >
         {item.icon}
@@ -153,7 +153,7 @@ function NavLink({
       <span className="flex-1 truncate">{item.label}</span>
       {item.badge && (
         <span
-          className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
+          className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[13px] font-semibold ${
             isActive ? "bg-[#141416] text-white" : "bg-[#E4DFDA] text-[#141416]"
           }`}
           aria-label={`${item.badge} pesan belum dibaca`}
@@ -260,7 +260,7 @@ export default function AppLayout({
   if (!checked) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F4F1EE]">
-        <p className="text-sm font-medium text-[#787470]">Memeriksa sesi…</p>
+        <p className="text-[14px] font-medium text-[#6E6A66]">Memeriksa sesi…</p>
       </div>
     );
   }
@@ -288,6 +288,14 @@ export default function AppLayout({
 
   return (
     <div className="min-h-screen bg-[#F4F1EE] text-[#141416] selection:bg-[#141416] selection:text-white">
+      {/* Accessibility Skip Link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-[#141416] focus:px-4 focus:py-2 focus:text-[13px] focus:font-medium focus:text-white focus:shadow-md focus:outline-none"
+      >
+        Lewati ke konten utama
+      </a>
+
       {/* Mobile overlay */}
       {mobileOpen && (
         <button
@@ -299,7 +307,7 @@ export default function AppLayout({
 
       {/* Warm Stone Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-[264px] flex-col border-r border-[#E6E1DC] bg-[#EFECE8] transition-transform duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-[264px] flex-col border-r border-[#E5E0DA] bg-[#EFECE8] transition-transform duration-200 ease-[cubic-bezier(.2,.8,.2,1)] lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -307,9 +315,9 @@ export default function AppLayout({
         <Link
           href="/dashboard"
           onClick={() => setMobileOpen(false)}
-          className="group flex h-[72px] items-center gap-3 px-5"
+          className="group flex h-[72px] items-center gap-3 px-5 focus-visible:outline-none"
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#141416] text-white transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#141416] text-white transition-transform duration-150 ease-[cubic-bezier(.2,.8,.2,1)] group-hover:-translate-y-[1px]">
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path
                 d="M8 1.5L9.8 6.2L14.5 8L9.8 9.8L8 14.5L6.2 9.8L1.5 8L6.2 6.2L8 1.5Z"
@@ -318,10 +326,10 @@ export default function AppLayout({
             </svg>
           </span>
           <div className="min-w-0">
-            <p className="font-display text-sm font-semibold leading-none tracking-tight text-[#141416]">
+            <p className="font-display text-[15px] font-semibold leading-none tracking-tight text-[#141416]">
               UPN Hub
             </p>
-            <p className="mt-1 text-[11px] font-medium text-[#787470]">
+            <p className="mt-1 text-[13px] font-medium text-[#6E6A66]">
               Portal Mahasiswa
             </p>
           </div>
@@ -329,8 +337,8 @@ export default function AppLayout({
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3.5 py-2" aria-label="Navigasi utama">
-          <p className="px-3.5 pb-2 text-[11px] font-medium text-[#8C8782]">
-            Menu Utama
+          <p className="px-3.5 pb-2 text-[13px] font-medium text-[#6E6A66]">
+            Menu utama
           </p>
           <ul className="space-y-1">
             {MAIN_NAV_ITEMS.map((item) => (
@@ -344,8 +352,8 @@ export default function AppLayout({
             ))}
           </ul>
 
-          <p className="px-3.5 pb-2 pt-6 text-[11px] font-medium text-[#8C8782]">
-            Aktivitas Saya
+          <p className="px-3.5 pb-2 pt-6 text-[13px] font-medium text-[#6E6A66]">
+            Aktivitas saya
           </p>
           <ul className="space-y-1">
             {ACTIVITY_NAV_ITEMS.map((item) => {
@@ -371,18 +379,21 @@ export default function AppLayout({
           <button
             type="button"
             onClick={handleCreateClick}
-            className="flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[#141416] px-4 text-xs font-medium text-white transition-all duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-[1px] hover:bg-[#242428] hover:shadow-[0_10px_22px_-10px_rgba(20,20,22,0.38)] active:translate-y-0 active:scale-[0.99]"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#141416] px-5 text-[14px] font-medium text-white transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2"
           >
-            <IconPlus /> {pathname?.startsWith("/events") && canSubmitEvent ? "Ajukan Event" : "Pasang Iklan"}
+            <IconPlus />{" "}
+            {pathname?.startsWith("/events") && canSubmitEvent
+              ? "Ajukan kegiatan"
+              : "Pasang iklan baru"}
           </button>
 
-          <div className="mt-3.5 flex items-center gap-2.5 rounded-2xl border border-[#E5E0DA] bg-white p-2.5">
+          <div className="mt-3.5 flex items-center gap-2.5 rounded-xl border border-[#E5E0DA] bg-white p-2.5">
             <Link
               href="/profile"
               onClick={() => setMobileOpen(false)}
-              className="flex min-w-0 flex-1 items-center gap-2.5"
+              className="flex min-w-0 flex-1 items-center gap-2.5 focus-visible:outline-none"
             >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-[11px] font-semibold text-white">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-[13px] font-semibold text-white">
                 {avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -391,7 +402,7 @@ export default function AppLayout({
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-1 text-xs font-semibold text-[#141416]">
+                <p className="flex items-center gap-1 text-[13px] font-semibold text-[#141416]">
                   <span className="truncate">{displayName}</span>
                   {canSubmitEvent && (
                     <VerifiedBadge
@@ -400,7 +411,7 @@ export default function AppLayout({
                     />
                   )}
                 </p>
-                <p className="truncate text-[11px] text-[#787470]">
+                <p className="truncate text-[13px] text-[#6E6A66]">
                   {canSubmitEvent ? accountTypeLabel(user?.account_type) : displayFaculty}
                 </p>
               </div>
@@ -410,9 +421,9 @@ export default function AppLayout({
               onClick={handleLogout}
               title="Keluar dari akun"
               aria-label="Keluar dari akun"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#787470] transition-colors hover:bg-[#F4F1EE] hover:text-[#C53939]"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#6E6A66] transition-colors hover:bg-[#F4F1EE] hover:text-[#C53939] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
                   d="M15 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3M10 17l5-5-5-5M15 12H3"
                   stroke="currentColor"
@@ -429,10 +440,10 @@ export default function AppLayout({
       {/* Main Content Area */}
       <div className="lg:pl-[264px]">
         {/* Top Header */}
-        <header className="sticky top-0 z-20 flex h-[72px] items-center gap-3 border-b border-[#E6E1DC]/80 bg-[#F4F1EE]/90 px-4 backdrop-blur-md lg:px-8">
+        <header className="sticky top-0 z-20 flex h-[72px] items-center gap-3 border-b border-[#E5E0DA] bg-[#F4F1EE]/95 px-4 backdrop-blur-md sm:px-6 lg:px-10">
           <button
             type="button"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E0DA] bg-white text-[#141416] transition-colors hover:bg-[#FAF8F6] lg:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#E5E0DA] bg-white text-[#141416] transition-colors hover:bg-[#FAF8F6] lg:hidden"
             aria-label="Buka navigasi"
             onClick={() => setMobileOpen((v) => !v)}
           >
@@ -462,13 +473,13 @@ export default function AppLayout({
             }}
           >
             <label htmlFor="dashboard-search" className="sr-only">
-              Cari
+              Cari di portal
             </label>
-            <div className="relative w-full max-w-[440px]">
-              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#85817C]">
+            <div className="relative w-full max-w-[460px]">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#6E6A66]">
                 <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.3" />
-                  <path d="M10.5 10.5L13 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                  <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.4" />
+                  <path d="M10.5 10.5L13 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                 </svg>
               </span>
               <input
@@ -477,7 +488,7 @@ export default function AppLayout({
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Cari barang, jasa, laporan, atau event…"
-                className="h-10 w-full rounded-full border border-[#E5E0DA] bg-white/90 py-2 pl-10 pr-4 text-xs text-[#141416] placeholder:text-[#9A958F] transition-all duration-200 focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none sm:text-[13px]"
+                className="h-11 w-full rounded-full border border-[#E5E0DA] bg-white py-2 pl-10 pr-4 text-[14px] text-[#141416] placeholder:text-[#787470] transition-all duration-150 focus:border-[#141416] focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
               />
             </div>
           </form>
@@ -488,9 +499,9 @@ export default function AppLayout({
             <NotificationBell />
             <Link
               href="/profile"
-              className="hidden items-center gap-2.5 rounded-full border border-[#E5E0DA] bg-white py-1 pl-1.5 pr-3.5 transition-all duration-200 hover:-translate-y-[1px] hover:border-[#D5CEC6] hover:shadow-xs sm:inline-flex"
+              className="hidden h-11 items-center gap-2.5 rounded-full border border-[#E5E0DA] bg-white py-1 pl-1.5 pr-4 transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:border-[#CFC8BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] sm:inline-flex"
             >
-              <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-[11px] font-semibold text-white">
+              <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-[13px] font-semibold text-white">
                 {avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -499,7 +510,7 @@ export default function AppLayout({
                 )}
               </div>
               <div className="text-left">
-                <p className="flex max-w-[140px] items-center gap-1 text-xs font-semibold leading-tight text-[#141416]">
+                <p className="flex max-w-[150px] items-center gap-1 text-[13px] font-semibold leading-tight text-[#141416]">
                   <span className="truncate">{displayName}</span>
                   {canSubmitEvent && (
                     <VerifiedBadge
@@ -508,7 +519,7 @@ export default function AppLayout({
                     />
                   )}
                 </p>
-                <p className="max-w-[140px] truncate text-[10px] leading-tight text-[#787470]">
+                <p className="max-w-[150px] truncate text-[13px] leading-tight text-[#6E6A66]">
                   {canSubmitEvent
                     ? accountTypeLabel(user?.account_type)
                     : displayFaculty || displayEmail}
@@ -519,7 +530,7 @@ export default function AppLayout({
             <Link
               href="/profile"
               aria-label="Profil saya"
-              className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-xs font-semibold text-white sm:hidden"
+              className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-[13px] font-semibold text-white sm:hidden"
             >
               {avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -531,8 +542,10 @@ export default function AppLayout({
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="px-4 py-6 lg:px-8 lg:py-7">{children}</main>
+        {/* Page Content with equal left & right edges */}
+        <main id="main-content" className="px-4 py-7 sm:px-6 lg:px-10 lg:py-8">
+          {children}
+        </main>
       </div>
     </div>
   );

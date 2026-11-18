@@ -101,14 +101,14 @@ export default function NotificationBell() {
             : "Notifikasi"
         }
         aria-expanded={open}
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E0DA] bg-white text-[#57534E] transition-all duration-200 hover:-translate-y-[1px] hover:border-[#D5CEC6] hover:text-[#141416] hover:shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+        className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#E5E0DA] bg-white text-[#57534E] transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:border-[#CFC8BF] hover:text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
       >
         <svg width="17" height="17" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M8 2.5C5.7 2.5 4 4 4 6V10L3 11.5H13L12 10V6C12 4 10.3 2.5 8 2.5Z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" />
           <path d="M6.5 13C6.5 13.8 7.1 14.5 8 14.5C8.9 14.5 9.5 13.8 9.5 13H6.5Z" stroke="currentColor" strokeWidth="1.25" />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#D97706] ring-2 ring-white" aria-hidden="true" />
+          <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-[#D97706] ring-2 ring-white" aria-hidden="true" />
         )}
       </button>
 
@@ -122,38 +122,38 @@ export default function NotificationBell() {
           <div
             role="dialog"
             aria-label="Pengumuman kampus"
-            className="auth-dropdown-enter absolute right-0 z-40 mt-2 max-h-96 w-80 overflow-y-auto rounded-2xl border border-[#E5E0DA] bg-white shadow-[0_18px_40px_-16px_rgba(20,20,22,0.18)]"
+            className="auth-dropdown-enter absolute right-0 z-40 mt-2 max-h-96 w-84 overflow-y-auto rounded-2xl border border-[#E5E0DA] bg-white shadow-[0_18px_40px_-16px_rgba(20,20,22,0.18)]"
           >
             <div className="sticky top-0 flex items-center justify-between border-b border-[#F1EDE9] bg-white/95 px-4 py-3 backdrop-blur-sm">
-              <p className="font-display text-[13px] font-semibold text-[#141416]">
-                Pengumuman Kampus
+              <p className="font-display text-[14px] font-semibold text-[#141416]">
+                Pengumuman kampus
               </p>
               {items.length > 0 && (
-                <span className="rounded-full bg-[#F4F1EE] px-2 py-0.5 text-[10px] font-medium text-[#6E6A66]">
+                <span className="rounded-full bg-[#F4F1EE] px-2.5 py-0.5 text-[13px] font-medium text-[#57534E]">
                   {items.length} info
                 </span>
               )}
             </div>
             {items.length === 0 ? (
-              <p className="px-4 py-8 text-center text-xs text-[#787470]">
+              <p className="px-4 py-8 text-center text-[13px] text-[#6E6A66]">
                 Belum ada pengumuman terbaru.
               </p>
             ) : (
               <ul className="divide-y divide-[#F3EFEA]">
                 {items.map((item) => (
-                  <li key={item.id} className="px-4 py-3 transition-colors hover:bg-[#FAF8F6]">
+                  <li key={item.id} className="px-4 py-3.5 transition-colors hover:bg-[#FAF8F6]">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-[13px] font-semibold text-[#141416]">
+                      <p className="text-[14px] font-semibold text-[#141416]">
                         {item.title}
                       </p>
                       {item.id > lastSeen && (
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#D97706]" aria-label="Belum dibaca" />
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-[#D97706]" aria-label="Belum dibaca" />
                       )}
                     </div>
-                    <p className="mt-0.5 line-clamp-3 text-xs leading-5 text-[#6E6A66]">
+                    <p className="mt-1 line-clamp-3 text-[13px] leading-relaxed text-[#57534E]">
                       {item.message}
                     </p>
-                    <p className="mt-1.5 text-[11px] text-[#9A958F]">
+                    <p className="mt-1.5 text-[13px] text-[#787470]">
                       {formatAnnouncementTime(item.created_at)}
                     </p>
                   </li>
