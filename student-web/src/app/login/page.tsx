@@ -77,10 +77,10 @@ export default function LoginPage() {
   }
 
   function inputBoxClass(hasErr: boolean, spacing = "mt-1.5 px-3.5"): string {
-    return `${spacing} h-11 w-full rounded-xl border text-sm text-[#141416] placeholder:text-[#A8A39E] transition-colors focus:outline-none ${
+    return `${spacing} h-11 w-full rounded-xl border text-sm text-[#141416] placeholder:text-[#A8A39E] transition-all duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] focus:outline-none ${
       hasErr
-        ? "border-[#E06C6C] bg-[#FFF8F8] focus:border-[#C53939] focus:bg-white"
-        : "border-[#E6E1DC] bg-[#F6F4F1] focus:border-[#141416] focus:bg-white"
+        ? "border-[#E06C6C] bg-[#FFF8F8] focus:border-[#C53939] focus:bg-white focus:shadow-[0_0_0_3px_rgba(197,57,57,0.1)]"
+        : "border-[#E6E1DC] bg-[#F6F4F1] hover:border-[#D7D0C8] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)]"
     }`;
   }
 
@@ -157,7 +157,7 @@ export default function LoginPage() {
         {error && (
           <p
             role="alert"
-            className="rounded-xl border border-[#F1C9C9] bg-[#FDF2F2] px-3.5 py-2.5 text-xs font-medium text-[#B83232]"
+            className="auth-error-enter rounded-xl border border-[#F1C9C9] bg-[#FDF2F2] px-3.5 py-2.5 text-xs font-medium text-[#B83232]"
           >
             {error}
           </p>
@@ -167,14 +167,14 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex h-11 w-full items-center justify-center rounded-full bg-[#141416] px-5 text-sm font-medium text-white transition-colors hover:bg-[#27272A] disabled:opacity-60"
+            className="flex h-11 w-full items-center justify-center rounded-full bg-[#141416] px-5 text-sm font-medium text-white transition-all duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-[1px] hover:bg-[#242428] hover:shadow-[0_10px_22px_-10px_rgba(20,20,22,0.38)] active:translate-y-0 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60"
           >
             {loading ? "Memproses…" : "Masuk ke Portal"}
           </button>
 
           <Link
             href="/"
-            className="flex h-11 w-full items-center justify-center rounded-full bg-[#EFECE8] px-5 text-sm font-medium text-[#27272A] transition-colors hover:bg-[#E5E1DC]"
+            className="flex h-11 w-full items-center justify-center rounded-full bg-[#EFECE8] px-5 text-sm font-medium text-[#27272A] transition-all duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-[1px] hover:bg-[#E5E1DC] active:translate-y-0 active:scale-[0.99]"
           >
             Kembali ke Beranda
           </Link>

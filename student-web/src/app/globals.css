@@ -94,3 +94,90 @@ body {
 .shadow-2xs {
   box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
 }
+
+/* Subtle editorial motion for auth workspace */
+@keyframes auth-shell-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.994);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes auth-slide-from-right {
+  from {
+    opacity: 0;
+    transform: translate3d(22px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes auth-slide-from-left {
+  from {
+    opacity: 0;
+    transform: translate3d(-22px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes auth-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes auth-error-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -4px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.auth-shell-enter {
+  animation: auth-shell-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.auth-panel-slide-right {
+  animation: auth-slide-from-right 440ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.auth-panel-slide-left {
+  animation: auth-slide-from-left 440ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.auth-dropdown-enter {
+  transform-origin: top center;
+  animation: auth-dropdown-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.auth-error-enter {
+  animation: auth-error-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-shell-enter,
+  .auth-panel-slide-right,
+  .auth-panel-slide-left,
+  .auth-dropdown-enter,
+  .auth-error-enter {
+    animation: none;
+  }
+}

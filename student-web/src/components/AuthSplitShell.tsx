@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const HUB_PILLARS = [
   {
@@ -87,16 +88,74 @@ export function AuthSplitShell({
   children: React.ReactNode;
   footer: React.ReactNode;
 }) {
+  const router = useRouter();
+  const [pendingTab, setPendingTab] = useState<"login" | "register" | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    router.prefetch("/login");
+    router.prefetch("/register");
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [router]);
+
+  const displayedTab = pendingTab ?? activeTab;
+
+  function triggerSmoothSwitch(
+    targetTab: "login" | "register",
+    event: React.MouseEvent
+  ) {
+    if (
+      targetTab === activeTab ||
+      pendingTab !== null ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey ||
+      event.button !== 0
+    ) {
+      return;
+    }
+    event.preventDefault();
+    setPendingTab(targetTab);
+    timerRef.current = setTimeout(() => {
+      router.push(targetTab === "register" ? "/register" : "/login");
+    }, 210);
+  }
+
+  function handleFooterClickCapture(event: React.MouseEvent<HTMLDivElement>) {
+    const anchor = (event.target as HTMLElement).closest("a");
+    if (!anchor) return;
+    const href = anchor.getAttribute("href");
+    if (href === "/register") {
+      triggerSmoothSwitch("register", event);
+    } else if (href === "/login") {
+      triggerSmoothSwitch("login", event);
+    }
+  }
+
+  const formMotionClass =
+    pendingTab !== null
+      ? pendingTab === "register"
+        ? "-translate-x-3 opacity-0 transition-all duration-200 ease-out"
+        : "translate-x-3 opacity-0 transition-all duration-200 ease-out"
+      : activeTab === "register"
+        ? "auth-panel-slide-right"
+        : "auth-panel-slide-left";
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#DFDBD7] px-3 py-5 text-[#141416] sm:px-6 sm:py-8">
-      <div className="w-full max-w-[1040px] rounded-[28px] border border-[#E7E2DD] bg-[#F4F1EE] p-4 shadow-[0_24px_60px_-28px_rgba(20,20,22,0.18)] sm:p-6 lg:p-7">
+      <div className="auth-shell-enter w-full max-w-[1040px] rounded-[28px] border border-[#E7E2DD] bg-[#F4F1EE] p-4 shadow-[0_24px_60px_-28px_rgba(20,20,22,0.18)] sm:p-6 lg:p-7">
         {/* Top Bar */}
         <header className="flex flex-wrap items-center justify-between gap-3 pb-5">
           <Link
             href="/"
-            className="inline-flex items-center gap-2.5 text-sm font-semibold tracking-tight text-[#141416] transition-opacity hover:opacity-80"
+            className="group inline-flex items-center gap-2.5 text-sm font-semibold tracking-tight text-[#141416] transition-opacity hover:opacity-85"
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#141416] text-white">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#141416] text-white transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path
                   d="M8 1.5L9.8 6.2L14.5 8L9.8 9.8L8 14.5L6.2 9.8L1.5 8L6.2 6.2L8 1.5Z"
@@ -108,16 +167,24 @@ export function AuthSplitShell({
           </Link>
 
           <div className="flex items-center gap-2">
+            {/* Sliding Segmented Control */}
             <nav
               aria-label="Navigasi autentikasi"
-              className="inline-flex items-center rounded-full bg-[#EAE6E2] p-1"
+              className="relative inline-grid grid-cols-2 items-center rounded-full bg-[#EAE6E2] p-1"
             >
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] rounded-full bg-white shadow-[0_2px_10px_-2px_rgba(20,20,22,0.12)] transition-transform duration-350 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  displayedTab === "register" ? "translate-x-full" : "translate-x-0"
+                }`}
+              />
               <Link
                 href="/login"
-                aria-current={activeTab === "login" ? "page" : undefined}
-                className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
-                  activeTab === "login"
-                    ? "bg-white text-[#141416] shadow-xs"
+                onClick={(e) => triggerSmoothSwitch("login", e)}
+                aria-current={displayedTab === "login" ? "page" : undefined}
+                className={`relative z-10 min-w-[76px] rounded-full px-4 py-1.5 text-center text-xs font-medium transition-colors duration-300 ${
+                  displayedTab === "login"
+                    ? "text-[#141416]"
                     : "text-[#6E6A66] hover:text-[#141416]"
                 }`}
               >
@@ -125,10 +192,11 @@ export function AuthSplitShell({
               </Link>
               <Link
                 href="/register"
-                aria-current={activeTab === "register" ? "page" : undefined}
-                className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
-                  activeTab === "register"
-                    ? "bg-white text-[#141416] shadow-xs"
+                onClick={(e) => triggerSmoothSwitch("register", e)}
+                aria-current={displayedTab === "register" ? "page" : undefined}
+                className={`relative z-10 min-w-[76px] rounded-full px-4 py-1.5 text-center text-xs font-medium transition-colors duration-300 ${
+                  displayedTab === "register"
+                    ? "text-[#141416]"
                     : "text-[#6E6A66] hover:text-[#141416]"
                 }`}
               >
@@ -138,7 +206,7 @@ export function AuthSplitShell({
 
             <Link
               href="/"
-              className="hidden rounded-full border border-[#E2DDD7] bg-white px-3.5 py-1.5 text-xs font-medium text-[#3F3D3A] transition-colors hover:bg-[#FAF8F6] sm:inline-flex"
+              className="hidden rounded-full border border-[#E2DDD7] bg-white px-3.5 py-1.5 text-xs font-medium text-[#3F3D3A] transition-all duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-[1px] hover:bg-[#FAF8F6] hover:shadow-xs sm:inline-flex"
             >
               Beranda
             </Link>
@@ -161,15 +229,15 @@ export function AuthSplitShell({
               </p>
             </div>
 
-            {/* Spacious Minimal 2x2 Visual Grid */}
+            {/* Spacious Minimal 2x2 Visual Grid with Subtle Hover Physics */}
             <div className="my-auto py-8">
               <div className="grid grid-cols-2 gap-3.5">
                 {HUB_PILLARS.map((item) => (
                   <div
                     key={item.label}
-                    className="flex flex-col items-start justify-between rounded-2xl border border-[#E5E0DA] bg-white p-4 shadow-[0_8px_20px_-14px_rgba(20,20,22,0.12)]"
+                    className="group flex flex-col items-start justify-between rounded-2xl border border-[#E5E0DA] bg-white p-4 shadow-[0_8px_20px_-14px_rgba(20,20,22,0.12)] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-[#D5CEC6] hover:shadow-[0_14px_28px_-14px_rgba(20,20,22,0.18)]"
                   >
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F4F1EE] text-[#141416]">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F4F1EE] text-[#141416] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105 group-hover:bg-[#141416] group-hover:text-white">
                       {item.icon}
                     </span>
                     <span className="mt-5 text-xs font-medium text-[#141416]">
@@ -203,9 +271,9 @@ export function AuthSplitShell({
             </div>
           </aside>
 
-          {/* Right Form Card */}
-          <section className="flex flex-col justify-center rounded-[22px] border border-[#E7E2DD] bg-white px-5 py-6 sm:px-9 sm:py-8">
-            <div className="mx-auto w-full max-w-[420px]">
+          {/* Right Form Card with Directional Slide Transition */}
+          <section className="flex flex-col justify-center overflow-hidden rounded-[22px] border border-[#E7E2DD] bg-white px-5 py-6 sm:px-9 sm:py-8">
+            <div className={`mx-auto w-full max-w-[420px] ${formMotionClass}`}>
               <div>
                 <h1 className="text-2xl font-semibold tracking-tight text-[#141416] sm:text-[26px]">
                   {title}
@@ -215,7 +283,10 @@ export function AuthSplitShell({
 
               <div className="mt-6">{children}</div>
 
-              <div className="mt-6 border-t border-[#F1EDE9] pt-5 text-center text-xs text-[#787470]">
+              <div
+                onClickCapture={handleFooterClickCapture}
+                className="mt-6 border-t border-[#F1EDE9] pt-5 text-center text-xs text-[#787470]"
+              >
                 {footer}
               </div>
             </div>
@@ -241,7 +312,7 @@ export function PasswordEyeButton({
       onClick={onToggle}
       aria-label={ariaLabel ?? (shown ? "Sembunyikan password" : "Tampilkan password")}
       title={ariaLabel ?? (shown ? "Sembunyikan password" : "Tampilkan password")}
-      className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-[#85817C] transition-colors hover:bg-[#EAE6E2] hover:text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+      className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-[#85817C] transition-all duration-200 ease-out hover:bg-[#EAE6E2] hover:text-[#141416] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
     >
       {shown ? (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -271,7 +342,10 @@ export function PasswordEyeButton({
 export function FieldErrorMessage({ message }: { message: string | null }) {
   if (!message) return null;
   return (
-    <p role="alert" className="mt-1.5 text-[11px] leading-4 font-medium text-[#C53939]">
+    <p
+      role="alert"
+      className="auth-error-enter mt-1.5 text-[11px] leading-4 font-medium text-[#C53939]"
+    >
       {message}
     </p>
   );

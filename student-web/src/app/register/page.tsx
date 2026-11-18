@@ -87,12 +87,12 @@ function FacultyDropdown({
           if (open) onBlurTrigger();
           setOpen((v) => !v);
         }}
-        className={`flex h-11 w-full items-center justify-between rounded-xl border px-3.5 text-left text-sm transition-colors focus:outline-none ${
+        className={`flex h-11 w-full items-center justify-between rounded-xl border px-3.5 text-left text-sm transition-all duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] focus:outline-none ${
           hasError
-            ? "border-[#E06C6C] bg-[#FFF8F8] focus:border-[#C53939]"
+            ? "border-[#E06C6C] bg-[#FFF8F8] focus:border-[#C53939] focus:shadow-[0_0_0_3px_rgba(197,57,57,0.1)]"
             : open
-              ? "border-[#141416] bg-white"
-              : "border-[#E6E1DC] bg-[#F6F4F1] hover:border-[#D3CDC6]"
+              ? "border-[#141416] bg-white shadow-[0_0_0_3px_rgba(20,20,22,0.06)]"
+              : "border-[#E6E1DC] bg-[#F6F4F1] hover:border-[#D3CDC6] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)]"
         }`}
       >
         <span className={value ? "truncate text-[#141416]" : "truncate text-[#A8A39E]"}>
@@ -104,7 +104,7 @@ function FacultyDropdown({
           viewBox="0 0 16 16"
           fill="none"
           aria-hidden="true"
-          className={`shrink-0 text-[#85817C] transition-transform ${
+          className={`shrink-0 text-[#85817C] transition-transform duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] ${
             open ? "rotate-180 text-[#141416]" : ""
           }`}
         >
@@ -122,7 +122,7 @@ function FacultyDropdown({
         <ul
           role="listbox"
           aria-labelledby="reg-faculty-label"
-          className="absolute left-0 right-0 z-30 mt-1.5 max-h-56 overflow-y-auto rounded-2xl border border-[#E5E0DA] bg-white p-1.5 shadow-[0_14px_34px_-12px_rgba(20,20,22,0.16)]"
+          className="auth-dropdown-enter absolute left-0 right-0 z-30 mt-1.5 max-h-56 overflow-y-auto rounded-2xl border border-[#E5E0DA] bg-white p-1.5 shadow-[0_14px_34px_-12px_rgba(20,20,22,0.16)]"
         >
           {FAKULTAS_OPTIONS.map((opt) => {
             const selected = value === opt;
@@ -297,10 +297,10 @@ export default function RegisterPage() {
     hasErr: boolean,
     spacing = "mt-1.5 px-3.5"
   ): string {
-    return `${spacing} h-11 w-full rounded-xl border text-sm text-[#141416] placeholder:text-[#A8A39E] transition-colors focus:outline-none ${
+    return `${spacing} h-11 w-full rounded-xl border text-sm text-[#141416] placeholder:text-[#A8A39E] transition-all duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] focus:outline-none ${
       hasErr
-        ? "border-[#E06C6C] bg-[#FFF8F8] focus:border-[#C53939] focus:bg-white"
-        : "border-[#E6E1DC] bg-[#F6F4F1] focus:border-[#141416] focus:bg-white"
+        ? "border-[#E06C6C] bg-[#FFF8F8] focus:border-[#C53939] focus:bg-white focus:shadow-[0_0_0_3px_rgba(197,57,57,0.1)]"
+        : "border-[#E6E1DC] bg-[#F6F4F1] hover:border-[#D7D0C8] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)]"
     }`;
   }
 
@@ -478,7 +478,7 @@ export default function RegisterPage() {
         {error && (
           <p
             role="alert"
-            className="rounded-xl border border-[#F1C9C9] bg-[#FDF2F2] px-3.5 py-2.5 text-xs font-medium text-[#B83232]"
+            className="auth-error-enter rounded-xl border border-[#F1C9C9] bg-[#FDF2F2] px-3.5 py-2.5 text-xs font-medium text-[#B83232]"
           >
             {error}
           </p>
@@ -488,14 +488,14 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex h-11 w-full items-center justify-center rounded-full bg-[#141416] px-5 text-sm font-medium text-white transition-colors hover:bg-[#27272A] disabled:opacity-60"
+            className="flex h-11 w-full items-center justify-center rounded-full bg-[#141416] px-5 text-sm font-medium text-white transition-all duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-[1px] hover:bg-[#242428] hover:shadow-[0_10px_22px_-10px_rgba(20,20,22,0.38)] active:translate-y-0 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60"
           >
             {loading ? "Mendaftarkan Akun…" : "Buat Akun Mahasiswa"}
           </button>
 
           <Link
             href="/"
-            className="flex h-11 w-full items-center justify-center rounded-full bg-[#EFECE8] px-5 text-sm font-medium text-[#27272A] transition-colors hover:bg-[#E5E1DC]"
+            className="flex h-11 w-full items-center justify-center rounded-full bg-[#EFECE8] px-5 text-sm font-medium text-[#27272A] transition-all duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-[1px] hover:bg-[#E5E1DC] active:translate-y-0 active:scale-[0.99]"
           >
             Kembali ke Beranda
           </Link>
