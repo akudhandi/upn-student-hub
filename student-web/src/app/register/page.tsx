@@ -1,13 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AuthSplitShell,
-  FieldValidationNote,
+  FieldErrorMessage,
   PasswordEyeButton,
-  type FieldCheck,
 } from "@/components/AuthSplitShell";
 import { register, type ApiError } from "@/lib/api";
 import { setAuth } from "@/lib/auth";
@@ -24,6 +23,151 @@ const FAKULTAS_OPTIONS = [
 ] as const;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ALPHA_SPACE_RE = /^[A-Za-z\s]+$/;
+const NPM_RE = /^\d{11}$/;
+
+type RegisterField =
+  | "fullName"
+  | "npm"
+  | "faculty"
+  | "email"
+  | "password"
+  | "confirmPassword";
+
+function FacultyDropdown({
+  value,
+  disabled,
+  hasError,
+  onChange,
+  onBlurTrigger,
+}: {
+  value: string;
+  disabled: boolean;
+  hasError: boolean;
+  onChange: (val: string) => void;
+  onBlurTrigger: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleOutside(event: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+        onBlurTrigger();
+      }
+    }
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        onBlurTrigger();
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open, onBlurTrigger]);
+
+  return (
+    <div ref={containerRef} className="relative mt-1">
+      <button
+        id="reg-faculty"
+        type="button"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => {
+          if (open) onBlurTrigger();
+          setOpen((v) => !v);
+        }}
+        className={`flex w-full items-center justify-between border-0 border-b bg-transparent px-0 py-1.5 text-left text-sm transition-colors focus:outline-none ${
+          hasError
+            ? "border-rose-400 focus:border-rose-600"
+            : open
+              ? "border-slate-900"
+              : "border-slate-300 focus:border-slate-900"
+        }`}
+      >
+        <span className={value ? "truncate text-slate-900" : "truncate text-slate-300"}>
+          {value || "Pilih fakultas…"}
+        </span>
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden="true"
+          className={`shrink-0 text-slate-400 transition-transform ${
+            open ? "rotate-180 text-slate-700" : ""
+          }`}
+        >
+          <path
+            d="M4 6L8 10L12 6"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
+      {open && (
+        <ul
+          role="listbox"
+          aria-labelledby="reg-faculty-label"
+          className="absolute left-0 right-0 z-30 mt-1.5 max-h-56 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_16px_40px_-12px_rgba(15,23,42,0.18)]"
+        >
+          {FAKULTAS_OPTIONS.map((opt) => {
+            const selected = value === opt;
+            return (
+              <li key={opt} role="option" aria-selected={selected}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange(opt);
+                    setOpen(false);
+                    onBlurTrigger();
+                  }}
+                  className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-medium transition-colors ${
+                    selected
+                      ? "bg-[#18191B] text-white"
+                      : "text-slate-700 hover:bg-slate-100"
+                  }`}
+                >
+                  <span>{opt}</span>
+                  {selected && (
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M3.5 8.5L6.5 11.5L12.5 5"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -34,160 +178,102 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [touched, setTouched] = useState<Partial<Record<RegisterField, boolean>>>(
+    {}
+  );
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const nameCheck: FieldCheck = useMemo(() => {
+  function markTouched(field: RegisterField) {
+    setTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
+  }
+
+  const nameError = useMemo(() => {
     const trimmed = fullName.trim();
-    if (!trimmed) {
-      return {
-        valid: false,
-        tone: "required",
-        message: "Wajib diisi — masukkan nama lengkap.",
-      };
+    if (!trimmed) return "Nama lengkap wajib diisi.";
+    if (!ALPHA_SPACE_RE.test(trimmed)) {
+      return "Nama lengkap hanya boleh berisi huruf alfabet.";
     }
-    if (trimmed.length < 2) {
-      return {
-        valid: false,
-        tone: "error",
-        message: "Nama lengkap minimal 2 karakter.",
-      };
-    }
-    return { valid: true, tone: "ok", message: "✓ Nama lengkap valid" };
+    if (trimmed.length < 2) return "Nama lengkap minimal 2 huruf.";
+    return null;
   }, [fullName]);
 
-  const npmCheck: FieldCheck = useMemo(() => {
-    const trimmed = npm.trim();
-    if (!trimmed) {
-      return {
-        valid: false,
-        tone: "required",
-        message: "Wajib diisi — 8–15 digit angka NPM.",
-      };
+  const npmError = useMemo(() => {
+    if (!npm) return "NPM wajib diisi.";
+    if (!NPM_RE.test(npm)) {
+      return `NPM harus 11 digit angka (${npm.length}/11).`;
     }
-    if (!/^\d+$/.test(trimmed)) {
-      return {
-        valid: false,
-        tone: "error",
-        message: "NPM hanya boleh berisi angka 0–9.",
-      };
-    }
-    if (trimmed.length < 8 || trimmed.length > 15) {
-      return {
-        valid: false,
-        tone: "error",
-        message: `NPM harus 8–15 digit (saat ini ${trimmed.length} digit).`,
-      };
-    }
-    return { valid: true, tone: "ok", message: "✓ Format NPM valid" };
+    return null;
   }, [npm]);
 
-  const facultyCheck: FieldCheck = useMemo(() => {
-    if (!faculty) {
-      return {
-        valid: false,
-        tone: "required",
-        message: "Wajib dipilih — pilih fakultas Anda.",
-      };
-    }
-    return { valid: true, tone: "ok", message: "✓ Fakultas dipilih" };
+  const facultyError = useMemo(() => {
+    if (!faculty) return "Fakultas wajib dipilih.";
+    return null;
   }, [faculty]);
 
-  const emailCheck: FieldCheck = useMemo(() => {
+  const emailError = useMemo(() => {
     const trimmed = email.trim().toLowerCase();
-    if (!trimmed) {
-      return {
-        valid: false,
-        tone: "required",
-        message: "Wajib diisi — wajib domain @student.upnjatim.ac.id.",
-      };
-    }
+    if (!trimmed) return "Email kampus wajib diisi.";
     if (!EMAIL_RE.test(trimmed)) {
-      return {
-        valid: false,
-        tone: "error",
-        message: "Format email tidak valid (contoh: 22081010001@student.upnjatim.ac.id).",
-      };
+      return "Format email tidak valid (contoh: nama@student.upnjatim.ac.id).";
     }
     if (!trimmed.endsWith("@student.upnjatim.ac.id")) {
-      return {
-        valid: false,
-        tone: "error",
-        message: "Email wajib menggunakan domain @student.upnjatim.ac.id.",
-      };
+      return "Email wajib menggunakan domain @student.upnjatim.ac.id.";
     }
-    return { valid: true, tone: "ok", message: "✓ Email institusi UPN valid" };
+    return null;
   }, [email]);
 
-  const passwordCheck: FieldCheck = useMemo(() => {
-    if (!password) {
-      return {
-        valid: false,
-        tone: "required",
-        message: "Wajib diisi — minimal 8 karakter.",
-      };
-    }
+  const passwordError = useMemo(() => {
+    if (!password) return "Password wajib diisi.";
     if (password.length < 8) {
-      return {
-        valid: false,
-        tone: "error",
-        message: `Minimal 8 karakter (${password.length}/8).`,
-      };
+      return `Password minimal 8 karakter (${password.length}/8).`;
     }
-    return { valid: true, tone: "ok", message: "✓ Panjang password terpenuhi" };
+    return null;
   }, [password]);
 
-  const confirmCheck: FieldCheck = useMemo(() => {
-    if (!confirmPassword) {
-      return {
-        valid: false,
-        tone: "required",
-        message: "Wajib diisi — ulangi password.",
-      };
-    }
-    if (confirmPassword !== password) {
-      return {
-        valid: false,
-        tone: "error",
-        message: "Konfirmasi password tidak cocok.",
-      };
-    }
-    if (password.length < 8) {
-      return {
-        valid: false,
-        tone: "error",
-        message: "Password utama minimal 8 karakter.",
-      };
-    }
-    return { valid: true, tone: "ok", message: "✓ Password cocok" };
+  const confirmError = useMemo(() => {
+    if (!confirmPassword) return "Konfirmasi password wajib diisi.";
+    if (confirmPassword !== password) return "Konfirmasi password tidak cocok.";
+    return null;
   }, [confirmPassword, password]);
 
-  const allValid =
-    nameCheck.valid &&
-    npmCheck.valid &&
-    facultyCheck.valid &&
-    emailCheck.valid &&
-    passwordCheck.valid &&
-    confirmCheck.valid;
+  const showNameError = touched.fullName || submitAttempted ? nameError : null;
+  const showNpmError = touched.npm || submitAttempted ? npmError : null;
+  const showFacultyError =
+    touched.faculty || submitAttempted ? facultyError : null;
+  const showEmailError = touched.email || submitAttempted ? emailError : null;
+  const showPasswordError =
+    touched.password || submitAttempted ? passwordError : null;
+  const showConfirmError =
+    touched.confirmPassword || submitAttempted ? confirmError : null;
+
+  const hasValidationError = Boolean(
+    nameError ||
+      npmError ||
+      facultyError ||
+      emailError ||
+      passwordError ||
+      confirmError
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setSubmitAttempted(true);
 
-    if (!allValid) {
-      setError("Mohon lengkapi semua kolom wajib sesuai ketentuan sebelum mendaftar.");
+    if (hasValidationError) {
       return;
     }
 
     setLoading(true);
     try {
       const res = await register({
-        name: fullName.trim(),
+        name: fullName.trim().replace(/\s+/g, " "),
         email: email.trim().toLowerCase(),
         password,
         password_confirmation: confirmPassword,
-        nim: npm.trim(),
+        nim: npm,
         faculty,
       });
       if (res.token && res.user) {
@@ -207,10 +293,12 @@ export default function RegisterPage() {
     }
   }
 
-  function borderTone(check: FieldCheck): string {
-    if (check.tone === "error") return "border-rose-400 focus:border-rose-600";
-    if (check.tone === "ok") return "border-emerald-500 focus:border-emerald-600";
-    return "border-slate-300 focus:border-slate-900";
+  function inputClass(hasErr: boolean): string {
+    return `mt-1 w-full border-0 border-b bg-transparent px-0 py-1.5 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none ${
+      hasErr
+        ? "border-rose-400 focus:border-rose-600"
+        : "border-slate-300 focus:border-slate-900"
+    }`;
   }
 
   return (
@@ -229,8 +317,8 @@ export default function RegisterPage() {
         </>
       }
     >
-      <form className="space-y-3.5" onSubmit={handleSubmit} noValidate>
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+      <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label
               htmlFor="reg-fullname"
@@ -243,14 +331,17 @@ export default function RegisterPage() {
               name="fullName"
               type="text"
               autoComplete="name"
-              required
-              placeholder="Contoh: Budi Santoso"
+              placeholder="Budi Santoso"
               value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              onChange={(e) =>
+                setFullName(e.target.value.replace(/[^a-zA-Z\s]/g, ""))
+              }
+              onBlur={() => markTouched("fullName")}
               disabled={loading}
-              className={`mt-1 w-full border-0 border-b bg-transparent px-0 py-1.5 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none ${borderTone(nameCheck)}`}
+              aria-invalid={Boolean(showNameError)}
+              className={inputClass(Boolean(showNameError))}
             />
-            <FieldValidationNote check={nameCheck} />
+            <FieldErrorMessage message={showNameError} />
           </div>
 
           <div>
@@ -265,44 +356,37 @@ export default function RegisterPage() {
               name="npm"
               type="text"
               inputMode="numeric"
+              maxLength={11}
               autoComplete="off"
-              required
               placeholder="22081010001"
               value={npm}
-              onChange={(e) => setNpm(e.target.value)}
+              onChange={(e) =>
+                setNpm(e.target.value.replace(/\D/g, "").slice(0, 11))
+              }
+              onBlur={() => markTouched("npm")}
               disabled={loading}
-              className={`mt-1 w-full border-0 border-b bg-transparent px-0 py-1.5 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none ${borderTone(npmCheck)}`}
+              aria-invalid={Boolean(showNpmError)}
+              className={inputClass(Boolean(showNpmError))}
             />
-            <FieldValidationNote check={npmCheck} />
+            <FieldErrorMessage message={showNpmError} />
           </div>
         </div>
 
         <div>
-          <label
-            htmlFor="reg-faculty"
+          <span
+            id="reg-faculty-label"
             className="block text-[11px] font-medium text-slate-500"
           >
             Fakultas <span className="text-rose-500">*</span>
-          </label>
-          <select
-            id="reg-faculty"
-            name="faculty"
-            required
+          </span>
+          <FacultyDropdown
             value={faculty}
-            onChange={(e) => setFaculty(e.target.value)}
             disabled={loading}
-            className={`mt-1 w-full border-0 border-b bg-transparent px-0 py-1.5 text-sm focus:outline-none ${
-              faculty ? "text-slate-900" : "text-slate-400"
-            } ${borderTone(facultyCheck)}`}
-          >
-            <option value="">Pilih fakultas…</option>
-            {FAKULTAS_OPTIONS.map((opt) => (
-              <option key={opt} value={opt} className="text-slate-900">
-                {opt}
-              </option>
-            ))}
-          </select>
-          <FieldValidationNote check={facultyCheck} />
+            hasError={Boolean(showFacultyError)}
+            onChange={(val) => setFaculty(val)}
+            onBlurTrigger={() => markTouched("faculty")}
+          />
+          <FieldErrorMessage message={showFacultyError} />
         </div>
 
         <div>
@@ -317,17 +401,18 @@ export default function RegisterPage() {
             name="email"
             type="email"
             autoComplete="email"
-            required
             placeholder="nama@student.upnjatim.ac.id"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onBlur={() => markTouched("email")}
             disabled={loading}
-            className={`mt-1 w-full border-0 border-b bg-transparent px-0 py-1.5 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none ${borderTone(emailCheck)}`}
+            aria-invalid={Boolean(showEmailError)}
+            className={inputClass(Boolean(showEmailError))}
           />
-          <FieldValidationNote check={emailCheck} />
+          <FieldErrorMessage message={showEmailError} />
         </div>
 
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label
               htmlFor="reg-password"
@@ -335,25 +420,20 @@ export default function RegisterPage() {
             >
               Password <span className="text-rose-500">*</span>
             </label>
-            <div className="relative mt-1">
-              <input
-                id="reg-password"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                autoComplete="new-password"
-                required
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-                className={`w-full border-0 border-b bg-transparent py-1.5 pr-8 pl-0 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none ${borderTone(passwordCheck)}`}
-              />
-              <PasswordEyeButton
-                shown={showPassword}
-                onToggle={() => setShowPassword((v) => !v)}
-              />
-            </div>
-            <FieldValidationNote check={passwordCheck} />
+            <input
+              id="reg-password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onBlur={() => markTouched("password")}
+              disabled={loading}
+              aria-invalid={Boolean(showPasswordError)}
+              className={inputClass(Boolean(showPasswordError))}
+            />
+            <FieldErrorMessage message={showPasswordError} />
           </div>
 
           <div>
@@ -367,21 +447,31 @@ export default function RegisterPage() {
               <input
                 id="reg-confirm"
                 name="confirmPassword"
-                type={showConfirm ? "text" : "password"}
+                type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
-                required
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                onBlur={() => markTouched("confirmPassword")}
                 disabled={loading}
-                className={`w-full border-0 border-b bg-transparent py-1.5 pr-8 pl-0 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none ${borderTone(confirmCheck)}`}
+                aria-invalid={Boolean(showConfirmError)}
+                className={`w-full border-0 border-b bg-transparent py-1.5 pr-8 pl-0 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none ${
+                  showConfirmError
+                    ? "border-rose-400 focus:border-rose-600"
+                    : "border-slate-300 focus:border-slate-900"
+                }`}
               />
               <PasswordEyeButton
-                shown={showConfirm}
-                onToggle={() => setShowConfirm((v) => !v)}
+                shown={showPassword}
+                onToggle={() => setShowPassword((v) => !v)}
+                ariaLabel={
+                  showPassword
+                    ? "Sembunyikan password dan konfirmasi"
+                    : "Tampilkan password dan konfirmasi"
+                }
               />
             </div>
-            <FieldValidationNote check={confirmCheck} />
+            <FieldErrorMessage message={showConfirmError} />
           </div>
         </div>
 

@@ -70,15 +70,18 @@ export function AuthSplitShell({
 export function PasswordEyeButton({
   shown,
   onToggle,
+  ariaLabel,
 }: {
   shown: boolean;
   onToggle: () => void;
+  ariaLabel?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onToggle}
-      aria-label={shown ? "Sembunyikan password" : "Tampilkan password"}
+      aria-label={ariaLabel ?? (shown ? "Sembunyikan password" : "Tampilkan password")}
+      title={ariaLabel ?? (shown ? "Sembunyikan password" : "Tampilkan password")}
       className="absolute right-0 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition-colors hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
     >
       {shown ? (
@@ -106,23 +109,11 @@ export function PasswordEyeButton({
   );
 }
 
-export type FieldCheck = {
-  valid: boolean;
-  tone: "required" | "error" | "ok";
-  message: string;
-};
-
-export function FieldValidationNote({ check }: { check: FieldCheck }) {
-  const color =
-    check.tone === "ok"
-      ? "text-emerald-600"
-      : check.tone === "error"
-        ? "text-rose-600"
-        : "text-amber-700";
-
+export function FieldErrorMessage({ message }: { message: string | null }) {
+  if (!message) return null;
   return (
-    <p className={`mt-1 text-[11px] leading-4 font-medium ${color}`}>
-      {check.message}
+    <p role="alert" className="mt-1 text-[11px] leading-4 font-medium text-rose-600">
+      {message}
     </p>
   );
 }

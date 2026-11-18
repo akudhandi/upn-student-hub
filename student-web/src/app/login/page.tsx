@@ -5,67 +5,53 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AuthSplitShell,
-  FieldValidationNote,
+  FieldErrorMessage,
   PasswordEyeButton,
-  type FieldCheck,
 } from "@/components/AuthSplitShell";
 import { login, type ApiError } from "@/lib/api";
 import { setAuth } from "@/lib/auth";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+type LoginField = "email" | "password";
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [touched, setTouched] = useState<Partial<Record<LoginField, boolean>>>({});
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const emailCheck: FieldCheck = useMemo(() => {
+  function markTouched(field: LoginField) {
+    setTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
+  }
+
+  const emailError = useMemo(() => {
     const trimmed = email.trim();
-    if (!trimmed) {
-      return {
-        valid: false,
-        tone: "required",
-        message: "Wajib diisi — masukkan email akun mahasiswa Anda.",
-      };
-    }
+    if (!trimmed) return "Email kampus wajib diisi.";
     if (!EMAIL_RE.test(trimmed)) {
-      return {
-        valid: false,
-        tone: "error",
-        message: "Format email belum valid (contoh: nama@student.upnjatim.ac.id).",
-      };
+      return "Format email tidak valid (contoh: nama@student.upnjatim.ac.id).";
     }
-    return {
-      valid: true,
-      tone: "ok",
-      message: "✓ Format email valid",
-    };
+    return null;
   }, [email]);
 
-  const passwordCheck: FieldCheck = useMemo(() => {
-    if (!password) {
-      return {
-        valid: false,
-        tone: "required",
-        message: "Wajib diisi — masukkan password akun Anda.",
-      };
-    }
-    return {
-      valid: true,
-      tone: "ok",
-      message: "✓ Password terisi",
-    };
+  const passwordError = useMemo(() => {
+    if (!password) return "Password wajib diisi.";
+    return null;
   }, [password]);
+
+  const showEmailError = (touched.email || submitAttempted) ? emailError : null;
+  const showPasswordError = (touched.password || submitAttempted) ? passwordError : null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setSubmitAttempted(true);
 
-    if (!emailCheck.valid || !passwordCheck.valid) {
-      setError("Mohon lengkapi email dan password dengan format yang benar.");
+    if (emailError || passwordError) {
       return;
     }
 
@@ -118,20 +104,19 @@ export default function LoginPage() {
             name="email"
             type="email"
             autoComplete="email"
-            required
             placeholder="nama@student.upnjatim.ac.id"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onBlur={() => markTouched("email")}
             disabled={loading}
+            aria-invalid={Boolean(showEmailError)}
             className={`mt-1 w-full border-0 border-b bg-transparent px-0 py-2 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none ${
-              emailCheck.tone === "error"
+              showEmailError
                 ? "border-rose-400 focus:border-rose-600"
-                : emailCheck.tone === "ok"
-                  ? "border-emerald-500 focus:border-emerald-600"
-                  : "border-slate-300 focus:border-slate-900"
+                : "border-slate-300 focus:border-slate-900"
             }`}
           />
-          <FieldValidationNote check={emailCheck} />
+          <FieldErrorMessage message={showEmailError} />
         </div>
 
         <div>
@@ -147,14 +132,15 @@ export default function LoginPage() {
               name="password"
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
-              required
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onBlur={() => markTouched("password")}
               disabled={loading}
+              aria-invalid={Boolean(showPasswordError)}
               className={`w-full border-0 border-b bg-transparent py-2 pr-8 pl-0 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none ${
-                passwordCheck.tone === "ok"
-                  ? "border-emerald-500 focus:border-emerald-600"
+                showPasswordError
+                  ? "border-rose-400 focus:border-rose-600"
                   : "border-slate-300 focus:border-slate-900"
               }`}
             />
@@ -163,7 +149,7 @@ export default function LoginPage() {
               onToggle={() => setShowPassword((v) => !v)}
             />
           </div>
-          <FieldValidationNote check={passwordCheck} />
+          <FieldErrorMessage message={showPasswordError} />
         </div>
 
         {error && (

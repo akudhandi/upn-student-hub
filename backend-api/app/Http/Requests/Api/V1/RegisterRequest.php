@@ -14,10 +14,10 @@ class RegisterRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'min:2', 'max:255'],
+            'name' => ['required', 'string', 'min:2', 'max:255', 'regex:/^[A-Za-z\s]+$/'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email', 'ends_with:@student.upnjatim.ac.id'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'nim' => ['nullable', 'string', 'regex:/^[0-9]{8,15}$/'],
+            'nim' => ['nullable', 'string', 'regex:/^[0-9]{11}$/'],
             'faculty' => ['nullable', 'string', 'max:255'],
             'bio' => ['nullable', 'string'],
         ];
@@ -27,7 +27,8 @@ class RegisterRequest extends FormRequest
     {
         return [
             'name.required' => 'Nama lengkap wajib diisi.',
-            'name.min' => 'Nama lengkap minimal 2 karakter.',
+            'name.min' => 'Nama lengkap minimal 2 huruf.',
+            'name.regex' => 'Nama lengkap hanya boleh berisi huruf alfabet dan spasi.',
             'email.required' => 'Email kampus wajib diisi.',
             'email.email' => 'Format email tidak valid.',
             'email.unique' => 'Email ini sudah terdaftar. Silakan masuk dengan akun Anda.',
@@ -35,7 +36,7 @@ class RegisterRequest extends FormRequest
             'password.required' => 'Password wajib diisi.',
             'password.min' => 'Password minimal 8 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
-            'nim.regex' => 'NPM harus berupa 8–15 digit angka.',
+            'nim.regex' => 'NPM harus tepat 11 digit angka.',
         ];
     }
 }

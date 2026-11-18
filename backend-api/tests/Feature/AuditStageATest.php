@@ -353,15 +353,15 @@ class AuditStageATest extends TestCase
 
     public function test_student_register_validates_upn_domain_and_nim_and_saves_profile(): void
     {
-        // Non-UPN domain and overly long NIM must fail 422
+        // Non-alphabet name, non-UPN domain, short password, and non-11-digit NIM must fail 422
         $this->postJson('/api/v1/auth/register', [
-            'name' => 'Testing User',
+            'name' => 'Testing@123',
             'email' => 'aisjdi@gjkal.coma',
             'password' => '1234567',
             'password_confirmation' => '1234567',
             'nim' => '2390182930810293890',
         ])->assertStatus(422)
-            ->assertJsonValidationErrors(['email', 'password', 'nim']);
+            ->assertJsonValidationErrors(['name', 'email', 'password', 'nim']);
 
         // Valid UPN student registration saves profile (nim + faculty) and returns token
         $ok = $this->postJson('/api/v1/auth/register', [
