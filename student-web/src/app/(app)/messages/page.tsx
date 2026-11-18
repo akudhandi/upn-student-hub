@@ -1,9 +1,20 @@
 "use client";
 
-import { Fragment, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { getUser } from "@/lib/auth";
+import ListingImage from "@/components/ListingImage";
+import VerifiedBadge from "@/components/VerifiedBadge";
+import { accountTypeLabel, getUser } from "@/lib/auth";
+import type { ApiImage, ImageModule } from "@/lib/images";
 import {
   deleteChatMessage,
   fetchConversation,
@@ -17,41 +28,76 @@ import {
   type InteractableType,
 } from "@/lib/interactions";
 
-const AVATAR_TONES = [
-  "bg-amber-100 text-amber-800",
-  "bg-emerald-100 text-emerald-800",
-  "bg-teal-100 text-teal-800",
-  "bg-indigo-100 text-indigo-700",
-  "bg-rose-100 text-rose-800",
-];
+type ExtendedRecipient = NonNullable<ConversationItem["recipient"]> & {
+  account_type?: string | null;
+  is_official_account?: boolean;
+};
 
-const CONTEXT_COLORS: Record<string, string> = {
-  marketplace: "text-amber-600",
-  service: "text-teal-600",
-  lostfound: "text-indigo-600",
-  event: "text-sky-600",
+type ExtendedContext = ChatContext & {
+  images?: ApiImage[] | null;
+};
+
+const CONTEXT_LABELS: Record<string, string> = {
+  marketplace: "Marketplace",
+  service: "Jasa & Layanan",
+  lostfound: "Barang Hilang",
+  event: "Event & Info",
 };
 
 function initialsOf(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  return (
+    name
+      .split(" ")
+      .map((w) => w[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "UP"
+  );
 }
 
-function toneOf(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  return AVATAR_TONES[hash % AVATAR_TONES.length];
+function isOfficialRecipient(recipient: ConversationItem["recipient"]): boolean {
+  if (!recipient) return false;
+  const r = recipient as ExtendedRecipient;
+  if (r.is_official_account === true) return true;
+  return (
+    r.account_type === "hima" ||
+    r.account_type === "ormawa" ||
+    r.account_type === "faculty"
+  );
+}
+
+function recipientRoleLabel(recipient: ConversationItem["recipient"]): string {
+  if (!recipient) return "Mahasiswa UPN";
+  const r = recipient as ExtendedRecipient;
+  if (
+    r.account_type === "hima" ||
+    r.account_type === "ormawa" ||
+    r.account_type === "faculty"
+  ) {
+    return accountTypeLabel(r.account_type);
+  }
+  if (r.is_official_account === true) {
+    return "Akun Resmi UPN";
+  }
+  return "Mahasiswa UPN";
+}
+
+function isImageModule(type: string | null | undefined): type is ImageModule {
+  return (
+    type === "marketplace" ||
+    type === "service" ||
+    type === "lostfound" ||
+    type === "event"
+  );
 }
 
 function formatClock(isoDate: string): string {
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }).replace(":", ".");
+  return date
+    .toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+    .replace(":", ".");
 }
 
 function formatThreadTime(isoDate: string | null): string {
@@ -59,8 +105,7 @@ function formatThreadTime(isoDate: string | null): string {
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) return "";
   const now = new Date();
-  const sameDay = date.toDateString() === now.toDateString();
-  if (sameDay) return formatClock(isoDate);
+  if (date.toDateString() === now.toDateString()) return formatClock(isoDate);
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
   if (date.toDateString() === yesterday.toDateString()) return "Kemarin";
@@ -83,7 +128,11 @@ function formatDayLabel(isoDate: string): string {
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
   if (date.toDateString() === yesterday.toDateString()) return "Kemarin";
-  return date.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  return date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function contextDetailHref(context: ChatContext | null): string | null {
@@ -102,13 +151,59 @@ function contextDetailHref(context: ChatContext | null): string | null {
   }
 }
 
+function ContextThumbnail({ context }: { context: ChatContext }) {
+  const extended = context as ExtendedContext;
+  if (isImageModule(context.type) && context.id !== null) {
+    return (
+      <div className="h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-[#E5E0DA] bg-[#EFECE8]">
+        <ListingImage
+          module={context.type}
+          seed={context.id}
+          hint={context.title}
+          images={extended.images}
+          eager
+          width={88}
+          height={88}
+          alt={context.title ? `Foto ${context.title}` : "Foto listing"}
+          className="h-full w-full object-cover"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <span
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#E5E0DA] bg-white text-[#57534E]"
+      aria-hidden="true"
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M5 4.5C5 4 5.4 3.5 6 3.5H15L19 7.5V19.5C19 20 18.6 20.5 18 20.5H6C5.4 20.5 5 20 5 19.5V4.5Z"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M15 3.5V7.5H19"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </span>
+  );
+}
+
 function ThreadSkeleton() {
   return (
-    <div className="flex items-start gap-3 px-4 py-3">
-      <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-slate-100" />
-      <div className="min-w-0 flex-1 space-y-2">
-        <div className="h-3 w-2/3 animate-pulse rounded bg-slate-100" />
-        <div className="h-3 w-full animate-pulse rounded bg-slate-100" />
+    <div className="flex items-start gap-3 px-4 py-3.5">
+      <div className="h-11 w-11 shrink-0 animate-pulse rounded-full bg-[#EFECE8]" />
+      <div className="min-w-0 flex-1 space-y-2 pt-0.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="h-3.5 w-1/2 animate-pulse rounded-md bg-[#EFECE8]" />
+          <div className="h-3 w-12 animate-pulse rounded-md bg-[#F4F1EE]" />
+        </div>
+        <div className="h-3.5 w-4/5 animate-pulse rounded-md bg-[#F4F1EE]" />
       </div>
     </div>
   );
@@ -126,6 +221,7 @@ function MessagesContent() {
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<ChatMessageItem[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [messagesError, setMessagesError] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
@@ -136,12 +232,39 @@ function MessagesContent() {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
+
+  const logRef = useRef<HTMLDivElement>(null);
   const activeIdRef = useRef<number | null>(null);
+  const shouldScrollToBottomRef = useRef(false);
+  const isNearBottomRef = useRef(true);
+  const prevMessageCountRef = useRef(0);
 
   useEffect(() => {
     activeIdRef.current = activeId;
   }, [activeId]);
+
+  const scrollToBottom = useCallback((behavior?: ScrollBehavior) => {
+    const el = logRef.current;
+    if (!el) return;
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior: prefersReduced ? "auto" : (behavior ?? "smooth"),
+    });
+    isNearBottomRef.current = true;
+  }, []);
+
+  const handleLogScroll = useCallback(() => {
+    const el = logRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const nearBottom = distanceFromBottom < 96;
+    isNearBottomRef.current = nearBottom;
+    setShowScrollBottom(!nearBottom && el.scrollHeight > el.clientHeight + 96);
+  }, []);
 
   const loadThreads = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -153,7 +276,9 @@ function MessagesContent() {
     } catch {
       if (signal?.aborted) return;
       setThreads([]);
-      setThreadsError("Gagal memuat percakapan. Periksa koneksi ke backend lalu coba lagi.");
+      setThreadsError(
+        "Gagal memuat daftar percakapan. Periksa koneksi backend lalu coba lagi."
+      );
     } finally {
       if (signal?.aborted) return;
       setIsLoadingThreads(false);
@@ -175,35 +300,59 @@ function MessagesContent() {
         // eslint-disable-next-line react-hooks/set-state-in-effect -- URL-driven selection must sync state
         setActiveId(id);
         setMobileView("chat");
+        shouldScrollToBottomRef.current = true;
+        prevMessageCountRef.current = 0;
+        isNearBottomRef.current = true;
       }
     }
   }, [requestedId]);
 
-  const loadMessages = useCallback(async (id: number, markRead: boolean, signal?: AbortSignal) => {
-    try {
-      if (markRead) setIsLoadingMessages(true);
-      const { conversation: detail, messages: history } = await fetchConversation(id);
-      if (signal?.aborted) return;
-      setMessages(history);
-      setThreads((prev) =>
-        prev.map((t) =>
-          t.id === id ? { ...t, unread_count: 0, last_message: detail.last_message } : t
-        )
-      );
-      if (markRead || (detail.unread_count ?? 0) > 0) {
-        try {
-          await markConversationRead(id);
-          window.dispatchEvent(new Event("upn-messages-updated"));
-        } catch {
-          // Non-fatal: unread badge refreshes on next poll.
+  const loadMessages = useCallback(
+    async (id: number, markRead: boolean, signal?: AbortSignal) => {
+      try {
+        if (markRead) {
+          setIsLoadingMessages(true);
+          setMessagesError(null);
         }
+        const { conversation: detail, messages: history } = await fetchConversation(id);
+        if (signal?.aborted) return;
+        setMessages(history);
+        setThreads((prev) => {
+          const exists = prev.some((t) => t.id === id);
+          if (!exists) return [{ ...detail, unread_count: 0 }, ...prev];
+          return prev.map((t) =>
+            t.id === id
+              ? {
+                  ...t,
+                  unread_count: 0,
+                  last_message: detail.last_message,
+                  context: detail.context ?? t.context,
+                  recipient: detail.recipient ?? t.recipient,
+                }
+              : t
+          );
+        });
+        if (markRead || (detail.unread_count ?? 0) > 0) {
+          try {
+            await markConversationRead(id);
+            window.dispatchEvent(new Event("upn-messages-updated"));
+          } catch {
+            // Non-fatal: unread badge refreshes on next poll.
+          }
+        }
+      } catch {
+        if (!signal?.aborted && markRead) {
+          setMessages([]);
+          setMessagesError(
+            "Gagal memuat riwayat pesan. Periksa koneksi backend lalu coba lagi."
+          );
+        }
+      } finally {
+        if (!signal?.aborted && markRead) setIsLoadingMessages(false);
       }
-    } catch {
-      if (!signal?.aborted && markRead) setMessages([]);
-    } finally {
-      if (!signal?.aborted && markRead) setIsLoadingMessages(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   // Open thread: full load + mark read.
   useEffect(() => {
@@ -214,7 +363,7 @@ function MessagesContent() {
     return () => controller.abort();
   }, [activeId, loadMessages]);
 
-  // Auto-poll active thread every 5s for smooth dev experience.
+  // Auto-poll active thread every 5s.
   useEffect(() => {
     if (activeId === null) return;
     const timer = setInterval(() => {
@@ -251,9 +400,44 @@ function MessagesContent() {
     };
   }, []);
 
+  // Close open message menu on Escape or outside click.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, activeId]);
+    if (openMenuId === null) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpenMenuId(null);
+    }
+    function handlePointerDown(e: PointerEvent) {
+      if (
+        e.target instanceof Element &&
+        !e.target.closest("[data-message-menu]")
+      ) {
+        setOpenMenuId(null);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [openMenuId]);
+
+  // Scroll only the message log container when switching threads or receiving new messages near bottom.
+  useEffect(() => {
+    if (isLoadingMessages) return;
+    const hadNewMessage = messages.length > prevMessageCountRef.current;
+    prevMessageCountRef.current = messages.length;
+
+    if (shouldScrollToBottomRef.current) {
+      shouldScrollToBottomRef.current = false;
+      scrollToBottom("auto");
+      return;
+    }
+
+    if (hadNewMessage && isNearBottomRef.current) {
+      scrollToBottom("smooth");
+    }
+  }, [messages, activeId, isLoadingMessages, scrollToBottom]);
 
   const active = threads.find((t) => t.id === activeId) ?? null;
 
@@ -271,6 +455,13 @@ function MessagesContent() {
   }, [threads, filter, query]);
 
   function openChat(id: number) {
+    if (id !== activeId) {
+      shouldScrollToBottomRef.current = true;
+      prevMessageCountRef.current = 0;
+      isNearBottomRef.current = true;
+      setShowScrollBottom(false);
+      setMessagesError(null);
+    }
     setActiveId(id);
     setMobileView("chat");
     setOpenMenuId(null);
@@ -282,7 +473,9 @@ function MessagesContent() {
     await loadMessages(id, false);
     try {
       const data = await fetchConversations();
-      setThreads(data);
+      setThreads(
+        data.map((t) => (t.id === id ? { ...t, unread_count: 0 } : t))
+      );
     } catch {
       // Non-fatal: thread preview refreshes on next poll.
     }
@@ -320,7 +513,9 @@ function MessagesContent() {
 
   async function removeMessage(messageId: number) {
     if (activeId === null || deletingId !== null) return;
-    const ok = window.confirm("Hapus pesan ini? Pesan akan tampil sebagai “Pesan ini telah dihapus”.");
+    const ok = window.confirm(
+      "Hapus pesan ini? Pesan akan tampil sebagai \"Pesan ini telah dihapus\"."
+    );
     if (!ok) return;
     setDeletingId(messageId);
     setOpenMenuId(null);
@@ -341,6 +536,9 @@ function MessagesContent() {
     const text = draft.trim();
     if (!text || activeId === null || isSending) return;
     setIsSending(true);
+    setActionError(null);
+    isNearBottomRef.current = true;
+    shouldScrollToBottomRef.current = true;
     const optimistic: ChatMessageItem = {
       id: Date.now(),
       body: text,
@@ -353,9 +551,14 @@ function MessagesContent() {
       await sendChatMessage(activeId, text);
       await loadMessages(activeId, false);
       const data = await fetchConversations();
-      setThreads(data);
+      setThreads(
+        data.map((t) => (t.id === activeId ? { ...t, unread_count: 0 } : t))
+      );
+      window.dispatchEvent(new Event("upn-messages-updated"));
     } catch {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+      setDraft((curr) => (curr === "" ? text : curr));
+      setActionError("Gagal mengirim pesan. Periksa koneksi lalu coba lagi.");
     } finally {
       setIsSending(false);
     }
@@ -364,27 +567,78 @@ function MessagesContent() {
   const unreadTotal = threads.reduce((sum, t) => sum + (t.unread_count || 0), 0);
 
   return (
-    <div className="-mx-4 -my-6 lg:-mx-6">
-      <div className="grid h-[calc(100vh-64px)] grid-cols-1 bg-white lg:grid-cols-[300px_1fr_280px]">
+    <div className="auth-shell-enter mx-auto max-w-[1200px] space-y-5">
+      {/* Calm Header Band (hidden on mobile active chat to preserve viewport height) */}
+      <section
+        className={`${
+          mobileView === "chat" ? "hidden md:flex" : "flex"
+        } flex-col justify-between gap-4 border-b border-[#E5E0DA] pb-5 lg:flex-row lg:items-end`}
+      >
+        <div className="space-y-1.5">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] font-medium text-[#6E6A66]">
+            <span>Portal Mahasiswa</span>
+            <span aria-hidden="true" className="text-[#CFC8BF]">
+              /
+            </span>
+            <span className="text-[#141416]">Pesan 1-on-1</span>
+            <span aria-hidden="true" className="text-[#CFC8BF]">
+              ·
+            </span>
+            <span>
+              {isLoadingThreads
+                ? "Memuat percakapan…"
+                : threadsError
+                  ? "Gagal memuat percakapan"
+                  : `${threads.length} percakapan${
+                      unreadTotal > 0 ? `, ${unreadTotal} belum dibaca` : ""
+                    }`}
+            </span>
+          </div>
+
+          <h1 className="font-display text-2xl font-semibold tracking-[-0.02em] text-[#141416] sm:text-[30px] sm:leading-[1.18]">
+            Kotak pesan.{" "}
+            <span className="font-normal text-[#6E6A66]">
+              Komunikasi 1-on-1 seputar listing dan transaksi kampus.
+            </span>
+          </h1>
+        </div>
+      </section>
+
+      {/* Unified Split Inbox */}
+      <div
+        className={`grid overflow-hidden rounded-[20px] border border-[#E5E0DA] bg-white grid-cols-1 md:h-[calc(100dvh-248px)] md:min-h-[520px] md:max-h-[760px] md:grid-cols-[270px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_272px] ${
+          mobileView === "chat"
+            ? "h-[calc(100dvh-130px)] min-h-[440px]"
+            : "min-h-[460px]"
+        }`}
+      >
         {/* ---------- COLUMN 1: Inbox list ---------- */}
         <section
           aria-label="Daftar percakapan"
           className={`${
             mobileView === "chat" ? "hidden" : "flex"
-          } flex-col border-r border-slate-200 lg:flex`}
+          } min-h-0 min-w-0 flex-col border-[#E5E0DA] bg-white md:flex md:border-r`}
         >
-          <div className="border-b border-slate-200 px-4 pb-3 pt-4">
-            <div className="flex items-center justify-between">
-              <h1 className="text-lg font-bold tracking-tight text-slate-900">Pesan Masuk</h1>
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
-                {threads.length} Percakapan
+          <div className="border-b border-[#E5E0DA] p-4">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="font-display text-[17px] font-semibold tracking-tight text-[#141416]">
+                Percakapan
+              </h2>
+              <span className="rounded-md bg-[#F4F1EE] px-2.5 py-1 text-[13px] font-medium text-[#57534E]">
+                {threads.length} obrolan
               </span>
             </div>
+
             <div className="relative mt-3">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.2" />
-                  <path d="M10.5 10.5L13 13" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#66625E]">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.4" />
+                  <path
+                    d="M10.5 10.5L13 13"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                    strokeLinecap="round"
+                  />
                 </svg>
               </span>
               <label htmlFor="search-chat" className="sr-only">
@@ -392,12 +646,33 @@ function MessagesContent() {
               </label>
               <input
                 id="search-chat"
+                type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Cari obrolan..."
-                className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:bg-white focus:outline-none"
+                placeholder="Cari nama, pesan, atau listing..."
+                className={`h-11 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-10 text-[14px] text-[#141416] placeholder:text-[#66625E] transition-colors hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:outline-none ${
+                  query ? "pr-11" : "pr-3.5"
+                }`}
               />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  aria-label="Hapus pencarian"
+                  className="absolute right-0 top-0 inline-flex h-11 w-11 items-center justify-center rounded-xl text-[#57534E] transition-colors hover:text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path
+                      d="M4 4l8 8M12 4l-8 8"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              )}
             </div>
+
             <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filter percakapan">
               {(["Semua", "Belum Dibaca"] as const).map((f) => {
                 const isActive = filter === f;
@@ -408,10 +683,10 @@ function MessagesContent() {
                     type="button"
                     onClick={() => setFilter(f)}
                     aria-pressed={isActive}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2 ${
+                    className={`min-h-[44px] rounded-full px-4 py-2 text-[13px] font-medium transition-colors duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
                       isActive
-                        ? "bg-[#002147] text-white"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        ? "bg-[#141416] text-white"
+                        : "bg-[#F4F1EE] text-[#57534E] hover:bg-[#EAE6E2] hover:text-[#141416]"
                     }`}
                   >
                     {label}
@@ -422,67 +697,149 @@ function MessagesContent() {
           </div>
 
           {isLoadingThreads ? (
-            <div role="status" aria-busy="true" aria-label="Memuat percakapan" className="flex-1 overflow-hidden">
+            <div
+              role="status"
+              aria-busy="true"
+              aria-label="Memuat percakapan"
+              className="flex-1 divide-y divide-[#F1EDE8] overflow-hidden"
+            >
               {Array.from({ length: 5 }).map((_, i) => (
                 <ThreadSkeleton key={i} />
               ))}
               <span className="sr-only">Memuat percakapan…</span>
             </div>
           ) : threadsError ? (
-            <div role="alert" className="px-4 py-10 text-center">
-              <p className="text-sm font-medium text-slate-900">Gagal memuat percakapan</p>
-              <p className="mt-1 text-xs text-slate-500">{threadsError}</p>
+            <div role="alert" className="flex flex-1 flex-col items-center justify-center px-5 py-10 text-center">
+              <div className="w-full rounded-2xl border border-[#E8C5C5] bg-[#FDF2F2] p-4">
+                <p className="font-display text-[15px] font-semibold text-[#B83232]">
+                  Gagal memuat percakapan
+                </p>
+                <p className="mt-1 text-[13px] leading-relaxed text-[#B83232]">
+                  {threadsError}
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => void loadThreads()}
-                className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                className="mt-4 inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-5 text-[13px] font-medium text-white transition-colors hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
               >
-                Coba lagi
+                Muat ulang percakapan
+              </button>
+            </div>
+          ) : threads.length === 0 ? (
+            <div className="flex flex-1 flex-col items-center justify-center px-5 py-12 text-center">
+              <h3 className="font-display text-[16px] font-semibold text-[#141416]">
+                Belum ada percakapan
+              </h3>
+              <p className="mt-1.5 max-w-[260px] text-[14px] leading-relaxed text-[#6E6A66]">
+                Mulai chat 1-on-1 langsung dari halaman detail barang, jasa, atau barang hilang.
+              </p>
+              <Link
+                href="/marketplace"
+                className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-5 text-[13px] font-medium text-white transition-colors hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] md:hidden"
+              >
+                Jelajahi marketplace
+              </Link>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-1 flex-col items-center justify-center px-5 py-12 text-center">
+              <h3 className="font-display text-[16px] font-semibold text-[#141416]">
+                Tidak ada obrolan yang cocok
+              </h3>
+              <p className="mt-1.5 max-w-[260px] text-[14px] leading-relaxed text-[#6E6A66]">
+                {filter === "Belum Dibaca" && query.trim() === ""
+                  ? "Semua pesan sudah dibaca. Tampilkan seluruh percakapan untuk melihat riwayat."
+                  : "Coba ubah kata kunci pencarian atau tampilkan semua obrolan."}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilter("Semua");
+                  setQuery("");
+                }}
+                className="mt-5 inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-5 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] hover:bg-[#FAF8F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+              >
+                Tampilkan semua obrolan
               </button>
             </div>
           ) : (
-            <ul className="flex-1 divide-y divide-slate-100 overflow-y-auto" role="list">
+            <ul className="flex-1 divide-y divide-[#F1EDE8] overflow-y-auto" role="list">
               {filtered.map((t) => {
-                const name = t.recipient?.name ?? "Pengguna UPN";
+                const name = t.recipient?.name?.trim() || "Pengguna UPN";
+                const official = isOfficialRecipient(t.recipient);
                 const isActive = t.id === activeId;
-                const contextColor = t.context?.type ? (CONTEXT_COLORS[t.context.type] ?? "text-slate-500") : "text-slate-500";
+                const contextLabel = t.context?.type
+                  ? CONTEXT_LABELS[t.context.type] ?? null
+                  : null;
                 return (
                   <li key={t.id}>
                     <button
                       type="button"
                       onClick={() => openChat(t.id)}
                       aria-current={isActive ? "true" : undefined}
-                      className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#002147] ${
-                        isActive ? "border-l-[3px] border-[#002147] bg-slate-100/70" : "border-l-[3px] border-transparent"
+                      className={`flex min-h-[76px] w-full items-start gap-3 border-l-[3px] px-4 py-3.5 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#141416] ${
+                        isActive
+                          ? "border-l-[#141416] bg-[#EFECE8]"
+                          : "border-l-transparent bg-white hover:bg-[#FAF8F6]"
                       }`}
                     >
-                      <span className="relative shrink-0">
-                        <span
-                          className={`flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold ${toneOf(name)}`}
-                          aria-hidden="true"
-                        >
-                          {initialsOf(name)}
-                        </span>
+                      <span
+                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold ${
+                          isActive
+                            ? "bg-[#141416] text-white"
+                            : "border border-[#E5E0DA] bg-[#F4F1EE] text-[#141416]"
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {initialsOf(name)}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-baseline justify-between gap-2">
-                          <span className="truncate text-sm font-semibold text-slate-900">{name}</span>
-                          <span className="shrink-0 text-[11px] text-slate-400">
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <span className="truncate text-[14px] font-semibold text-[#141416]">
+                              {name}
+                            </span>
+                            {official && (
+                              <VerifiedBadge
+                                size="xs"
+                                title={`${recipientRoleLabel(t.recipient)} terverifikasi`}
+                              />
+                            )}
+                          </span>
+                          <span
+                            className={`shrink-0 text-[13px] ${
+                              isActive ? "text-[#5F5B57]" : "text-[#6E6A66]"
+                            }`}
+                          >
                             {formatThreadTime(t.last_message?.created_at ?? t.updated_at)}
                           </span>
                         </span>
+
                         {t.context?.title && (
-                          <span className={`mt-0.5 block truncate text-xs font-medium ${contextColor}`}>
-                            {t.context.title}
+                          <span
+                            className={`mt-0.5 block truncate text-[13px] font-medium ${
+                              isActive ? "text-[#141416]" : "text-[#57534E]"
+                            }`}
+                          >
+                            {contextLabel ? `${contextLabel}: ${t.context.title}` : t.context.title}
                           </span>
                         )}
-                        <span className="mt-0.5 flex items-center justify-between gap-2">
-                          <span className="truncate text-xs text-slate-500">
+
+                        <span className="mt-1 flex items-center justify-between gap-2">
+                          <span
+                            className={`truncate text-[13px] ${
+                              t.unread_count > 0
+                                ? "font-semibold text-[#141416]"
+                                : isActive
+                                  ? "text-[#57534E]"
+                                  : "text-[#6E6A66]"
+                            }`}
+                          >
                             {t.last_message?.body ?? "Belum ada pesan"}
                           </span>
                           {t.unread_count > 0 && (
                             <span
-                              className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-[#002147] px-1 text-[10px] font-bold text-white"
+                              className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-[#141416] px-2 text-[13px] font-semibold text-white"
                               aria-label={`${t.unread_count} pesan belum dibaca`}
                             >
                               {t.unread_count}
@@ -494,12 +851,6 @@ function MessagesContent() {
                   </li>
                 );
               })}
-              {filtered.length === 0 && (
-                <li className="px-4 py-10 text-center">
-                  <p className="text-sm font-medium text-slate-900">Tidak ada percakapan</p>
-                  <p className="mt-1 text-xs text-slate-500">Coba ubah kata kunci atau filter.</p>
-                </li>
-              )}
             </ul>
           )}
         </section>
@@ -508,265 +859,479 @@ function MessagesContent() {
         {active === null ? (
           <section
             aria-label="Belum ada percakapan aktif"
-            className="hidden min-h-0 flex-col items-center justify-center bg-[#F8F9FB] px-6 text-center lg:flex"
+            className={`${
+              mobileView === "chat" ? "flex" : "hidden md:flex"
+            } min-h-0 min-w-0 flex-col items-center justify-center bg-[#FAF8F6] px-6 py-12 text-center`}
           >
-            <p className="text-sm font-semibold text-slate-900">Pilih percakapan untuk memulai chat</p>
-            <p className="mt-1 max-w-[320px] text-xs leading-5 text-slate-500">
-              Pilih salah satu thread di daftar, atau mulai chat baru dari halaman detail listing.
-            </p>
+            {isLoadingThreads && requestedId ? (
+              <div role="status" aria-busy="true" className="space-y-3">
+                <p className="font-display text-[16px] font-semibold text-[#141416]">
+                  Membuka percakapan…
+                </p>
+                <p className="text-[14px] text-[#6E6A66]">
+                  Mengambil riwayat pesan dari server.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setMobileView("list")}
+                  className="mt-2 inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-5 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] md:hidden"
+                >
+                  Kembali ke daftar pesan
+                </button>
+              </div>
+            ) : threads.length === 0 ? (
+              <>
+                <div
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#E5E0DA] bg-white text-[#57534E]"
+                  aria-hidden="true"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M4 5.5A2.5 2.5 0 016.5 3h11A2.5 2.5 0 0120 5.5v8a2.5 2.5 0 01-2.5 2.5H10l-4.5 4v-4H6.5A2.5 2.5 0 014 13.5v-8z"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+                <h2 className="mt-4 font-display text-[18px] font-semibold text-[#141416]">
+                  Kotak pesan masih kosong
+                </h2>
+                <p className="mt-1.5 max-w-[360px] text-[14px] leading-relaxed text-[#6E6A66]">
+                  Percakapan 1-on-1 dimulai dari tombol chat di halaman detail barang marketplace, jasa mahasiswa, atau laporan barang hilang.
+                </p>
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                  <Link
+                    href="/marketplace"
+                    className="inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-colors hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                  >
+                    Buka marketplace
+                  </Link>
+                  <Link
+                    href="/services"
+                    className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-6 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] hover:bg-[#FAF8F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                  >
+                    Lihat jasa mahasiswa
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#E5E0DA] bg-white text-[#57534E]"
+                  aria-hidden="true"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M4 5.5A2.5 2.5 0 016.5 3h11A2.5 2.5 0 0120 5.5v8a2.5 2.5 0 01-2.5 2.5H10l-4.5 4v-4H6.5A2.5 2.5 0 014 13.5v-8z"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+                <h2 className="mt-4 font-display text-[18px] font-semibold text-[#141416]">
+                  {requestedId && mobileView === "chat"
+                    ? "Percakapan tidak ditemukan"
+                    : "Pilih percakapan untuk memulai"}
+                </h2>
+                <p className="mt-1.5 max-w-[340px] text-[14px] leading-relaxed text-[#6E6A66]">
+                  {requestedId && mobileView === "chat"
+                    ? "Obrolan yang diminta tidak tersedia atau Anda bukan pesertanya."
+                    : "Pilih salah satu obrolan di daftar sebelah kiri untuk membaca dan membalas pesan."}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setMobileView("list")}
+                  className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-colors hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] md:hidden"
+                >
+                  Kembali ke daftar pesan
+                </button>
+              </>
+            )}
           </section>
         ) : (
           <section
-            aria-label={`Percakapan dengan ${active.recipient?.name ?? "pengguna"}`}
+            aria-label={`Percakapan dengan ${active.recipient?.name?.trim() || "pengguna"}`}
             className={`${
               mobileView === "list" ? "hidden" : "flex"
-            } min-h-0 flex-col bg-[#F8F9FB] lg:flex`}
+            } min-h-0 min-w-0 flex-col bg-white md:flex`}
           >
             {/* Chat header */}
-            <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3">
+            <div className="flex items-center gap-3 border-b border-[#E5E0DA] bg-white px-4 py-3 sm:px-5">
               <button
                 type="button"
-                onClick={() => setMobileView("list")}
+                onClick={() => {
+                  setMobileView("list");
+                  setOpenMenuId(null);
+                }}
                 aria-label="Kembali ke daftar pesan"
-                className="inline-flex h-8 w-8 items-center justify-center rounded border border-slate-200 text-slate-600 hover:bg-slate-50 lg:hidden"
+                className="inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center gap-1 rounded-full border border-[#E5E0DA] bg-[#F6F4F1] pl-3 pr-3.5 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#CFC8BF] hover:bg-[#EFECE8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] md:hidden"
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path d="M10 3L5 8L10 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M10 3L5 8L10 13"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
+                <span>Kembali</span>
               </button>
-              <span className="relative shrink-0">
-                <span
-                  className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold ${toneOf(active.recipient?.name ?? "?")}`}
-                  aria-hidden="true"
-                >
-                  {initialsOf(active.recipient?.name ?? "?")}
-                </span>
+
+              <span
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#141416] text-[13px] font-semibold text-white"
+                aria-hidden="true"
+              >
+                {initialsOf(active.recipient?.name?.trim() || "UP")}
               </span>
+
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-slate-900">
-                  {active.recipient?.name ?? "Pengguna UPN"}
+                <p className="flex items-center gap-1.5 font-display text-[15px] font-semibold text-[#141416]">
+                  <span className="truncate">
+                    {active.recipient?.name?.trim() || "Pengguna UPN"}
+                  </span>
+                  {isOfficialRecipient(active.recipient) && (
+                    <VerifiedBadge
+                      size="xs"
+                      title={`${recipientRoleLabel(active.recipient)} terverifikasi`}
+                    />
+                  )}
                 </p>
-                <p className="truncate text-xs text-slate-500">Mahasiswa UPN</p>
+                <p className="truncate text-[13px] text-[#6E6A66]">
+                  {recipientRoleLabel(active.recipient)}
+                </p>
               </div>
             </div>
 
-            {/* Context banner */}
+            {/* Listing context strip */}
             {active.context?.title && (
-              <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-2.5">
-                <span className="flex h-11 w-9 shrink-0 items-center justify-center rounded border border-slate-200 bg-[#EEF2F7] text-slate-400" aria-hidden="true">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M5 4.5C5 4 5.4 3.5 6 3.5H15L19 7.5V19.5C19 20 18.6 20.5 18 20.5H6C5.4 20.5 5 20 5 19.5V4.5Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-                    <path d="M15 3.5V7.5H19" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-                  </svg>
-                </span>
+              <div className="flex items-center gap-3 border-b border-[#E5E0DA] bg-[#F6F4F1] px-4 py-2.5 sm:px-5">
+                <ContextThumbnail context={active.context} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs text-slate-500">
-                    Menanyakan listing: <span className="font-medium text-slate-700">{active.context.title}</span>
+                  <p className="text-[13px] text-[#6E6A66]">
+                    {active.context.type && CONTEXT_LABELS[active.context.type]
+                      ? `Membahas ${CONTEXT_LABELS[active.context.type]}`
+                      : "Membahas listing"}
+                  </p>
+                  <p className="truncate text-[14px] font-semibold text-[#141416]">
+                    {active.context.title}
                   </p>
                 </div>
                 {contextDetailHref(active.context) && (
                   <Link
                     href={contextDetailHref(active.context) as string}
-                    className="shrink-0 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147]"
+                    className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-4 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] hover:bg-[#FAF8F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
                   >
-                    Lihat Iklan
+                    Lihat detail
                   </Link>
                 )}
               </div>
             )}
 
-            {/* Messages */}
-            <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4" role="log" aria-label="Riwayat pesan" aria-live="polite">
+            {/* Messages log */}
+            <div
+              ref={logRef}
+              onScroll={handleLogScroll}
+              className="relative flex-1 space-y-4 overflow-y-auto bg-white px-4 py-5 sm:px-5"
+              role="log"
+              aria-label="Riwayat pesan"
+              aria-live="polite"
+            >
               {isLoadingMessages ? (
-                <div role="status" aria-busy="true" aria-label="Memuat pesan" className="space-y-3">
+                <div
+                  role="status"
+                  aria-busy="true"
+                  aria-label="Memuat pesan"
+                  className="space-y-3"
+                >
                   {Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className={`flex ${i % 2 ? "justify-end" : ""}`}>
-                      <div className="h-10 w-2/3 animate-pulse rounded-2xl bg-slate-200/70" />
+                      <div
+                        className={`h-12 w-2/3 max-w-[340px] animate-pulse rounded-[18px] ${
+                          i % 2 ? "bg-[#EFECE8]" : "bg-[#F4F1EE]"
+                        }`}
+                      />
                     </div>
                   ))}
                   <span className="sr-only">Memuat pesan…</span>
                 </div>
+              ) : messagesError ? (
+                <div role="alert" className="mx-auto max-w-sm py-10 text-center">
+                  <div className="rounded-2xl border border-[#E8C5C5] bg-[#FDF2F2] p-4">
+                    <p className="text-[14px] font-medium text-[#B83232]">
+                      {messagesError}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void loadMessages(active.id, true)}
+                    className="mt-4 inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-5 text-[13px] font-medium text-white transition-colors hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                  >
+                    Muat ulang pesan
+                  </button>
+                </div>
               ) : messages.length === 0 ? (
-                <p className="py-10 text-center text-xs text-slate-500">
-                  Belum ada pesan. Sapa dulu untuk memulai percakapan.
-                </p>
+                <div className="mx-auto max-w-sm py-12 text-center">
+                  <p className="font-display text-[16px] font-semibold text-[#141416]">
+                    Belum ada pesan di obrolan ini
+                  </p>
+                  <p className="mt-1.5 text-[14px] leading-relaxed text-[#6E6A66]">
+                    Kirim pesan pertama untuk menanyakan ketersediaan atau detail transaksi.
+                  </p>
+                </div>
               ) : (
                 messages.map((m, index) => {
-                  // Own messages: optimistic (-1) or matching logged-in user id.
-                  // Fallback when logged out: anything not from the recipient.
                   const self =
                     m.sender_id === -1 ||
                     (myId !== null
                       ? m.sender_id === myId
-                      : active.recipient !== null && m.sender_id !== active.recipient.id);
-                  // Day separator (WhatsApp-style): show once when the local
-                  // calendar day changes between consecutive messages.
+                      : active.recipient !== null &&
+                        m.sender_id !== active.recipient.id);
                   const showDay =
                     index === 0 ||
-                    dayKeyOf(m.created_at) !== dayKeyOf(messages[index - 1].created_at);
+                    dayKeyOf(m.created_at) !==
+                      dayKeyOf(messages[index - 1].created_at);
                   const deleted = Boolean(m.is_deleted);
                   const edited = Boolean(m.is_edited) && !deleted;
                   const isEditing = editingId === m.id;
-                  // Only persisted own messages can be edited/deleted.
-                  const canManage = self && !deleted && !isEditing && m.sender_id !== -1;
+                  const canManage =
+                    self && !deleted && !isEditing && m.sender_id !== -1;
                   const editedLabel = edited ? " · telah diedit" : "";
+                  const openDownward = index === 0;
+
                   return (
                     <Fragment key={`${m.id}-${index}`}>
                       {showDay && (
-                        <div className="flex justify-center">
-                          <span className="rounded-full bg-slate-200/90 px-3 py-1 text-[11px] font-semibold text-slate-600 shadow-sm">
+                        <div className="flex justify-center py-1">
+                          <span className="rounded-md border border-[#E5E0DA] bg-[#F4F1EE] px-3 py-1 text-[13px] font-medium text-[#57534E]">
                             {formatDayLabel(m.created_at)}
                           </span>
                         </div>
                       )}
+
                       {self ? (
-                    <div className="flex justify-end">
-                      <div className="max-w-[75%]">
-                        {deleted ? (
-                          <div className="rounded-2xl rounded-br-md border border-dashed border-slate-300 bg-slate-100 px-3.5 py-2.5 text-sm leading-6 text-slate-500">
-                            <p className="flex items-center gap-1.5 italic">
-                              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
-                                <path d="M2.5 4H4M4 4H12M4 4V3C4 2.4 4.4 2 5 2H7C7.6 2 8 2.4 8 3V4M4 4L5 13.5C5 13.8 5.2 14 5.5 14H10.5C10.8 14 11 13.8 11 13.5L12 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                              Pesan ini telah dihapus
-                            </p>
-                          </div>
-                        ) : isEditing ? (
-                          <div className="rounded-2xl rounded-br-md bg-[#002147] px-3.5 py-2.5">
-                            <label htmlFor={`edit-chat-${m.id}`} className="sr-only">
-                              Ubah pesan
-                            </label>
-                            <input
-                              id={`edit-chat-${m.id}`}
-                              value={editingDraft}
-                              onChange={(e) => setEditingDraft(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") void saveEdit(m.id);
-                                if (e.key === "Escape") cancelEdit();
-                              }}
-                              autoFocus
-                              maxLength={2000}
-                              className="w-full rounded-md border border-white/30 bg-white/10 px-2.5 py-1.5 text-sm leading-6 text-white placeholder:text-slate-300 focus:border-white focus:outline-none"
-                            />
-                            <div className="mt-2 flex justify-end gap-2">
-                              <button
-                                type="button"
-                                onClick={cancelEdit}
-                                disabled={isSavingEdit}
-                                className="rounded-md px-2.5 py-1 text-xs font-medium text-slate-200 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50"
-                              >
-                                Batal
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => void saveEdit(m.id)}
-                                disabled={isSavingEdit || editingDraft.trim() === ""}
-                                className="rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-[#002147] hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50"
-                              >
-                                {isSavingEdit ? "Menyimpan…" : "Simpan"}
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="rounded-2xl rounded-br-md bg-[#002147] px-3.5 py-2.5 text-sm leading-6 text-white">
-                            <p>{m.body}</p>
-                          </div>
-                        )}
-                        <div className="mt-1 flex items-center justify-end gap-1">
-                          <p className="text-[11px] text-slate-400">
-                            {formatClock(m.created_at)}
-                            {editedLabel}
-                          </p>
-                          {canManage && (
-                            <span className="relative">
-                              <button
-                                type="button"
-                                onClick={() => setOpenMenuId(openMenuId === m.id ? null : m.id)}
-                                aria-label="Opsi pesan"
-                                aria-expanded={openMenuId === m.id}
-                                aria-haspopup="menu"
-                                className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-200 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147]"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
-                                  <circle cx="6" cy="2" r="1.3" />
-                                  <circle cx="6" cy="6" r="1.3" />
-                                  <circle cx="6" cy="10" r="1.3" />
-                                </svg>
-                              </button>
-                              {openMenuId === m.id && (
-                                <span
-                                  role="menu"
-                                  className="absolute bottom-7 right-0 z-10 w-32 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+                        <div className="flex justify-end">
+                          <div className="min-w-0 max-w-[85%] sm:max-w-[75%]">
+                            {deleted ? (
+                              <div className="rounded-[18px] rounded-br-md border border-dashed border-[#D9D2C9] bg-[#F6F4F1] px-4 py-2.5 text-[14px] leading-relaxed text-[#57534E]">
+                                <p className="flex items-center gap-1.5 italic">
+                                  <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 16 16"
+                                    fill="none"
+                                    aria-hidden="true"
+                                    className="shrink-0"
+                                  >
+                                    <path
+                                      d="M2.5 4H4M4 4H12M4 4V3C4 2.4 4.4 2 5 2H7C7.6 2 8 2.4 8 3V4M4 4L5 13.5C5 13.8 5.2 14 5.5 14H10.5C10.8 14 11 13.8 11 13.5L12 4"
+                                      stroke="currentColor"
+                                      strokeWidth="1.2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                  Pesan ini telah dihapus
+                                </p>
+                              </div>
+                            ) : isEditing ? (
+                              <div className="rounded-[18px] rounded-br-md bg-[#141416] p-3.5 text-white">
+                                <label
+                                  htmlFor={`edit-chat-${m.id}`}
+                                  className="sr-only"
                                 >
+                                  Ubah pesan
+                                </label>
+                                <input
+                                  id={`edit-chat-${m.id}`}
+                                  value={editingDraft}
+                                  onChange={(e) => setEditingDraft(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") void saveEdit(m.id);
+                                    if (e.key === "Escape") cancelEdit();
+                                  }}
+                                  autoFocus
+                                  maxLength={2000}
+                                  className="h-11 w-full rounded-xl border border-white/25 bg-white/10 px-3 text-[14px] text-white placeholder:text-[#D6D3CE] focus:border-white focus:outline-none"
+                                />
+                                <div className="mt-2.5 flex justify-end gap-2">
                                   <button
                                     type="button"
-                                    role="menuitem"
-                                    onClick={() => startEdit(m)}
-                                    className="block w-full px-3 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-100"
+                                    onClick={cancelEdit}
+                                    disabled={isSavingEdit}
+                                    className="inline-flex min-h-[44px] items-center justify-center rounded-full px-4 text-[13px] font-medium text-[#E5E0DA] transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50"
                                   >
-                                    Edit
+                                    Batal
                                   </button>
                                   <button
                                     type="button"
-                                    role="menuitem"
-                                    onClick={() => void removeMessage(m.id)}
-                                    disabled={deletingId === m.id}
-                                    className="block w-full px-3 py-1.5 text-left text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                                    onClick={() => void saveEdit(m.id)}
+                                    disabled={isSavingEdit || editingDraft.trim() === ""}
+                                    className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-white px-4 text-[13px] font-semibold text-[#141416] transition-colors hover:bg-[#F4F1EE] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50"
                                   >
-                                    {deletingId === m.id ? "Menghapus…" : "Hapus"}
+                                    {isSavingEdit ? "Menyimpan…" : "Simpan"}
                                   </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="rounded-[18px] rounded-br-md bg-[#141416] px-4 py-2.5 text-[14px] leading-relaxed text-white [overflow-wrap:anywhere]">
+                                <p className="whitespace-pre-wrap">{m.body}</p>
+                              </div>
+                            )}
+
+                            <div className="mt-1 flex items-center justify-end gap-1">
+                              <p className="text-[13px] text-[#6E6A66]">
+                                {formatClock(m.created_at)}
+                                {editedLabel}
+                              </p>
+                              {canManage && (
+                                <span className="relative" data-message-menu>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setOpenMenuId(openMenuId === m.id ? null : m.id)
+                                    }
+                                    aria-label="Opsi pesan"
+                                    aria-expanded={openMenuId === m.id}
+                                    aria-haspopup="menu"
+                                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-[#6E6A66] transition-colors hover:bg-[#F4F1EE] hover:text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                                  >
+                                    <svg
+                                      width="14"
+                                      height="14"
+                                      viewBox="0 0 12 12"
+                                      fill="currentColor"
+                                      aria-hidden="true"
+                                    >
+                                      <circle cx="6" cy="2" r="1.2" />
+                                      <circle cx="6" cy="6" r="1.2" />
+                                      <circle cx="6" cy="10" r="1.2" />
+                                    </svg>
+                                  </button>
+                                  {openMenuId === m.id && (
+                                    <span
+                                      role="menu"
+                                      className={`absolute right-0 z-10 w-36 overflow-hidden rounded-xl border border-[#E5E0DA] bg-white p-1.5 shadow-[0_12px_28px_-12px_rgba(20,20,22,0.16)] ${
+                                        openDownward ? "top-12" : "bottom-12"
+                                      }`}
+                                    >
+                                      <button
+                                        type="button"
+                                        role="menuitem"
+                                        onClick={() => startEdit(m)}
+                                        className="flex min-h-[44px] w-full items-center rounded-lg px-3 text-left text-[13px] font-medium text-[#141416] transition-colors hover:bg-[#F4F1EE] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                                      >
+                                        Edit pesan
+                                      </button>
+                                      <button
+                                        type="button"
+                                        role="menuitem"
+                                        onClick={() => void removeMessage(m.id)}
+                                        disabled={deletingId === m.id}
+                                        className="flex min-h-[44px] w-full items-center rounded-lg px-3 text-left text-[13px] font-medium text-[#B83232] transition-colors hover:bg-[#FDF2F2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-50"
+                                      >
+                                        {deletingId === m.id ? "Menghapus…" : "Hapus pesan"}
+                                      </button>
+                                    </span>
+                                  )}
                                 </span>
                               )}
-                            </span>
-                          )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div key={m.id} className="flex items-end gap-2">
-                      <span
-                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${toneOf(active.recipient?.name ?? "?")}`}
-                        aria-hidden="true"
-                      >
-                        {initialsOf(active.recipient?.name ?? "?")}
-                      </span>
-                      <div className="max-w-[75%]">
-                        {deleted ? (
-                          <div className="rounded-2xl rounded-bl-md border border-dashed border-slate-300 bg-slate-50 px-3.5 py-2.5 text-sm leading-6 text-slate-500 shadow-sm">
-                            <p className="flex items-center gap-1.5 italic">
-                              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
-                                <path d="M2.5 4H4M4 4H12M4 4V3C4 2.4 4.4 2 5 2H7C7.6 2 8 2.4 8 3V4M4 4L5 13.5C5 13.8 5.2 14 5.5 14H10.5C10.8 14 11 13.8 11 13.5L12 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                              Pesan ini telah dihapus
+                      ) : (
+                        <div className="flex items-end gap-2.5">
+                          <span
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#E5E0DA] bg-[#F4F1EE] text-[13px] font-semibold text-[#141416]"
+                            aria-hidden="true"
+                          >
+                            {initialsOf(active.recipient?.name?.trim() || "UP")}
+                          </span>
+                          <div className="min-w-0 max-w-[85%] sm:max-w-[75%]">
+                            {deleted ? (
+                              <div className="rounded-[18px] rounded-bl-md border border-dashed border-[#D9D2C9] bg-[#FAF8F6] px-4 py-2.5 text-[14px] leading-relaxed text-[#57534E]">
+                                <p className="flex items-center gap-1.5 italic">
+                                  <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 16 16"
+                                    fill="none"
+                                    aria-hidden="true"
+                                    className="shrink-0"
+                                  >
+                                    <path
+                                      d="M2.5 4H4M4 4H12M4 4V3C4 2.4 4.4 2 5 2H7C7.6 2 8 2.4 8 3V4M4 4L5 13.5C5 13.8 5.2 14 5.5 14H10.5C10.8 14 11 13.8 11 13.5L12 4"
+                                      stroke="currentColor"
+                                      strokeWidth="1.2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                  Pesan ini telah dihapus
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="rounded-[18px] rounded-bl-md border border-[#E5E0DA] bg-[#F4F1EE] px-4 py-2.5 text-[14px] leading-relaxed text-[#141416] [overflow-wrap:anywhere]">
+                                <p className="whitespace-pre-wrap">{m.body}</p>
+                              </div>
+                            )}
+                            <p className="mt-1 text-[13px] text-[#6E6A66]">
+                              {formatClock(m.created_at)}
+                              {editedLabel}
                             </p>
                           </div>
-                        ) : (
-                          <div className="rounded-2xl rounded-bl-md border border-slate-200 bg-white px-3.5 py-2.5 text-sm leading-6 text-slate-800 shadow-sm">
-                            <p>{m.body}</p>
-                          </div>
-                        )}
-                        <p className="mt-1 text-[11px] text-slate-400">
-                          {formatClock(m.created_at)}
-                          {editedLabel}
-                        </p>
-                      </div>
-                    </div>
+                        </div>
                       )}
                     </Fragment>
                   );
                 })
               )}
-              <div ref={bottomRef} />
+
+              {showScrollBottom && (
+                <div className="pointer-events-none sticky bottom-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowScrollBottom(false);
+                      scrollToBottom("smooth");
+                    }}
+                    aria-label="Gulir ke pesan terbaru"
+                    className="pointer-events-auto inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-[#D9D2C9] bg-white px-4 text-[13px] font-medium text-[#141416] shadow-[0_8px_20px_-8px_rgba(20,20,22,0.18)] transition-colors hover:border-[#141416] hover:bg-[#FAF8F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M8 3v10M4 9l4 4 4-4"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <span>Pesan terbaru</span>
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* Input */}
-            <div className="border-t border-slate-200 bg-white px-4 pb-3 pt-2.5">
+            {/* Composer */}
+            <div className="border-t border-[#E5E0DA] bg-white px-4 py-3 sm:px-5">
               {actionError && (
-                <p role="alert" className="mb-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs text-rose-700">
+                <p
+                  role="alert"
+                  className="mb-2.5 rounded-xl border border-[#E8C5C5] bg-[#FDF2F2] px-3.5 py-2.5 text-[13px] font-medium text-[#B83232]"
+                >
                   {actionError}
                 </p>
               )}
-              <form onSubmit={sendMessage} className="flex items-center gap-2">
+              <form onSubmit={sendMessage} className="flex items-center gap-2.5">
                 <label htmlFor="chat-input" className="sr-only">
                   Ketik pesan
                 </label>
@@ -774,74 +1339,119 @@ function MessagesContent() {
                   id="chat-input"
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
-                  placeholder="Ketik pesan..."
+                  placeholder="Tulis pesan untuk lawan bicara..."
                   autoComplete="off"
-                  className="h-10 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:bg-white focus:outline-none"
+                  maxLength={2000}
+                  className="h-11 min-w-0 flex-1 rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-4 text-[14px] text-[#141416] placeholder:text-[#66625E] transition-colors hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:outline-none"
                 />
                 <button
                   type="submit"
                   disabled={isSending || draft.trim() === ""}
-                  className="h-10 shrink-0 rounded-lg bg-[#002147] px-4 text-sm font-semibold text-white hover:bg-[#0a2f5c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2 disabled:opacity-50"
+                  className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-colors duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:bg-[#242428] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2 disabled:opacity-45"
                 >
-                  {isSending ? "…" : "Kirim"}
+                  {isSending ? "Mengirim…" : "Kirim"}
                 </button>
               </form>
             </div>
           </section>
         )}
 
-        {/* ---------- COLUMN 3: Context / profile ---------- */}
+        {/* ---------- COLUMN 3: Context / profile (Desktop XL) ---------- */}
         <aside
           aria-label="Detail kontak"
-          className="hidden min-h-0 flex-col overflow-y-auto border-l border-slate-200 bg-white px-5 py-5 lg:flex"
+          className="hidden min-h-0 flex-col gap-5 overflow-y-auto border-l border-[#E5E0DA] bg-white p-5 xl:flex"
         >
           {active ? (
             <>
-              <div className="flex flex-col items-center text-center">
+              <div className="flex flex-col items-center rounded-2xl border border-[#E5E0DA] bg-[#F6F4F1] p-5 text-center">
                 <span
-                  className={`flex h-14 w-14 items-center justify-center rounded-full text-base font-bold ${toneOf(active.recipient?.name ?? "?")}`}
+                  className="flex h-14 w-14 items-center justify-center rounded-full bg-[#141416] text-[15px] font-semibold text-white"
                   aria-hidden="true"
                 >
-                  {initialsOf(active.recipient?.name ?? "?")}
+                  {initialsOf(active.recipient?.name?.trim() || "UP")}
                 </span>
-                <h2 className="mt-3 text-base font-bold text-slate-900">{active.recipient?.name ?? "Pengguna UPN"}</h2>
-                <p className="mt-0.5 text-xs text-slate-500">Mahasiswa UPN</p>
+                <h2 className="mt-3 flex max-w-full items-center justify-center gap-1.5 font-display text-[16px] font-semibold text-[#141416]">
+                  <span className="truncate">
+                    {active.recipient?.name?.trim() || "Pengguna UPN"}
+                  </span>
+                  {isOfficialRecipient(active.recipient) && (
+                    <VerifiedBadge
+                      size="xs"
+                      title={`${recipientRoleLabel(active.recipient)} terverifikasi`}
+                    />
+                  )}
+                </h2>
+                <p className="mt-1 text-[13px] text-[#57534E]">
+                  {recipientRoleLabel(active.recipient)}
+                </p>
               </div>
 
               {active.context?.title && (
-                <div className="mt-5 border-t border-slate-100 pt-4">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                    Konteks Listing
-                  </h3>
-                  <p className="mt-2 line-clamp-2 text-[13px] font-medium leading-5 text-slate-900">
-                    {active.context.title}
-                  </p>
+                <div className="rounded-2xl border border-[#E5E0DA] bg-white p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-[13px] font-semibold text-[#141416]">
+                      Konteks listing
+                    </h3>
+                    {active.context.type && CONTEXT_LABELS[active.context.type] && (
+                      <span className="rounded-md bg-[#F4F1EE] px-2.5 py-0.5 text-[13px] font-medium text-[#57534E]">
+                        {CONTEXT_LABELS[active.context.type]}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-3 flex items-start gap-3">
+                    <ContextThumbnail context={active.context} />
+                    <p className="line-clamp-2 flex-1 text-[14px] font-medium leading-snug text-[#141416]">
+                      {active.context.title}
+                    </p>
+                  </div>
                   {contextDetailHref(active.context) && (
                     <Link
                       href={contextDetailHref(active.context) as string}
-                      className="mt-2 inline-block rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      className="mt-3.5 inline-flex min-h-[44px] w-full items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-4 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] hover:bg-[#FAF8F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
                     >
-                      Lihat Iklan
+                      Lihat detail listing
                     </Link>
                   )}
                 </div>
               )}
 
-              <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                <p className="flex items-center gap-1.5 text-xs font-semibold text-slate-900">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="text-emerald-600">
-                    <path d="M8 1.5L14 4V8C14 11.5 11.5 14 8 14.8C4.5 14 2 11.5 2 8V4L8 1.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-                    <path d="M6 8L7.4 9.4L10 6.6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              <div className="rounded-2xl border border-[#E5E0DA] bg-[#F6F4F1] p-4">
+                <p className="flex items-center gap-2 text-[14px] font-semibold text-[#141416]">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    aria-hidden="true"
+                    className="shrink-0 text-[#141416]"
+                  >
+                    <path
+                      d="M8 1.5L14 4V8C14 11.5 11.5 14 8 14.8C4.5 14 2 11.5 2 8V4L8 1.5Z"
+                      stroke="currentColor"
+                      strokeWidth="1.3"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M6 8L7.4 9.4L10 6.6"
+                      stroke="currentColor"
+                      strokeWidth="1.3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
-                  Tips Chat Aman
+                  <span>Tips transaksi aman</span>
                 </p>
-                <p className="mt-1.5 text-[11px] leading-5 text-slate-600">
-                  Jangan bagikan OTP atau data bank. Transaksi COD sebaiknya di area kampus yang ramai.
+                <p className="mt-2 text-[13px] leading-relaxed text-[#57534E]">
+                  Jangan bagikan kode OTP atau data rekening pribadi. Untuk transaksi COD, temui lawan bicara di area kampus yang ramai.
                 </p>
               </div>
             </>
           ) : (
-            <p className="py-10 text-center text-xs text-slate-500">Pilih percakapan untuk melihat detail.</p>
+            <div className="flex flex-1 flex-col items-center justify-center px-2 text-center">
+              <p className="text-[14px] font-medium text-[#57534E]">
+                Detail lawan bicara dan konteks listing akan muncul di sini setelah Anda memilih percakapan.
+              </p>
+            </div>
           )}
         </aside>
       </div>
@@ -851,7 +1461,13 @@ function MessagesContent() {
 
 export default function MessagesPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-slate-500">Memuat pesan…</p>}>
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-[1200px] py-12 text-center text-[14px] text-[#6E6A66]">
+          Memuat pesan…
+        </div>
+      }
+    >
       <MessagesContent />
     </Suspense>
   );

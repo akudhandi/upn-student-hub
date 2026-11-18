@@ -11,12 +11,11 @@ import {
   type PublicCategory,
 } from "@/lib/api";
 import ListingImage from "@/components/ListingImage";
+import { getUser, USER_UPDATED_EVENT, type AuthUser } from "@/lib/auth";
 import type { ApiImage } from "@/lib/images";
 
-// ---------------------------------------------------------------------------
-// API types — shape of GET /api/v1/lost-found (Laravel paginator wrapped in
+// API types: shape of GET /api/v1/lost-found (Laravel paginator wrapped in
 // a standard { message, data } JSON envelope).
-// ---------------------------------------------------------------------------
 type ApiLostFoundItem = {
   id: number;
   type: "lost" | "found";
@@ -62,18 +61,19 @@ const EMPTY_FORM = {
 
 type TypeFilter = "all" | "lost" | "found";
 
-const TYPE_FILTERS: { value: TypeFilter; label: string; dot: string }[] = [
-  { value: "all", label: "Semua", dot: "bg-[#002147]" },
-  { value: "lost", label: "Barang Hilang", dot: "bg-rose-600" },
-  { value: "found", label: "Barang Ditemukan", dot: "bg-emerald-600" },
+const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
+  { value: "all", label: "Semua" },
+  { value: "lost", label: "Barang Hilang" },
+  { value: "found", label: "Barang Ditemukan" },
 ];
 
-const PHOTO_TONES = ["bg-[#E7EBF0]", "bg-[#EFE8DC]", "bg-[#E8F0E9]", "bg-[#E9EAF3]"];
-
-function formatEventDate(isoDate: string | null): string {
-  if (!isoDate) return "-";
-  const date = new Date(isoDate);
-  if (Number.isNaN(date.getTime())) return "-";
+function formatEventDate(isoDate: string | null): string | null {
+  if (!isoDate) return null;
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(isoDate)
+    ? `${isoDate}T00:00:00`
+    : isoDate;
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleDateString("id-ID", {
     day: "numeric",
     month: "short",
@@ -81,20 +81,40 @@ function formatEventDate(isoDate: string | null): string {
   });
 }
 
+function formatTimeAgo(isoDate: string): string {
+  const diffMs = Date.now() - new Date(isoDate).getTime();
+  if (Number.isNaN(diffMs) || diffMs < 0) return "";
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return "Baru saja";
+  if (minutes < 60) return `${minutes} menit lalu`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} jam lalu`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} hari lalu`;
+  return new Date(isoDate).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function initialsOf(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  return (
+    name
+      .split(" ")
+      .filter(Boolean)
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "UP"
+  );
 }
 
 function StatusBadge({ type, status }: { type: "lost" | "found"; status: string }) {
-  if (status === "resolved") {
+  if (status === "resolved" || status === "closed") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-slate-500 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-[#EFECE8] px-2.5 py-1 text-[13px] font-medium text-[#3F3C39]">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path
             d="M3 8.5L6.5 12L13 4.5"
             stroke="currentColor"
@@ -103,14 +123,14 @@ function StatusBadge({ type, status }: { type: "lost" | "found"; status: string 
             strokeLinejoin="round"
           />
         </svg>
-        Selesai
+        {status === "closed" ? "Ditutup" : "Selesai"}
       </span>
     );
   }
   if (type === "lost") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-rose-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-[#FCEAE9] px-2.5 py-1 text-[13px] font-medium text-[#9A3434]">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path
             d="M8 2L14.5 13H1.5L8 2Z"
             stroke="currentColor"
@@ -125,8 +145,8 @@ function StatusBadge({ type, status }: { type: "lost" | "found"; status: string 
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-      <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <span className="inline-flex items-center gap-1.5 rounded-md bg-[#E4F2EA] px-2.5 py-1 text-[13px] font-medium text-[#1E603E]">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4" />
         <path
           d="M5.5 8.2L7.4 10L10.6 6.4"
@@ -141,49 +161,21 @@ function StatusBadge({ type, status }: { type: "lost" | "found"; status: string 
   );
 }
 
-function ItemPhoto({
-  id,
-  title,
-  type,
-  status,
-  images,
-}: {
-  id: number;
-  title: string;
-  type: "lost" | "found";
-  status: string;
-  images?: ApiImage[] | null;
-}) {
-  return (
-    <div className={`relative h-40 w-full shrink-0 overflow-hidden sm:h-auto sm:w-44 ${PHOTO_TONES[id % PHOTO_TONES.length]}`}>
-      <ListingImage
-        module="lostfound"
-        seed={id}
-        hint={`${type} ${title}`}
-        images={images}
-        alt={`Foto ${title}`}
-        className="h-40 w-full object-cover sm:h-full sm:min-h-40"
-      />
-      <span className="absolute left-2 top-2">
-        <StatusBadge type={type} status={status} />
-      </span>
-    </div>
-  );
-}
-
 function ReportCardSkeleton() {
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-      <div className="flex flex-col sm:flex-row">
-        <div className="h-40 w-full shrink-0 animate-pulse bg-slate-100 sm:h-auto sm:w-44" />
-        <div className="flex min-w-0 flex-1 flex-col gap-2 p-4">
-          <div className="h-4 w-3/4 animate-pulse rounded bg-slate-100" />
-          <div className="h-3 w-1/2 animate-pulse rounded bg-slate-100" />
-          <div className="h-3 w-full animate-pulse rounded bg-slate-100" />
-          <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-3">
-            <div className="h-4 w-28 animate-pulse rounded bg-slate-100" />
-            <div className="h-4 w-20 animate-pulse rounded bg-slate-100" />
-          </div>
+    <div className="flex flex-col overflow-hidden rounded-[20px] border border-[#E5E0DA] bg-white">
+      <div className="aspect-[4/3] animate-pulse bg-[#EFECE8]" />
+      <div className="flex flex-1 flex-col gap-3 p-5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="h-6 w-24 animate-pulse rounded-md bg-[#F4F1EE]" />
+          <div className="h-6 w-20 animate-pulse rounded-md bg-[#F4F1EE]" />
+        </div>
+        <div className="h-5 w-4/5 animate-pulse rounded-lg bg-[#F4F1EE]" />
+        <div className="h-4 w-3/5 animate-pulse rounded-lg bg-[#EFECE8]" />
+        <div className="h-4 w-full animate-pulse rounded-lg bg-[#F4F1EE]" />
+        <div className="mt-auto flex items-center justify-between border-t border-[#F1EDE8] pt-4">
+          <div className="h-7 w-28 animate-pulse rounded-full bg-[#F4F1EE]" />
+          <div className="h-9 w-20 animate-pulse rounded-full bg-[#F4F1EE]" />
         </div>
       </div>
     </div>
@@ -211,21 +203,38 @@ export function LostAndFoundContent() {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [photos, setPhotos] = useState<{ id: number; url: string; file: File }[]>([]);
   const [backendCategories, setBackendCategories] = useState<PublicCategory[]>([]);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const photoIdRef = useRef(0);
+  const prevUrlQueryRef = useRef(urlQuery);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate user from localStorage on mount
+    setCurrentUser(getUser());
+    function syncUser() {
+      setCurrentUser(getUser());
+    }
+    window.addEventListener(USER_UPDATED_EVENT, syncUser);
+    return () => window.removeEventListener(USER_UPDATED_EVENT, syncUser);
+  }, []);
+
+  useEffect(() => {
+    const trimmed = query.trim();
     const t = window.setTimeout(() => {
-      setDebouncedQuery(query.trim());
-      setPage(1);
+      setDebouncedQuery((prev) => {
+        if (prev !== trimmed) {
+          setPage(1);
+        }
+        return trimmed;
+      });
     }, 350);
     return () => window.clearTimeout(t);
   }, [query]);
 
   useEffect(() => {
-    if (urlQuery !== "") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync query from header search URL
+    if (urlQuery !== prevUrlQueryRef.current) {
+      prevUrlQueryRef.current = urlQuery;
       setQuery(urlQuery);
       setDebouncedQuery(urlQuery);
       setPage(1);
@@ -382,6 +391,7 @@ export function LostAndFoundContent() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const rewardRaw = formData.reward.trim();
+    const rewardNumeric = Number(rewardRaw);
     setIsSubmitting(true);
     setSubmitError(null);
     try {
@@ -404,9 +414,9 @@ export function LostAndFoundContent() {
           location: formData.location.trim(),
           date_event: formData.date_event === "" ? null : formData.date_event,
           reward:
-            rewardRaw === ""
+            rewardRaw === "" || Number.isNaN(rewardNumeric)
               ? null
-              : `Rp ${Number(rewardRaw).toLocaleString("id-ID")}`,
+              : `Rp ${rewardNumeric.toLocaleString("id-ID")}`,
           description: formData.description.trim(),
           contact_info: normalizedContact,
           image_paths: uploaded.map((u) => u.path),
@@ -437,18 +447,27 @@ export function LostAndFoundContent() {
   }
 
   const previewCategory =
-    categoryOptions.find((c) => String(c.id) === formData.category_id)?.name ?? "Kategori Barang";
+    categoryOptions.find((c) => String(c.id) === formData.category_id)?.name ?? "Kategori barang";
   const previewDate = formData.date_event
-    ? new Date(`${formData.date_event}T00:00:00`).toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      })
-    : "Tanggal kejadian";
+    ? formatEventDate(formData.date_event) ?? "Tanggal belum dipilih"
+    : "Tanggal belum dipilih";
+  const previewReporterName = currentUser?.profile?.name || currentUser?.name || "Mahasiswa UPN";
+  const parsedPreviewReward = Number(formData.reward);
+  const hasValidPreviewReward =
+    reportType === "lost" &&
+    formData.reward.trim() !== "" &&
+    !Number.isNaN(parsedPreviewReward) &&
+    parsedPreviewReward >= 0;
 
   const filtered = items;
   const activeCategoryName =
     filterCategories.find((c) => c.id === activeCategoryId)?.name ?? null;
+  const hasActiveFilter =
+    typeFilter !== "all" ||
+    activeCategoryId !== null ||
+    query.trim() !== "" ||
+    debouncedQuery !== "" ||
+    urlQuery !== "";
 
   function clearFilters() {
     setTypeFilter("all");
@@ -457,323 +476,400 @@ export function LostAndFoundContent() {
     setDebouncedQuery("");
     setPage(1);
     if (urlQuery !== "") {
+      prevUrlQueryRef.current = "";
       router.replace("/lost-found");
     }
   }
 
   return (
-    <div className="mx-auto max-w-[1180px]">
-      {/* Header: title left, report actions + search right */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-[22px] font-semibold tracking-tight text-slate-900">Lost &amp; Found</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Laporkan barang hilang atau bantu kembalikan barang milik orang lain.
+    <div className="auth-shell-enter mx-auto max-w-[1200px] space-y-7">
+      {/* Header Band */}
+      <section className="flex flex-col justify-between gap-5 border-b border-[#E5E0DA] pb-6 lg:flex-row lg:items-end">
+        <div className="min-w-0 space-y-2">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] font-medium text-[#6E6A66]">
+            <span>Portal Mahasiswa / Lost &amp; Found</span>
+            <span aria-hidden="true" className="text-[#CFC8BF]">
+              ·
+            </span>
+            <span>{isLoading ? "Memuat laporan..." : `${total} laporan tercatat`}</span>
+            {debouncedQuery !== "" && (
+              <>
+                <span aria-hidden="true" className="text-[#CFC8BF]">
+                  ·
+                </span>
+                <span className="text-[#141416]">
+                  Pencarian: &ldquo;{debouncedQuery}&rdquo;
+                </span>
+              </>
+            )}
+          </div>
+
+          <h1 className="font-display text-2xl font-semibold tracking-[-0.02em] text-[#141416] sm:text-[32px] sm:leading-[1.18]">
+            Barang Hilang &amp; Temuan
+          </h1>
+          <p className="max-w-2xl text-[14px] leading-relaxed text-[#57534E]">
+            Laporkan barang yang tertinggal atau bantu kembalikan barang temuan di area kampus UPN.
           </p>
         </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
-          <div className="relative w-full sm:w-[260px]">
-            <label htmlFor="lost-found-search" className="sr-only">
-              Cari laporan
-            </label>
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.3" />
-                <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-              </svg>
-            </span>
-            <input
-              id="lost-found-search"
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Cari judul, lokasi, deskripsi…"
-              className="h-9 w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:outline-none focus:ring-1 focus:ring-[#002147]"
-            />
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => openModal("lost")}
-              className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
-            >
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.3" />
-                <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-              </svg>
-              Lapor Hilang
-            </button>
-            <button
-              type="button"
-              onClick={() => openModal("found")}
-              className="inline-flex items-center gap-1.5 rounded-md bg-[#002147] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#001a38] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
-            >
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path
-                  d="M2.5 2.5H8L13.5 8L8 13.5L2.5 8V2.5Z"
-                  stroke="currentColor"
-                  strokeWidth="1.3"
-                  strokeLinejoin="round"
-                />
-                <circle cx="6" cy="6" r="1.2" stroke="currentColor" strokeWidth="1.1" />
-              </svg>
-              Lapor Temuan
-            </button>
-          </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => openModal("lost")}
+            className="inline-flex h-11 shrink-0 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-5 text-[14px] font-medium text-[#141416] transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:border-[#141416] hover:bg-[#FAF8F6] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:transition-none"
+          >
+            Lapor hilang
+          </button>
+          <button
+            type="button"
+            onClick={() => openModal("found")}
+            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:transition-none"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            </svg>
+            Lapor temuan
+          </button>
         </div>
-      </div>
+      </section>
 
-      {/* Layout: sidebar filters + feed */}
-      <div className="mt-5 grid grid-cols-1 items-start gap-5 lg:grid-cols-[240px_1fr]">
-        {/* Sidebar */}
-        <aside className="space-y-4" aria-label="Filter barang hilang dan temuan">
-          <section className="rounded-lg border border-slate-200 bg-white p-4">
-            <h2 id="filter-status-heading" className="text-[13px] font-semibold text-slate-900">
-              Filter Status
-            </h2>
-            <div
-              className="mt-3 space-y-2"
-              role="radiogroup"
-              aria-labelledby="filter-status-heading"
-            >
-              {TYPE_FILTERS.map((opt) => (
-                <label
-                  key={opt.value}
-                  className="flex cursor-pointer items-center gap-2.5 text-[13px] text-slate-700"
-                >
-                  <input
-                    type="radio"
-                    name="lost-found-status"
-                    value={opt.value}
-                    checked={typeFilter === opt.value}
-                    onChange={() => {
-                      setTypeFilter(opt.value);
-                      setPage(1);
-                    }}
-                    className="h-3.5 w-3.5 shrink-0 accent-[#002147]"
-                  />
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${opt.dot}`} aria-hidden="true" />
-                  {opt.label}
-                </label>
-              ))}
-            </div>
-          </section>
-
-          {filterCategories.length > 0 && (
-            <section className="rounded-lg border border-slate-200 bg-white p-4">
-              <h2 id="categories-heading" className="text-[13px] font-semibold text-slate-900">
-                Kategori
-              </h2>
-              <div className="mt-3 flex flex-wrap gap-2" role="group" aria-labelledby="categories-heading">
-                {filterCategories.map((cat) => {
-                  const isActive = activeCategoryId === cat.id;
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => {
-                        setActiveCategoryId(isActive ? null : cat.id);
-                        setPage(1);
-                      }}
-                      aria-pressed={isActive}
-                      className={`rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2 ${
-                        isActive
-                          ? "border-[#002147] bg-[#002147] text-white"
-                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-                      }`}
-                    >
-                      {cat.name}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-        </aside>
-
-        {/* Feed */}
-        <div>
-          {isLoading ? (
-            <div
-              className="space-y-4"
-              role="status"
-              aria-busy="true"
-              aria-label="Memuat laporan hilang dan temuan"
-            >
-              {Array.from({ length: 4 }).map((_, i) => (
-                <ReportCardSkeleton key={i} />
-              ))}
-              <span className="sr-only">Memuat data laporan…</span>
-            </div>
-          ) : error ? (
-            <div
-              role="alert"
-              className="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center"
-            >
-              <p className="text-sm font-medium text-slate-900">Gagal memuat data laporan</p>
-              <p className="mt-1 text-xs text-slate-500">{error}</p>
+      {/* Unified Type, Search & Category Filters */}
+      <section
+        aria-label="Filter laporan barang hilang dan temuan"
+        className="rounded-[20px] border border-[#E5E0DA] bg-white p-5 sm:p-6"
+      >
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label="Filter jenis laporan"
+        >
+          {TYPE_FILTERS.map((opt) => {
+            const isActive = typeFilter === opt.value;
+            return (
               <button
+                key={opt.value}
                 type="button"
-                onClick={() => void loadReports(typeFilter, page, activeCategoryId, debouncedQuery)}
-                className="mt-4 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
+                onClick={() => {
+                  setTypeFilter(opt.value);
+                  setPage(1);
+                }}
+                aria-pressed={isActive}
+                className={`min-h-[44px] rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] motion-reduce:transition-none ${
+                  isActive
+                    ? "bg-[#141416] text-white"
+                    : "bg-[#F4F1EE] text-[#57534E] hover:bg-[#EAE6E2] hover:text-[#141416]"
+                }`}
               >
-                Coba lagi
+                {opt.label}
               </button>
-            </div>
-          ) : (
-            <>
-              <p className="text-xs text-slate-500" aria-live="polite" role="status">
-                Menampilkan {filtered.length} dari {total} laporan
-                {activeCategoryName ? ` di ${activeCategoryName}` : ""}
-              </p>
+            );
+          })}
+        </div>
 
-              {filtered.length === 0 ? (
-                <div className="mt-3 rounded-lg border border-slate-200 bg-white px-6 py-12 text-center">
-                  <p className="text-sm font-medium text-slate-900">Tidak ada laporan ditemukan</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Coba ubah filter status, kategori, atau kata kunci.
-                  </p>
+        <div className="mt-5 grid grid-cols-1 gap-4 border-t border-[#F1EDE8] pt-5 sm:grid-cols-2 lg:grid-cols-[1.35fr_1fr_auto] lg:items-end">
+          <div className="min-w-0">
+            <label htmlFor="lost-found-search" className="block text-[13px] font-medium text-[#57534E]">
+              Cari judul atau lokasi kampus
+            </label>
+            <div className="relative mt-1.5">
+              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.4" />
+                  <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                </svg>
+              </span>
+              <input
+                id="lost-found-search"
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Cari nama barang, lokasi kampus, atau ciri khusus"
+                className="h-11 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-10 pr-3.5 text-[14px] text-[#141416] placeholder:text-[#66625E] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="min-w-0">
+            <label htmlFor="lost-found-category" className="block text-[13px] font-medium text-[#57534E]">
+              Kategori barang
+            </label>
+            <div className="relative mt-1.5">
+              <select
+                id="lost-found-category"
+                value={activeCategoryId === null ? "" : String(activeCategoryId)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setActiveCategoryId(val === "" ? null : Number(val));
+                  setPage(1);
+                }}
+                className="h-11 w-full appearance-none rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-3.5 pr-9 text-[14px] text-[#141416] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
+              >
+                <option value="">Semua kategori</option>
+                {filterCategories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden="true"
+                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
+              >
+                <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          </div>
+
+          {hasActiveFilter && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-5 text-[14px] font-medium text-[#141416] transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:border-[#141416] hover:bg-[#FAF8F6] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] motion-reduce:transform-none motion-reduce:transition-none"
+            >
+              Atur ulang filter
+            </button>
+          )}
+        </div>
+      </section>
+
+      {/* Catalog Grid */}
+      <section aria-label="Daftar laporan barang hilang dan temuan">
+        {isLoading ? (
+          <div
+            className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+            role="status"
+            aria-busy="true"
+            aria-label="Memuat laporan barang hilang dan temuan"
+          >
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ReportCardSkeleton key={i} />
+            ))}
+            <span className="sr-only">Memuat data laporan...</span>
+          </div>
+        ) : error ? (
+          <div
+            role="alert"
+            className="rounded-[20px] border border-[#E5E0DA] bg-white px-6 py-14 text-center"
+          >
+            <h2 className="font-display text-lg font-semibold text-[#141416]">
+              Gagal memuat data laporan
+            </h2>
+            <p className="mx-auto mt-1.5 max-w-md text-[14px] text-[#6E6A66]">{error}</p>
+            <button
+              type="button"
+              onClick={() => void loadReports(typeFilter, page, activeCategoryId, debouncedQuery)}
+              className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] motion-reduce:transform-none motion-reduce:transition-none"
+            >
+              Muat ulang daftar
+            </button>
+          </div>
+        ) : (
+          <>
+            <p className="mb-4 text-[13px] font-medium text-[#57534E]" aria-live="polite" role="status">
+              Menampilkan {filtered.length} dari {total} laporan
+              {activeCategoryName ? ` pada kategori ${activeCategoryName}` : ""}
+            </p>
+
+            {filtered.length === 0 ? (
+              <div className="rounded-[20px] border border-[#E5E0DA] bg-white px-6 py-14 text-center">
+                <h2 className="font-display text-lg font-semibold text-[#141416]">
+                  {hasActiveFilter ? "Tidak ada laporan sesuai filter" : "Belum ada laporan tercatat"}
+                </h2>
+                <p className="mx-auto mt-1.5 max-w-md text-[14px] text-[#6E6A66]">
+                  {hasActiveFilter
+                    ? "Ubah jenis laporan, kategori, atau kata kunci pencarian untuk melihat laporan lain."
+                    : "Buat laporan pertama jika Anda kehilangan atau menemukan barang di lingkungan kampus UPN."}
+                </p>
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                  {hasActiveFilter ? (
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-6 text-[14px] font-medium text-[#141416] transition-all duration-150 hover:-translate-y-[1px] hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] motion-reduce:transform-none motion-reduce:transition-none"
+                    >
+                      Atur ulang filter
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => openModal("lost")}
+                      className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-6 text-[14px] font-medium text-[#141416] transition-all duration-150 hover:-translate-y-[1px] hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] motion-reduce:transform-none motion-reduce:transition-none"
+                    >
+                      Lapor hilang
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={clearFilters}
-                    className="mt-4 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
+                    onClick={() => openModal("found")}
+                    className="inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] motion-reduce:transform-none motion-reduce:transition-none"
                   >
-                    Hapus filter
+                    Lapor temuan
                   </button>
                 </div>
-              ) : (
-                <div className="mt-3 space-y-4">
-                  {filtered.map((item) => {
-                    const reporterName = item.user?.name ?? "Mahasiswa UPN";
-                    const accent =
-                      item.status === "resolved"
-                        ? "border-l-slate-400"
-                        : item.type === "lost"
-                          ? "border-l-rose-600"
-                          : "border-l-emerald-600";
-                    return (
-                      <article
-                        key={item.id}
-                        className={`overflow-hidden rounded-lg border border-slate-200 border-l-4 bg-white focus-within:ring-2 focus-within:ring-[#002147] focus-within:ring-offset-2 ${accent}`}
+              </div>
+            ) : (
+              <>
+                <h2 className="sr-only">Daftar laporan barang hilang dan temuan</h2>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {filtered.map((item, idx) => {
+                  const categoryName = item.category?.name ?? "Lainnya";
+                  const reporterName = item.user?.name ?? "Mahasiswa UPN";
+                  const eventDateText =
+                    formatEventDate(item.date_event) ?? formatTimeAgo(item.created_at);
+                  return (
+                    <article
+                      key={item.id}
+                      className="group flex flex-col overflow-hidden rounded-[20px] border border-[#E5E0DA] bg-white transition-all duration-180 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[2px] hover:border-[#CFC8BF] hover:shadow-[0_14px_28px_-14px_rgba(20,20,22,0.10)] focus-within:ring-2 focus-within:ring-[#141416] motion-reduce:transform-none motion-reduce:transition-none"
+                    >
+                      <Link
+                        href={`/lost-found/${item.id}`}
+                        aria-label={`Lihat detail ${item.title}`}
+                        className="block overflow-hidden bg-[#EFECE8] focus:outline-none"
                       >
-                        <div className="flex flex-col sm:flex-row">
+                        <ListingImage
+                          module="lostfound"
+                          seed={item.id}
+                          eager={idx < 3}
+                          width={800}
+                          height={600}
+                          hint={`${categoryName} ${item.title}`}
+                          images={item.images}
+                          alt={`Foto ${item.title}`}
+                          className="aspect-[4/3] w-full object-cover transition-transform duration-600 ease-[cubic-bezier(.2,.8,.2,1)] group-hover:scale-[1.03] motion-reduce:transform-none motion-reduce:transition-none"
+                        />
+                      </Link>
+
+                      <div className="flex min-w-0 flex-1 flex-col p-5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="rounded-md bg-[#F4F1EE] px-2.5 py-1 text-[13px] font-medium text-[#57534E]">
+                            {categoryName}
+                          </span>
+                          <StatusBadge type={item.type} status={item.status} />
+                        </div>
+
+                        <h3 className="mt-3 line-clamp-2 break-words font-display text-[17px] font-semibold leading-snug text-[#141416]">
+                          <Link
+                            href={`/lost-found/${item.id}`}
+                            className="hover:underline focus:outline-none"
+                          >
+                            {item.title}
+                          </Link>
+                        </h3>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-[#57534E]">
+                          <span className="inline-flex min-w-0 items-center gap-1.5">
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 16 16"
+                              fill="none"
+                              aria-hidden="true"
+                              className="shrink-0 text-[#6E6A66]"
+                            >
+                              <path
+                                d="M8 14C8 14 3.5 9.3 3.5 6C3.5 3.5 5.5 1.5 8 1.5C10.5 1.5 12.5 3.5 12.5 6C12.5 9.3 8 14 8 14Z"
+                                stroke="currentColor"
+                                strokeWidth="1.3"
+                                strokeLinejoin="round"
+                              />
+                              <circle cx="8" cy="6" r="1.8" stroke="currentColor" strokeWidth="1.3" />
+                            </svg>
+                            <span className="truncate">{item.location}</span>
+                          </span>
+                          {eventDateText && (
+                            <span className="shrink-0 text-[#6E6A66]">{eventDateText}</span>
+                          )}
+                        </div>
+
+                        {item.reward && (
+                          <p className="mt-2.5 w-fit rounded-md bg-[#FAF4E8] px-2.5 py-1 text-[13px] font-semibold text-[#78440E]">
+                            Imbalan: {item.reward}
+                          </p>
+                        )}
+
+                        <p className="mt-2.5 line-clamp-2 flex-1 break-words text-[14px] leading-relaxed text-[#57534E]">
+                          {item.description ?? "Tidak ada deskripsi tambahan."}
+                        </p>
+
+                        <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#F1EDE8] pt-4">
+                          <span className="flex min-w-0 items-center gap-2.5">
+                            <span
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#141416] text-[13px] font-semibold text-white"
+                              aria-hidden="true"
+                            >
+                              {initialsOf(reporterName)}
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block truncate text-[13px] font-medium text-[#141416]">
+                                {reporterName}
+                              </span>
+                              {item.contact_info && (
+                                <span className="block truncate text-[13px] text-[#6E6A66]">
+                                  {item.contact_info}
+                                </span>
+                              )}
+                            </span>
+                          </span>
+
                           <Link
                             href={`/lost-found/${item.id}`}
                             aria-label={`Lihat detail ${item.title}`}
-                            className="shrink-0 focus:outline-none"
+                            className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-full border border-[#E5E0DA] bg-[#FAF8F6] px-4 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
                           >
-                            <ItemPhoto id={item.id} title={item.title} type={item.type} status={item.status} images={item.images} />
+                            Lihat detail
                           </Link>
-                          <div className="flex min-w-0 flex-1 flex-col p-4">
-                            <div className="flex items-start justify-between gap-3">
-                              <h2 className="text-[15px] font-semibold leading-6 text-slate-900">
-                                <Link href={`/lost-found/${item.id}`} className="hover:underline focus:outline-none">
-                                  {item.title}
-                                </Link>
-                              </h2>
-                              <span className="shrink-0 text-[11px] text-slate-400">
-                                {formatEventDate(item.date_event)}
-                              </span>
-                            </div>
-                            <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
-                              <svg
-                                width="11"
-                                height="11"
-                                viewBox="0 0 16 16"
-                                fill="none"
-                                aria-hidden="true"
-                                className="shrink-0"
-                              >
-                                <path
-                                  d="M8 14C8 14 3.5 9.3 3.5 6C3.5 3.5 5.5 1.5 8 1.5C10.5 1.5 12.5 3.5 12.5 6C12.5 9.3 8 14 8 14Z"
-                                  stroke="currentColor"
-                                  strokeWidth="1.2"
-                                  strokeLinejoin="round"
-                                />
-                                <circle cx="8" cy="6" r="1.8" stroke="currentColor" strokeWidth="1.2" />
-                              </svg>
-                              {item.location}
-                            </p>
-                            {item.reward && (
-                              <p className="mt-1.5 w-fit rounded-md bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-800 ring-1 ring-inset ring-amber-200">
-                                Imbalan: {item.reward}
-                              </p>
-                            )}
-                            <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-600">
-                              {item.description ?? "Tidak ada deskripsi."}
-                            </p>
-                            <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
-                              <span className="flex min-w-0 items-center gap-2">
-                                <span
-                                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[10px] font-semibold text-white"
-                                  aria-hidden="true"
-                                >
-                                  {initialsOf(reporterName)}
-                                </span>
-                                <span className="min-w-0">
-                                  <span className="block truncate text-xs font-medium text-slate-700">
-                                    {reporterName}
-                                  </span>
-                                  {item.contact_info && (
-                                    <span className="block truncate text-[11px] text-slate-400">
-                                      {item.contact_info}
-                                    </span>
-                                  )}
-                                </span>
-                              </span>
-                              <Link
-                                href={`/lost-found/${item.id}`}
-                                aria-label={`Lihat detail ${item.title}`}
-                                className="inline-flex shrink-0 items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-[#002147] hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
-                              >
-                                Lihat Detail
-                              </Link>
-                            </div>
-                          </div>
                         </div>
-                      </article>
-                    );
-                  })}
+                      </div>
+                    </article>
+                  );
+                })}
                 </div>
-              )}
+              </>
+            )}
 
-              {lastPage > 1 && (
-                <nav
-                  aria-label="Navigasi halaman lost & found"
-                  className="mt-5 flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600"
-                >
-                  <span>
-                    Halaman <strong className="text-slate-900">{page}</strong> dari{" "}
-                    <strong className="text-slate-900">{lastPage}</strong> ({total} laporan)
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={page <= 1}
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
-                    >
-                      ← Sebelumnya
-                    </button>
-                    <button
-                      type="button"
-                      disabled={page >= lastPage}
-                      onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
-                    >
-                      Berikutnya →
-                    </button>
-                  </div>
-                </nav>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+            {lastPage > 1 && (
+              <nav
+                aria-label="Navigasi halaman lost and found"
+                className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-[#E5E0DA] bg-white px-5 py-4 text-[14px] text-[#57534E]"
+              >
+                <span>
+                  Halaman <strong className="font-semibold text-[#141416]">{page}</strong> dari{" "}
+                  <strong className="font-semibold text-[#141416]">{lastPage}</strong> ({total} laporan)
+                </span>
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    aria-label="Halaman sebelumnya"
+                    className="inline-flex h-11 items-center justify-center rounded-full border border-[#E5E0DA] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-40"
+                  >
+                    Sebelumnya
+                  </button>
+                  <button
+                    type="button"
+                    disabled={page >= lastPage}
+                    onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
+                    aria-label="Halaman berikutnya"
+                    className="inline-flex h-11 items-center justify-center rounded-full border border-[#E5E0DA] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-40"
+                  >
+                    Berikutnya
+                  </button>
+                </div>
+              </nav>
+            )}
+          </>
+        )}
+      </section>
 
+      {/* Matte Warm-Alabaster Modal Buat Laporan */}
       {isModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#141416]/50 p-4"
           onClick={closeModal}
         >
           <div
@@ -781,60 +877,63 @@ export function LostAndFoundContent() {
             aria-modal="true"
             aria-labelledby="lapor-barang-title"
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[92vh] w-full max-w-[960px] overflow-y-auto rounded-2xl border border-gray-200 bg-[#F4F5F7]"
+            className="auth-shell-enter max-h-[92vh] w-full max-w-[940px] overflow-y-auto rounded-[28px] border border-[#E5E0DA] bg-[#F4F1EE] p-5 shadow-[0_20px_48px_-20px_rgba(20,20,22,0.20)] sm:p-7"
           >
-            <div className="px-5 pt-5 sm:px-7 sm:pt-6">
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-[11px] text-slate-400">
-                  Beranda <span className="mx-1">/</span> Lost &amp; Found <span className="mx-1">/</span>{" "}
-                  <span className="font-semibold text-slate-700">Buat Laporan Barang</span>
+            <div className="flex items-start justify-between gap-4 border-b border-[#E5E0DA] pb-4">
+              <div>
+                <p className="text-[13px] font-medium text-[#6E6A66]">
+                  Portal Mahasiswa · Buat Laporan Barang
                 </p>
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  disabled={isSubmitting}
-                  aria-label="Tutup modal"
-                  className="rounded-md px-2 py-0.5 text-xl leading-none text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 disabled:opacity-50"
+                <h2
+                  id="lapor-barang-title"
+                  className="mt-1 font-display text-2xl font-semibold tracking-tight text-[#141416]"
                 >
-                  ×
-                </button>
+                  {reportType === "lost" ? "Lapor barang hilang." : "Lapor barang temuan."}{" "}
+                  <span className="font-normal text-[#6E6A66]">
+                    {reportType === "lost"
+                      ? "Bantu rekan kampus mengenali barang Anda."
+                      : "Bantu pemilik menemukan kembali barangnya."}
+                  </span>
+                </h2>
               </div>
-              <h2 id="lapor-barang-title" className="mt-1.5 text-[22px] font-bold tracking-tight text-slate-900">
-                {reportType === "lost" ? "Lapor Barang Hilang (Dicari)" : "Lapor Barang Hilang & Temu"}
-              </h2>
-              <p className="mt-0.5 max-w-[620px] text-[13px] leading-5 text-slate-500">
-                {reportType === "lost"
-                  ? "Laporkan barang Anda yang tertinggal atau hilang di area kampus UPN agar rekan mahasiswa dan satpam dapat membantu proses pencarian."
-                  : "Laporkan barang hilang atau ditemukan di kampus UPN untuk membantu proses serah terima."}
-              </p>
+              <button
+                type="button"
+                onClick={closeModal}
+                disabled={isSubmitting}
+                aria-label="Tutup form laporan barang"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#E5E0DA] bg-white text-lg text-[#57534E] transition-colors hover:border-[#141416] hover:text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-50"
+              >
+                ×
+              </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="px-5 pb-6 pt-4 sm:px-7">
-              <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[1fr_250px]">
-                {/* Main form card */}
-                <div className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
-                  {/* Jenis Pelaporan */}
+            <form onSubmit={handleSubmit} className="mt-5">
+              <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[1.45fr_0.85fr]">
+                {/* Form Card */}
+                <div className="min-w-0 space-y-5 rounded-[20px] border border-[#E5E0DA] bg-white p-5 sm:p-6">
                   <fieldset>
-                    <legend className="text-[12px] font-semibold text-slate-900">
-                      Jenis Pelaporan <span className="text-red-500">*</span>
+                    <legend className="text-[14px] font-medium text-[#141416]">
+                      Jenis pelaporan <span className="text-[#B83232]">*</span>
                     </legend>
-                    <div className="mt-1.5 grid grid-cols-2 gap-1 rounded-xl bg-[#F1F3F5] p-1" role="radiogroup" aria-label="Jenis pelaporan">
+                    <div
+                      className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2"
+                      role="radiogroup"
+                      aria-label="Jenis pelaporan"
+                    >
                       {(
                         [
-                          { value: "found", label: "Barang Ditemukan" },
                           { value: "lost", label: "Barang Hilang" },
+                          { value: "found", label: "Barang Ditemukan" },
                         ] as const
                       ).map((opt) => {
                         const checked = reportType === opt.value;
                         return (
                           <label
                             key={opt.value}
-                            className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[12px] transition-colors ${
+                            className={`flex min-h-[44px] cursor-pointer items-center justify-center rounded-full border px-4 py-2 text-center text-[13px] font-medium transition-all focus-within:ring-2 focus-within:ring-[#141416] focus-within:ring-offset-1 ${
                               checked
-                                ? opt.value === "lost"
-                                  ? "bg-white font-bold text-amber-700 shadow-sm ring-1 ring-inset ring-amber-200"
-                                  : "bg-white font-bold text-emerald-700 shadow-sm ring-1 ring-inset ring-emerald-200"
-                                : "text-slate-500 hover:text-slate-700"
+                                ? "border-[#141416] bg-[#141416] text-white"
+                                : "border-[#E5E0DA] bg-[#F6F4F1] text-[#57534E] hover:border-[#CFC8BF] hover:text-[#141416]"
                             }`}
                           >
                             <input
@@ -845,19 +944,21 @@ export function LostAndFoundContent() {
                               onChange={() => setReportType(opt.value)}
                               className="sr-only"
                             />
-                            {opt.label}
+                            <span>{opt.label}</span>
                           </label>
                         );
                       })}
                     </div>
                   </fieldset>
 
-                  {/* Informasi Barang */}
-                  <section aria-labelledby="laporan-info-heading" className="mt-5 border-t border-slate-100 pt-5">
-                    <h3 id="laporan-info-heading" className="text-[14px] font-bold text-slate-900">Informasi Barang</h3>
-                    <div className="mt-3">
-                      <label htmlFor="laporan-title" className="text-[12px] font-semibold text-slate-900">
-                        Nama Barang <span className="text-red-500">*</span>
+                  <section aria-labelledby="laporan-info-heading" className="space-y-4 border-t border-[#F1EDE8] pt-5">
+                    <h3 id="laporan-info-heading" className="font-display text-[16px] font-semibold text-[#141416]">
+                      Informasi barang
+                    </h3>
+
+                    <div>
+                      <label htmlFor="laporan-title" className="block text-[14px] font-medium text-[#141416]">
+                        Nama barang <span className="text-[#B83232]">*</span>
                       </label>
                       <input
                         id="laporan-title"
@@ -866,41 +967,58 @@ export function LostAndFoundContent() {
                         maxLength={255}
                         value={formData.title}
                         onChange={(e) => updateForm("title", e.target.value)}
-                        placeholder={reportType === "lost" ? "Tumbler Corkcicle Biru Navy 500ml" : "Gantungan Kunci Honda + Lanyard UPN Merah"}
-                        className="mt-1.5 w-full rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#002147]/15"
+                        placeholder="Masukkan nama atau jenis barang"
+                        className="mt-1.5 h-11 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-3.5 text-[14px] text-[#141416] placeholder:text-[#66625E] transition-all focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
                       />
                     </div>
-                    <div className="mt-4">
-                      <label htmlFor="laporan-category" className="text-[12px] font-semibold text-slate-900">
-                        Kategori <span className="text-red-500">*</span>
+
+                    <div>
+                      <label htmlFor="laporan-category" className="block text-[14px] font-medium text-[#141416]">
+                        Kategori{" "}
+                        {categoryOptions.length > 0 && <span className="text-[#B83232]">*</span>}
                       </label>
-                      <select
-                        id="laporan-category"
-                        required
-                        value={formData.category_id}
-                        onChange={(e) => updateForm("category_id", e.target.value)}
-                        disabled={categoryOptions.length === 0}
-                        className="mt-1.5 w-full appearance-none rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-700 focus:border-[#002147] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#002147]/15 disabled:opacity-60"
-                      >
-                        <option value="">Pilih kategori</option>
-                        {categoryOptions.map((cat) => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative mt-1.5">
+                        <select
+                          id="laporan-category"
+                          required={categoryOptions.length > 0}
+                          value={formData.category_id}
+                          onChange={(e) => updateForm("category_id", e.target.value)}
+                          disabled={categoryOptions.length === 0}
+                          className="h-11 w-full appearance-none rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-3.5 pr-9 text-[14px] text-[#141416] transition-all focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none disabled:opacity-60"
+                        >
+                          <option value="">Pilih kategori</option>
+                          {categoryOptions.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </option>
+                          ))}
+                        </select>
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          aria-hidden="true"
+                          className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
+                        >
+                          <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
                       {categoryOptions.length === 0 && (
-                        <p className="mt-1 text-[11px] text-slate-400">
-                          Kategori belum tersedia. Tunggu data laporan dimuat.
+                        <p className="mt-1.5 text-[13px] text-[#6E6A66]">
+                          Kategori belum tersedia. Tunggu data laporan dimuat atau lanjutkan tanpa kategori.
                         </p>
                       )}
                     </div>
-                    <div className="mt-4">
+
+                    <div>
                       <div className="flex items-baseline justify-between gap-2">
-                        <label htmlFor="laporan-description" className="text-[12px] font-semibold text-slate-900">
-                          Deskripsi &amp; Ciri Khusus <span className="text-red-500">*</span>
+                        <label htmlFor="laporan-description" className="block text-[14px] font-medium text-[#141416]">
+                          Deskripsi dan ciri khusus <span className="text-[#B83232]">*</span>
                         </label>
-                        <span className="text-[10px] text-slate-400">{formData.description.length} / 2000</span>
+                        <span className="text-[13px] text-[#6E6A66]">
+                          {formData.description.length} / 2000
+                        </span>
                       </div>
                       <textarea
                         id="laporan-description"
@@ -909,41 +1027,44 @@ export function LostAndFoundContent() {
                         maxLength={2000}
                         value={formData.description}
                         onChange={(e) => updateForm("description", e.target.value)}
-                        placeholder="Warna, ukuran, stiker, lecet, isi, dan ciri lain yang memudahkan identifikasi…"
-                        className="mt-1.5 w-full rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] leading-5 text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#002147]/15"
+                        placeholder="Jelaskan warna, ciri khusus, kondisi, atau kronologi singkat"
+                        className="mt-1.5 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] p-3.5 text-[14px] leading-relaxed text-[#141416] placeholder:text-[#66625E] transition-all focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
                       />
                     </div>
-                    <div className="mt-4">
-                      <span id="laporan-photos-label" className="text-[12px] font-semibold text-slate-900">
-                        {reportType === "lost" ? "Foto Referensi Barang" : "Dokumentasi Foto"}{" "}
-                        <span className="font-normal text-slate-400">(Maks. 3 foto)</span>
+
+                    <div>
+                      <span id="laporan-photos-label" className="block text-[14px] font-medium text-[#141416]">
+                        {reportType === "lost" ? "Foto referensi barang" : "Dokumentasi foto"} (maksimal 3)
                       </span>
-                      <div className="mt-1.5 flex flex-wrap gap-2" role="group" aria-labelledby="laporan-photos-label">
+                      <div className="mt-2 flex flex-wrap gap-3" role="group" aria-labelledby="laporan-photos-label">
                         {photos.map((photo, i) => (
                           <span key={photo.id} className="relative h-20 w-20">
                             {/* eslint-disable-next-line @next/next/no-img-element -- local object URLs for instant upload preview only */}
                             <img
                               src={photo.url}
                               alt={`Foto barang ${i + 1}`}
-                              className="h-20 w-20 rounded-lg border border-slate-200 object-cover"
+                              width={80}
+                              height={80}
+                              className="h-20 w-20 rounded-xl border border-[#E5E0DA] object-cover"
                             />
                             <button
                               type="button"
                               onClick={() => removePhoto(photo.id)}
                               aria-label={`Hapus foto barang ${i + 1}`}
-                              className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[11px] font-bold leading-none text-white hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
+                              className="group absolute -right-3 -top-3 flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
                             >
-                              ×
+                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#141416] text-[13px] font-bold leading-none text-white transition-colors group-hover:bg-[#B83232]">
+                                ×
+                              </span>
                             </button>
                           </span>
                         ))}
                         {photos.length < 3 && (
-                          <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-slate-300 bg-[#F1F3F5] text-slate-500 hover:border-slate-400 hover:bg-slate-100 focus-within:outline-none focus-within:ring-2 focus-within:ring-[#002147] focus-within:ring-offset-2">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                              <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.2" strokeDasharray="2.5 2" />
-                              <path d="M8 5.5V10.5M5.5 8H10.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                          <label className="flex h-20 w-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[#CFC8BF] bg-[#F6F4F1] text-[#57534E] transition-colors hover:border-[#141416] hover:bg-white focus-within:ring-2 focus-within:ring-[#141416]">
+                            <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                              <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                             </svg>
-                            <span className="text-[10px] font-medium">+ Foto</span>
+                            <span className="text-[13px] font-medium">Tambah</span>
                             <input
                               type="file"
                               accept="image/*"
@@ -961,34 +1082,30 @@ export function LostAndFoundContent() {
                     </div>
                   </section>
 
-                  {/* Lokasi & Waktu */}
-                  <section aria-labelledby="laporan-lokasi-heading" className="mt-5 border-t border-slate-100 pt-5">
-                    <h3 id="laporan-lokasi-heading" className="text-[14px] font-bold text-slate-900">Lokasi &amp; Waktu</h3>
-                    <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <section aria-labelledby="laporan-lokasi-heading" className="space-y-4 border-t border-[#F1EDE8] pt-5">
+                    <h3 id="laporan-lokasi-heading" className="font-display text-[16px] font-semibold text-[#141416]">
+                      Lokasi dan waktu
+                    </h3>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div>
-                        <label htmlFor="laporan-location" className="text-[12px] font-semibold text-slate-900">
-                          Titik Kampus <span className="text-red-500">*</span>
+                        <label htmlFor="laporan-location" className="block text-[14px] font-medium text-[#141416]">
+                          Titik kampus <span className="text-[#B83232]">*</span>
                         </label>
-                        <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 focus-within:border-[#002147] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#002147]/15">
-                          <input
-                            id="laporan-location"
-                            type="text"
-                            required
-                            maxLength={255}
-                            value={formData.location}
-                            onChange={(e) => updateForm("location", e.target.value)}
-                            placeholder="Lobi Utama FTI (Gedung Pattimura)"
-                            className="w-full bg-transparent text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none"
-                          />
-                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0 text-slate-400">
-                            <path d="M8 14C8 14 3.5 9.3 3.5 6C3.5 3.5 5.5 1.5 8 1.5C10.5 1.5 12.5 3.5 12.5 6C12.5 9.3 8 14 8 14Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-                            <circle cx="8" cy="6" r="1.8" stroke="currentColor" strokeWidth="1.2" />
-                          </svg>
-                        </div>
+                        <input
+                          id="laporan-location"
+                          type="text"
+                          required
+                          maxLength={255}
+                          value={formData.location}
+                          onChange={(e) => updateForm("location", e.target.value)}
+                          placeholder="Sebutkan gedung, ruangan, atau area kampus"
+                          className="mt-1.5 h-11 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-3.5 text-[14px] text-[#141416] placeholder:text-[#66625E] transition-all focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
+                        />
                       </div>
+
                       <div>
-                        <label htmlFor="laporan-date" className="text-[12px] font-semibold text-slate-900">
-                          Tanggal <span className="text-red-500">*</span>
+                        <label htmlFor="laporan-date" className="block text-[14px] font-medium text-[#141416]">
+                          Tanggal kejadian <span className="text-[#B83232]">*</span>
                         </label>
                         <input
                           id="laporan-date"
@@ -996,29 +1113,31 @@ export function LostAndFoundContent() {
                           required
                           value={formData.date_event}
                           onChange={(e) => updateForm("date_event", e.target.value)}
-                          className="mt-1.5 w-full rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-900 focus:border-[#002147] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#002147]/15"
+                          className="mt-1.5 h-11 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-3.5 text-[14px] text-[#141416] transition-all focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
                         />
                       </div>
                     </div>
                   </section>
 
-                  {/* Imbalan — highlighted for lost reports */}
                   {reportType === "lost" && (
-                    <section aria-labelledby="laporan-imbalan-heading" className="mt-5 rounded-xl bg-amber-50 p-4 ring-1 ring-inset ring-amber-200">
-                      <div className="flex items-center justify-between gap-2">
-                        <h3 id="laporan-imbalan-heading" className="text-[13px] font-bold text-slate-900">
-                          Bantuan &amp; Opsi Imbalan <span className="font-normal text-slate-500">(Opsional)</span>
+                    <section
+                      aria-labelledby="laporan-imbalan-heading"
+                      className="rounded-[20px] border border-[#E8D8BE] bg-[#FAF4E8] p-4"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h3 id="laporan-imbalan-heading" className="text-[14px] font-semibold text-[#141416]">
+                          Opsi imbalan <span className="font-normal text-[#57534E]">(Opsional)</span>
                         </h3>
-                        <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                          Khusus Barang Hilang
+                        <span className="rounded-md bg-[#F3E6CE] px-2.5 py-0.5 text-[13px] font-semibold text-[#78440E]">
+                          Khusus barang hilang
                         </span>
                       </div>
                       <div className="mt-3">
-                        <label htmlFor="laporan-reward" className="text-[12px] font-semibold text-slate-900">
-                          Nominal Imbalan (Rp)
+                        <label htmlFor="laporan-reward" className="block text-[13px] font-medium text-[#141416]">
+                          Nominal imbalan (Rp)
                         </label>
-                        <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 py-2.5 focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-200">
-                          <span className="text-[13px] font-semibold text-slate-500">Rp</span>
+                        <div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-[#E5E0DA] bg-white px-3.5 transition-all focus-within:border-[#141416] focus-within:shadow-[0_0_0_3px_rgba(20,20,22,0.06)]">
+                          <span className="text-[14px] font-semibold text-[#57534E]">Rp</span>
                           <input
                             id="laporan-reward"
                             type="number"
@@ -1026,26 +1145,29 @@ export function LostAndFoundContent() {
                             step="any"
                             value={formData.reward}
                             onChange={(e) => updateForm("reward", e.target.value)}
-                            placeholder="50000"
-                            className="w-full bg-transparent text-[13px] font-semibold text-slate-900 placeholder:font-normal placeholder:text-slate-400 focus:outline-none"
+                            placeholder="Masukkan nominal imbalan (opsional)"
+                            className="w-full bg-transparent text-[14px] font-semibold text-[#141416] placeholder:font-normal placeholder:text-[#66625E] focus:outline-none"
                           />
                         </div>
-                        <p className="mt-1 text-[11px] text-slate-500">
-                          Sukarela — nominal dapat disepakati saat serah terima barang.
+                        <p className="mt-1.5 text-[13px] text-[#57534E]">
+                          Bersifat sukarela. Nominal dapat disepakati saat serah terima barang.
                         </p>
                       </div>
                     </section>
                   )}
 
-                  {/* Kontak */}
-                  <section aria-labelledby="laporan-kontak-heading" className="mt-5 border-t border-slate-100 pt-5">
-                    <h3 id="laporan-kontak-heading" className="text-[14px] font-bold text-slate-900">Kontak Pelapor</h3>
-                    <div className="mt-3">
-                      <label htmlFor="laporan-contact" className="text-[12px] font-semibold text-slate-900">
-                        Nomor WhatsApp <span className="text-red-500">*</span>
+                  <section aria-labelledby="laporan-kontak-heading" className="space-y-3 border-t border-[#F1EDE8] pt-5">
+                    <h3 id="laporan-kontak-heading" className="font-display text-[16px] font-semibold text-[#141416]">
+                      Kontak pelapor
+                    </h3>
+                    <div>
+                      <label htmlFor="laporan-contact" className="block text-[14px] font-medium text-[#141416]">
+                        Nomor WhatsApp <span className="text-[#B83232]">*</span>
                       </label>
-                      <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 focus-within:border-[#002147] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#002147]/15">
-                        <span className="shrink-0 rounded bg-slate-200/70 px-1.5 py-0.5 text-[12px] font-semibold text-slate-600">+62</span>
+                      <div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-3.5 transition-all focus-within:border-[#141416] focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(20,20,22,0.06)]">
+                        <span className="shrink-0 rounded-md bg-[#EFECE8] px-2 py-0.5 text-[13px] font-semibold text-[#5F5B57]">
+                          +62
+                        </span>
                         <input
                           id="laporan-contact"
                           type="tel"
@@ -1053,98 +1175,134 @@ export function LostAndFoundContent() {
                           maxLength={50}
                           value={formData.contact_info}
                           onChange={(e) => updateForm("contact_info", e.target.value)}
-                          placeholder="812-3456-7890"
-                          className="w-full bg-transparent text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                          placeholder="Masukkan nomor WhatsApp aktif"
+                          className="w-full bg-transparent text-[14px] text-[#141416] placeholder:text-[#66625E] focus:outline-none"
                         />
                       </div>
                     </div>
                   </section>
 
                   {submitError && (
-                    <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                    <p
+                      role="alert"
+                      className="rounded-xl border border-[#F1C9C9] bg-[#FDF2F2] px-4 py-3 text-[13px] font-medium text-[#B83232]"
+                    >
                       {submitError}
                     </p>
                   )}
 
-                  <div className="mt-5 flex items-center justify-end gap-2">
+                  <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[#F1EDE8] pt-4">
                     <button
                       type="button"
                       onClick={closeModal}
                       disabled={isSubmitting}
-                      className="rounded-lg bg-slate-100 px-4 py-2 text-[13px] font-semibold text-slate-600 hover:bg-slate-200 disabled:opacity-50"
+                      className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-50"
                     >
                       Batal
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="rounded-lg bg-[#0A2342] px-5 py-2 text-[13px] font-semibold text-white hover:bg-[#12325e] disabled:opacity-60"
+                      className="inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-60 motion-reduce:transform-none motion-reduce:transition-none"
                     >
-                      {isSubmitting ? "Menyimpan…" : "Publikasikan Laporan"}
+                      {isSubmitting ? "Menyimpan laporan..." : "Publikasikan laporan"}
                     </button>
                   </div>
                 </div>
 
-                {/* Live preview + guide */}
-                <div className="space-y-4 lg:sticky lg:top-0">
-                  <aside aria-label="Pratinjau feed laporan" className="rounded-xl border border-gray-200 bg-white p-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Pratinjau Feed</p>
-                      <span className="text-[10px] font-medium text-slate-400">Publik</span>
-                    </div>
-                    <div className="mt-2 overflow-hidden rounded-lg border border-slate-100">
-                      <div className="relative flex aspect-[16/9] items-center justify-center bg-[#E9EDF2]">
+                {/* Live Preview Card + Safety Guide */}
+                <div className="min-w-0 space-y-4 lg:sticky lg:top-0">
+                  <aside
+                    aria-label="Pratinjau kartu laporan"
+                    className="rounded-[20px] border border-[#E5E0DA] bg-white p-5"
+                  >
+                    <p className="text-[13px] font-semibold text-[#141416]">
+                      Pratinjau tampilan laporan
+                    </p>
+                    <div className="mt-3 overflow-hidden rounded-2xl border border-[#EAE5DF] bg-white">
+                      <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-[#EFECE8] text-[#5F5B57]">
                         {photos.length > 0 ? (
-                          // eslint-disable-next-line @next/next/no-img-element -- local object URLs for instant upload preview only
-                          <img src={photos[0].url} alt="Pratinjau foto barang" className="h-full w-full object-cover" />
+                          // eslint-disable-next-line @next/next/no-img-element -- local preview before upload
+                          <img
+                            src={photos[0].url}
+                            alt="Pratinjau foto barang"
+                            width={640}
+                            height={480}
+                            className="h-full w-full object-cover"
+                          />
                         ) : (
-                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-slate-400">
-                            <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.3" />
-                            <circle cx="9" cy="9" r="2" stroke="currentColor" strokeWidth="1.3" />
-                            <path d="M3 16L8.5 11L13 15.5L16 13L21 18" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round" />
-                          </svg>
+                          <span className="text-[13px] font-medium">
+                            Belum ada foto dipilih
+                          </span>
                         )}
-                        <span className={`absolute left-2 top-2 rounded px-1.5 py-0.5 text-[10px] font-bold text-white ${reportType === "lost" ? "bg-amber-500" : "bg-emerald-600"}`}>
-                          {reportType === "lost" ? "HILANG (DICARI)" : "DITEMUKAN"}
-                        </span>
-                        <span className="absolute right-2 top-2 rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
-                          {previewDate}
-                        </span>
                       </div>
-                      <div className="p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-teal-700">{previewCategory}</p>
-                        <p className="mt-0.5 line-clamp-2 text-[12px] font-bold leading-5 text-slate-900">
-                          {formData.title || "Judul laporan akan tampil di sini"}
+                      <div className="p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="rounded-md bg-[#F4F1EE] px-2.5 py-0.5 text-[13px] font-medium text-[#57534E]">
+                            {previewCategory}
+                          </span>
+                          <StatusBadge type={reportType} status="open" />
+                        </div>
+                        <p className="mt-2.5 line-clamp-2 font-display text-[15px] font-semibold text-[#141416]">
+                          {formData.title.trim() || "Judul laporan belum diisi"}
                         </p>
-                        <p className="mt-1 flex items-center gap-1 text-[10px] text-slate-500">
-                          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
-                            <path d="M8 14C8 14 3.5 9.3 3.5 6C3.5 3.5 5.5 1.5 8 1.5C10.5 1.5 12.5 3.5 12.5 6C12.5 9.3 8 14 8 14Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-                            <circle cx="8" cy="6" r="1.8" stroke="currentColor" strokeWidth="1.2" />
-                          </svg>
-                          <span className="truncate">{formData.location || "Lokasi kejadian"}</span>
+                        <p className="mt-1.5 truncate text-[13px] text-[#57534E]">
+                          {formData.location.trim() || "Lokasi kejadian belum diisi"}
                         </p>
-                        <p className={`mt-1.5 text-[10px] font-semibold ${reportType === "lost" ? "text-amber-700" : "text-emerald-700"}`}>
-                          Status: {reportType === "lost" ? "Sedang Dicari" : "Menunggu Klaim"}
+                        <p className="mt-1 text-[13px] text-[#6E6A66]">
+                          {previewDate}
                         </p>
+                        {hasValidPreviewReward && (
+                          <p className="mt-2 w-fit rounded-md bg-[#FAF4E8] px-2.5 py-0.5 text-[13px] font-semibold text-[#78440E]">
+                            Imbalan: Rp {parsedPreviewReward.toLocaleString("id-ID")}
+                          </p>
+                        )}
+                        <div className="mt-3 flex items-center gap-2 border-t border-[#F1EDE8] pt-3">
+                          <span
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#141416] text-[13px] font-semibold text-white"
+                            aria-hidden="true"
+                          >
+                            {initialsOf(previewReporterName)}
+                          </span>
+                          <span className="truncate text-[13px] font-medium text-[#141416]">
+                            {previewReporterName}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </aside>
-                  <aside aria-label="Panduan pelaporan" className="rounded-xl border border-gray-200 bg-white p-4">
-                    <p className="text-[12px] font-bold text-slate-900">
-                      {reportType === "lost" ? "ⓘ Panduan Pelaporan" : "🛡 Panduan Keamanan"}
+
+                  <aside
+                    aria-label="Panduan pelaporan dan keamanan"
+                    className="rounded-[20px] border border-[#E5E0DA] bg-white p-5"
+                  >
+                    <p className="font-display text-[15px] font-semibold text-[#141416]">
+                      {reportType === "lost" ? "Panduan pelaporan" : "Panduan keamanan"}
                     </p>
-                    <ul className="mt-2 space-y-2 text-[11px] leading-4 text-slate-500">
+                    <ul className="mt-2.5 space-y-2 text-[13px] leading-relaxed text-[#57534E]">
                       {reportType === "lost" ? (
                         <>
-                          <li><strong className="text-slate-700">Lapor ke Pos Satpam:</strong> segera lapor ke pos terdekat jika barang berharga.</li>
-                          <li><strong className="text-slate-700">Periksa ruangan:</strong> periksa kembali ruangan kelas terakhir sebelum jam perkuliahan usai.</li>
-                          <li><strong className="text-slate-700">Koordinasi aman:</strong> gunakan chat untuk koordinasi awal tanpa membagikan data pribadi sensitif.</li>
+                          <li>
+                            <strong className="text-[#141416]">Lapor ke pos satpam:</strong> segera lapor ke pos terdekat jika barang berharga.
+                          </li>
+                          <li>
+                            <strong className="text-[#141416]">Periksa ruangan:</strong> cek kembali ruangan kelas terakhir sebelum jam kuliah selesai.
+                          </li>
+                          <li>
+                            <strong className="text-[#141416]">Koordinasi aman:</strong> gunakan chat untuk koordinasi awal tanpa membagikan data sensitif.
+                          </li>
                         </>
                       ) : (
                         <>
-                          <li><strong className="text-slate-700">Cek STNK / dokumen:</strong> minta bukti kepemilikan sebelum serah terima.</li>
-                          <li><strong className="text-slate-700">Verifikasi KTM:</strong> cocokkan identitas pengambil dengan KTM aktif.</li>
-                          <li><strong className="text-slate-700">Titik publik:</strong> janjian serah terima di tempat ramai atau titipkan di pos satpam.</li>
+                          <li>
+                            <strong className="text-[#141416]">Cek bukti kepemilikan:</strong> minta ciri khusus atau dokumen pendukung sebelum serah terima.
+                          </li>
+                          <li>
+                            <strong className="text-[#141416]">Verifikasi KTM:</strong> cocokkan identitas pengambil dengan KTM aktif.
+                          </li>
+                          <li>
+                            <strong className="text-[#141416]">Titik publik:</strong> lakukan serah terima di area ramai atau titipkan di pos satpam.
+                          </li>
                         </>
                       )}
                     </ul>
@@ -1161,7 +1319,7 @@ export function LostAndFoundContent() {
 
 export default function LostAndFoundPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-slate-500">Memuat lost &amp; found…</p>}>
+    <Suspense fallback={<p className="text-[14px] text-[#6E6A66]">Memuat lost &amp; found...</p>}>
       <LostAndFoundContent />
     </Suspense>
   );

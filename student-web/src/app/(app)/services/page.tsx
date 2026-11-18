@@ -14,10 +14,8 @@ import ListingImage from "@/components/ListingImage";
 import { getUser } from "@/lib/auth";
 import type { ApiImage } from "@/lib/images";
 
-// ---------------------------------------------------------------------------
-// API types — shape of GET /api/v1/services (Laravel paginator wrapped in
+// API types: shape of GET /api/v1/services (Laravel paginator wrapped in
 // a standard { message, data } JSON envelope).
-// ---------------------------------------------------------------------------
 type ApiServiceItem = {
   id: number;
   title: string;
@@ -79,6 +77,13 @@ const PRICING_MODELS = [
   { value: "negotiable", label: "Negosiasi" },
 ] as const;
 
+const PRICING_LABELS: Record<string, string> = {
+  starting_from: "Mulai dari",
+  fixed: "Tarif tetap",
+  per_hour: "Per jam",
+  negotiable: "Negosiasi",
+};
+
 const PAYMENT_METHODS = [
   { value: "dp", label: "DP (Uang Muka)" },
   { value: "full", label: "Bayar Lunas Selesai" },
@@ -109,94 +114,55 @@ function formatPriceRange(min: number | string, max: number | string | null): st
   if (Number(max) === Number(min)) {
     return formatRupiah(min);
   }
-  return `${formatRupiah(min)} – ${formatRupiah(max)}`;
+  return `${formatRupiah(min)} - ${formatRupiah(max)}`;
+}
+
+function formatTimeAgo(isoDate: string): string {
+  const diffMs = Date.now() - new Date(isoDate).getTime();
+  if (Number.isNaN(diffMs) || diffMs < 0) return "";
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return "Baru saja";
+  if (minutes < 60) return `${minutes} menit lalu`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} jam lalu`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} hari lalu`;
+  return new Date(isoDate).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function ProviderAvatar({ name }: { name: string }) {
-  const initials = name
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const initials =
+    name
+      .split(" ")
+      .filter(Boolean)
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "UP";
   return (
-    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[10px] font-semibold text-white">
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#141416] text-[13px] font-semibold text-white">
       {initials}
-    </span>
-  );
-}
-
-function CategoryGlyph({ category }: { category: string }) {
-  const name = category.toLowerCase();
-  // Small inline glyphs reused by pills and card icon squares. Pure SVG, no deps.
-  if (name.includes("desain") || name.includes("media") || name.includes("foto")) {
-    return (
-      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M3.5 11.5L8 3.5L12.5 11.5H3.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-        <path d="M6.5 11.5H9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-        <path d="M8 3.5V2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  if (name.includes("servis") || name.includes("service") || name.includes("teknik") || name.includes("laptop")) {
-    return (
-      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M10.5 2.5L13.5 5.5L6 13L2.5 13.5L3 10L10.5 2.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  if (name.includes("laundry") || name.includes("print") || name.includes("cetak") || name.includes("jilid")) {
-    return (
-      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <rect x="3" y="4" width="10" height="8" rx="1" stroke="currentColor" strokeWidth="1.4" />
-        <path d="M5 7H11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-        <path d="M5.5 10H10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  if (name === "semua") {
-    return (
-      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.4" />
-        <rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.4" />
-        <rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.4" />
-        <rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.4" />
-      </svg>
-    );
-  }
-  // Default: Tutoring (graduation cap)
-  return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M8 3.5L2.5 6L8 8.5L13.5 6L8 3.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-      <path d="M3 11L8 13.5L13 11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <path d="M5 7.5V10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function CategoryIcon({ category }: { category: string }) {
-  return (
-    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 p-2 text-teal-600">
-      <span className="[&>svg]:h-[14px] [&>svg]:w-[14px]">
-        <CategoryGlyph category={category} />
-      </span>
     </span>
   );
 }
 
 function ServiceCardSkeleton() {
   return (
-    <div className="flex flex-col rounded-xl border border-gray-200 bg-white p-5">
-      <div className="flex items-start justify-between">
-        <div className="h-9 w-9 animate-pulse rounded-lg bg-slate-100" />
-        <div className="h-5 w-20 animate-pulse rounded-md bg-slate-100" />
-      </div>
-      <div className="mt-4 h-4 w-3/4 animate-pulse rounded bg-slate-100" />
-      <div className="mt-2 h-3 w-full animate-pulse rounded bg-slate-100" />
-      <div className="mt-1 h-3 w-2/3 animate-pulse rounded bg-slate-100" />
-      <div className="mt-4 flex items-end justify-between border-t border-gray-100 pt-4">
-        <div className="h-4 w-24 animate-pulse rounded bg-slate-100" />
-        <div className="h-4 w-20 animate-pulse rounded bg-slate-100" />
+    <div className="flex flex-col overflow-hidden rounded-[20px] border border-[#E5E0DA] bg-white">
+      <div className="aspect-[4/3] animate-pulse bg-[#EFECE8]" />
+      <div className="flex flex-1 flex-col gap-3 p-5">
+        <div className="h-5 w-24 animate-pulse rounded-md bg-[#F4F1EE]" />
+        <div className="h-5 w-4/5 animate-pulse rounded-lg bg-[#F4F1EE]" />
+        <div className="h-6 w-2/5 animate-pulse rounded-lg bg-[#EFECE8]" />
+        <div className="h-4 w-full animate-pulse rounded-lg bg-[#F4F1EE]" />
+        <div className="mt-auto flex items-center justify-between border-t border-[#F1EDE8] pt-4">
+          <div className="h-6 w-28 animate-pulse rounded-full bg-[#F4F1EE]" />
+          <div className="h-4 w-16 animate-pulse rounded-lg bg-[#F4F1EE]" />
+        </div>
       </div>
     </div>
   );
@@ -226,20 +192,26 @@ function ServicesContent() {
   const [backendCategories, setBackendCategories] = useState<PublicCategory[]>([]);
   const [currentUser] = useState(() => getUser());
   const photoIdRef = useRef(0);
+  const debouncedQueryRef = useRef(urlQuery);
+  const prevUrlQueryRef = useRef(urlQuery);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed === debouncedQueryRef.current) return;
     const t = window.setTimeout(() => {
-      setDebouncedQuery(query.trim());
+      debouncedQueryRef.current = trimmed;
+      setDebouncedQuery(trimmed);
       setPage(1);
     }, 350);
     return () => window.clearTimeout(t);
   }, [query]);
 
   useEffect(() => {
-    if (urlQuery !== "") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync query from header search URL
+    if (prevUrlQueryRef.current !== urlQuery) {
+      prevUrlQueryRef.current = urlQuery;
+      debouncedQueryRef.current = urlQuery;
       setQuery(urlQuery);
       setDebouncedQuery(urlQuery);
       setPage(1);
@@ -269,7 +241,7 @@ function ServicesContent() {
       } catch {
         if (signal?.aborted) return;
         setItems([]);
-        setError("Gagal memuat data jasa. Periksa koneksi ke backend lalu coba lagi.");
+        setError("Gagal memuat daftar jasa. Periksa koneksi backend lalu coba lagi.");
       } finally {
         if (signal?.aborted) return;
         setIsLoading(false);
@@ -376,9 +348,10 @@ function ServicesContent() {
 
   const clearCreateParam = useCallback(() => {
     if (searchParams.get("action") === "create") {
-      router.replace("/services");
+      const next = urlQuery ? `/services?q=${encodeURIComponent(urlQuery)}` : "/services";
+      router.replace(next);
     }
-  }, [router, searchParams]);
+  }, [router, searchParams, urlQuery]);
 
   const closeModal = useCallback(() => {
     if (isSubmitting) return;
@@ -412,10 +385,19 @@ function ServicesContent() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const categoryId = Number(formData.category_id);
+    if (!Number.isInteger(categoryId) || categoryId <= 0) {
+      setSubmitError("Pilih kategori layanan yang tersedia terlebih dahulu.");
+      return;
+    }
     const priceMin = Number(formData.price_min);
+    if (formData.price_min.trim() === "" || Number.isNaN(priceMin) || priceMin < 0) {
+      setSubmitError("Masukkan nominal harga minimal yang valid.");
+      return;
+    }
     const priceMaxRaw = formData.price_max.trim();
     const priceMax = priceMaxRaw === "" ? null : Number(priceMaxRaw);
-    if (priceMax !== null && priceMax < priceMin) {
+    if (priceMax !== null && (Number.isNaN(priceMax) || priceMax < priceMin)) {
       setSubmitError("Harga maksimal tidak boleh lebih kecil dari harga minimal.");
       return;
     }
@@ -430,11 +412,12 @@ function ServicesContent() {
         method: "POST",
         body: JSON.stringify({
           title: formData.title.trim(),
-          category_id: Number(formData.category_id),
+          category_id: categoryId,
           price_min: priceMin,
           price_max: priceMax,
           pricing_type: pricingType,
-          estimated_time: formData.estimated_time.trim() === "" ? null : formData.estimated_time.trim(),
+          estimated_time:
+            formData.estimated_time.trim() === "" ? null : formData.estimated_time.trim(),
           payment_method: paymentMethod,
           whatsapp_number:
             formData.whatsapp_number.trim() === "" ? null : formData.whatsapp_number.trim(),
@@ -463,135 +446,186 @@ function ServicesContent() {
     }
   }
 
-  const previewCategory =
-    categoryOptions.find((c) => String(c.id) === formData.category_id)?.name ?? "Kategori Jasa";
-  const previewHasRange =
-    formData.price_max.trim() !== "" && Number(formData.price_max) > Number(formData.price_min);
-  const previewPrice = formData.price_min
-    ? formatPriceRange(formData.price_min, previewHasRange ? formData.price_max : null)
-    : "Rp 75.000";
-  const previewModelLabel =
-    PRICING_MODELS.find((m) => m.value === pricingType)?.label ?? "Mulai Dari";
-  const previewPriceLine =
-    pricingType === "per_hour" && formData.price_min
-      ? `${formatRupiah(formData.price_min)} / jam`
-      : pricingType === "negotiable"
-        ? `${previewPrice} • Nego`
-        : previewPrice;
-
-  const previewProviderName =
-    currentUser?.profile?.name || currentUser?.name || "Mahasiswa UPN";
-  const previewProviderFaculty =
-    currentUser?.profile?.faculty || "Mahasiswa UPN";
-  const previewProviderInitials =
-    previewProviderName
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0])
-      .join("")
-      .toUpperCase() || "UP";
-
-  const filtered = items;
+  const hasActiveFilter =
+    activeCategoryId !== null ||
+    query.trim() !== "" ||
+    debouncedQuery !== "" ||
+    urlQuery !== "";
 
   function clearFilters() {
     setActiveCategoryId(null);
     setQuery("");
+    debouncedQueryRef.current = "";
     setDebouncedQuery("");
     setPage(1);
     if (urlQuery !== "") {
+      prevUrlQueryRef.current = "";
       router.replace("/services");
     }
   }
 
-  return (
-    <div className="mx-auto max-w-[1180px]">
-      {/* Top section: title (left) + search & CTA (right) */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-[28px] font-bold tracking-tight text-slate-900">Jasa &amp; Layanan Mahasiswa</h1>
-          <p className="mt-1 text-sm text-gray-500">Temukan mahasiswa terampil untuk les, desain, servis, dan lainnya.</p>
-        </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:pt-1">
-          <div className="relative w-full sm:w-[240px]">
-            <label htmlFor="services-search" className="sr-only">
-              Cari jasa
-            </label>
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.3" />
-                <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-              </svg>
-            </span>
-            <input
-              id="services-search"
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Cari jasa..."
-              className="h-9 w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-gray-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setSubmitError(null);
-              setIsModalOpen(true);
-            }}
-            className="h-9 shrink-0 rounded-lg bg-[#0A2342] px-4 text-xs font-semibold text-white hover:bg-[#12325e]"
-          >
-            + Tawarkan Jasa
-          </button>
-        </div>
-      </div>
+  const previewCategory =
+    categoryOptions.find((c) => String(c.id) === formData.category_id)?.name ?? "Kategori";
+  const parsedPreviewMin = Number(formData.price_min);
+  const hasValidPreviewPrice =
+    formData.price_min.trim() !== "" &&
+    !Number.isNaN(parsedPreviewMin) &&
+    parsedPreviewMin >= 0;
+  const parsedPreviewMax = Number(formData.price_max);
+  const previewHasRange =
+    hasValidPreviewPrice &&
+    formData.price_max.trim() !== "" &&
+    !Number.isNaN(parsedPreviewMax) &&
+    parsedPreviewMax > parsedPreviewMin;
+  const previewModelLabel =
+    PRICING_MODELS.find((m) => m.value === pricingType)?.label ?? "Mulai Dari";
+  const previewPriceLine = !hasValidPreviewPrice
+    ? "Tarif belum diisi"
+    : pricingType === "per_hour"
+      ? `${formatRupiah(parsedPreviewMin)} / jam`
+      : pricingType === "negotiable"
+        ? `${formatPriceRange(parsedPreviewMin, previewHasRange ? parsedPreviewMax : null)} (Nego)`
+        : formatPriceRange(parsedPreviewMin, previewHasRange ? parsedPreviewMax : null);
 
-      {/* Category pills with icons */}
-      <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Filter berdasarkan kategori">
+  const previewProviderName =
+    currentUser?.profile?.name || currentUser?.name || "Mahasiswa UPN";
+  const previewProviderFaculty =
+    currentUser?.profile?.faculty || "UPN Veteran Jatim";
+
+  return (
+    <div className="auth-shell-enter mx-auto max-w-[1200px] space-y-7">
+      {/* Header Band */}
+      <section className="flex flex-col justify-between gap-5 border-b border-[#E5E0DA] pb-6 lg:flex-row lg:items-end">
+        <div className="min-w-0 space-y-2">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] font-medium text-[#6E6A66]">
+            <span>Portal Mahasiswa / Layanan &amp; Jasa</span>
+            <span aria-hidden="true" className="text-[#CFC8BF]">
+              ·
+            </span>
+            <span>{isLoading ? "Memuat layanan…" : `${total} jasa aktif`}</span>
+            {debouncedQuery !== "" && (
+              <>
+                <span aria-hidden="true" className="text-[#CFC8BF]">
+                  ·
+                </span>
+                <span className="text-[#141416]">
+                  Pencarian: &ldquo;{debouncedQuery}&rdquo;
+                </span>
+              </>
+            )}
+          </div>
+
+          <h1 className="font-display text-2xl font-semibold tracking-[-0.02em] text-[#141416] sm:text-[32px] sm:leading-[1.18]">
+            Jasa &amp; Layanan Mahasiswa
+          </h1>
+          <p className="max-w-2xl text-[15px] leading-relaxed text-[#57534E]">
+            Temukan layanan les privat, desain grafis, fotografi, dan servis teknis dari mahasiswa UPN.
+          </p>
+        </div>
+
         <button
           type="button"
           onClick={() => {
-            setActiveCategoryId(null);
-            setPage(1);
+            setSubmitError(null);
+            setIsModalOpen(true);
           }}
-          aria-pressed={activeCategoryId === null}
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 ${
-            activeCategoryId === null
-              ? "border-teal-200 bg-teal-50 text-teal-700"
-              : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-          }`}
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
         >
-          <CategoryGlyph category="Semua" />
-          Semua Jasa
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+          </svg>
+          Tawarkan jasa
         </button>
-        {filterCategories.map((cat) => {
-          const isActive = activeCategoryId === cat.id;
-          return (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => {
-                setActiveCategoryId(cat.id);
-                setPage(1);
-              }}
-              aria-pressed={isActive}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 ${
-                isActive
-                  ? "border-teal-200 bg-teal-50 text-teal-700"
-                  : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-              }`}
-            >
-              <CategoryGlyph category={cat.name} />
-              {cat.name}
-            </button>
-          );
-        })}
-      </div>
+      </section>
 
-      {/* Grid: 1 col mobile, 2 tablet, 3 desktop */}
-      <div className="mt-6">
+      {/* Unified Category + Search Filter Bar */}
+      <section
+        aria-label="Filter katalog jasa"
+        className="rounded-[20px] border border-[#E5E0DA] bg-white p-5 sm:p-6"
+      >
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label="Filter berdasarkan kategori"
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setActiveCategoryId(null);
+              setPage(1);
+            }}
+            aria-pressed={activeCategoryId === null}
+            className={`min-h-[44px] rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
+              activeCategoryId === null
+                ? "bg-[#141416] text-white"
+                : "bg-[#F4F1EE] text-[#57534E] hover:bg-[#EAE6E2] hover:text-[#141416]"
+            }`}
+          >
+            Semua kategori
+          </button>
+          {filterCategories.map((cat) => {
+            const isActive = activeCategoryId === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => {
+                  setActiveCategoryId(cat.id);
+                  setPage(1);
+                }}
+                aria-pressed={isActive}
+                className={`min-h-[44px] rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
+                  isActive
+                    ? "bg-[#141416] text-white"
+                    : "bg-[#F4F1EE] text-[#57534E] hover:bg-[#EAE6E2] hover:text-[#141416]"
+                }`}
+              >
+                {cat.name}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 gap-4 border-t border-[#F1EDE8] pt-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          <div className="min-w-0">
+            <label htmlFor="services-search" className="block text-[13px] font-medium text-[#57534E]">
+              Cari jasa atau keahlian
+            </label>
+            <div className="relative mt-1.5">
+              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.4" />
+                  <path d="M10.5 10.5L13 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                </svg>
+              </span>
+              <input
+                id="services-search"
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Cari judul layanan atau keahlian"
+                className="h-11 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-10 pr-4 text-[14px] text-[#141416] placeholder:text-[#66625E] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+              />
+            </div>
+          </div>
+
+          {hasActiveFilter && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-5 text-[14px] font-medium text-[#141416] transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:border-[#141416] hover:bg-[#FAF8F6] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+            >
+              Atur ulang filter
+            </button>
+          )}
+        </div>
+      </section>
+
+      {/* Catalog Grid */}
+      <section aria-label="Daftar jasa dan layanan mahasiswa">
         {isLoading ? (
           <div
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+            className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
             role="status"
             aria-busy="true"
             aria-label="Memuat jasa dan layanan"
@@ -604,100 +638,135 @@ function ServicesContent() {
         ) : error ? (
           <div
             role="alert"
-            className="rounded-xl border border-gray-200 bg-white px-6 py-12 text-center"
+            className="rounded-[20px] border border-[#E5E0DA] bg-white px-6 py-14 text-center"
           >
-            <p className="text-sm font-medium text-slate-900">Gagal memuat data jasa</p>
-            <p className="mt-1 text-xs text-gray-500">{error}</p>
+            <h2 className="font-display text-lg font-semibold text-[#141416]">
+              Gagal memuat katalog jasa
+            </h2>
+            <p className="mx-auto mt-1.5 max-w-md text-[14px] text-[#6E6A66]">{error}</p>
             <button
               type="button"
               onClick={() => void loadServices(page, activeCategoryId, debouncedQuery)}
-              className="mt-4 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
+              className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
             >
-              Coba lagi
+              Muat ulang daftar
             </button>
           </div>
-        ) : filtered.length === 0 ? (
-          <div role="status" className="rounded-xl border border-gray-200 bg-white px-6 py-12 text-center">
-            <p className="text-sm font-medium text-slate-900">Tidak ada jasa ditemukan</p>
-            <p className="mt-1 text-xs text-gray-500">Coba kata kunci atau kategori lain.</p>
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="mt-4 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
-            >
-              Hapus filter
-            </button>
+        ) : items.length === 0 ? (
+          <div
+            role="status"
+            className="rounded-[20px] border border-[#E5E0DA] bg-white px-6 py-14 text-center"
+          >
+            <h2 className="font-display text-lg font-semibold text-[#141416]">
+              {hasActiveFilter ? "Tidak ada jasa sesuai filter" : "Belum ada jasa dipublikasikan"}
+            </h2>
+            <p className="mx-auto mt-1.5 max-w-md text-[14px] text-[#6E6A66]">
+              {hasActiveFilter
+                ? "Ubah kategori atau kata kunci pencarian untuk melihat layanan lain."
+                : "Tawarkan jasa pertama Anda untuk membantu mahasiswa UPN dalam belajar, desain, atau servis."}
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              {hasActiveFilter && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-6 text-[14px] font-medium text-[#141416] transition-all duration-150 hover:-translate-y-[1px] hover:border-[#141416] hover:bg-[#FAF8F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+                >
+                  Atur ulang filter
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setSubmitError(null);
+                  setIsModalOpen(true);
+                }}
+                className="inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+              >
+                Tawarkan jasa
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((item) => {
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((item, idx) => {
               const categoryName = item.category?.name ?? "Lainnya";
               const providerName = item.user?.name ?? "Mahasiswa UPN";
-              const hasRange =
-                item.price_max !== null &&
-                item.price_max !== undefined &&
-                item.price_max !== "" &&
-                Number(item.price_max) > Number(item.price_min);
+              const pricingLabel = item.pricing_type
+                ? (PRICING_LABELS[item.pricing_type] ?? item.pricing_type)
+                : null;
+              const priceText =
+                item.pricing_type === "per_hour"
+                  ? `${formatPriceRange(item.price_min, item.price_max)} / jam`
+                  : formatPriceRange(item.price_min, item.price_max);
+              const footerMeta = item.estimated_time?.trim() || formatTimeAgo(item.created_at);
+
               return (
                 <article
                   key={item.id}
-                  className="flex flex-col overflow-hidden rounded-xl border border-gray-200 border-t-4 border-t-gray-200 bg-white transition-colors hover:border-x-gray-300 hover:border-b-gray-300 hover:border-t-teal-500 focus-within:ring-2 focus-within:ring-teal-600 focus-within:ring-offset-2"
+                  className="group flex min-w-0 flex-col overflow-hidden rounded-[20px] border border-[#E5E0DA] bg-white transition-all duration-180 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[2px] hover:border-[#CFC8BF] hover:shadow-[0_14px_28px_-14px_rgba(20,20,22,0.10)] focus-within:ring-2 focus-within:ring-[#141416] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
                 >
                   <Link
                     href={`/services/${item.id}`}
                     aria-label={`Lihat detail ${item.title}`}
-                    className="focus:outline-none"
+                    className="block overflow-hidden bg-[#F4F1EE] focus:outline-none"
                   >
                     <ListingImage
                       module="service"
                       seed={item.id}
+                      eager={idx < 3}
+                      width={800}
+                      height={600}
                       hint={`${categoryName} ${item.title}`}
                       images={item.images}
-                      alt={`Sampul ${item.title}`}
-                      className="aspect-[16/7] w-full rounded-t-xl object-cover"
+                      alt={`Foto layanan ${item.title}`}
+                      className="aspect-[4/3] w-full object-cover transition-transform duration-600 ease-[cubic-bezier(.2,.8,.2,1)] group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                     />
                   </Link>
-                  <Link
-                    href={`/services/${item.id}`}
-                    aria-label={`Lihat detail ${item.title}`}
-                    className="flex flex-1 flex-col p-5 focus:outline-none"
-                  >
-                    {/* Card header: icon (left) + category badge (right) */}
-                    <div className="flex items-start justify-between gap-2">
-                      <CategoryIcon category={categoryName} />
-                      <span className="max-w-[55%] truncate rounded-md border border-teal-100 bg-teal-50 px-2 py-1 text-[11px] font-semibold text-teal-700">
+
+                  <div className="flex flex-1 flex-col p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="rounded-md bg-[#F4F1EE] px-2.5 py-1 text-[13px] font-medium text-[#57534E]">
                         {categoryName}
                       </span>
+                      {pricingLabel && (
+                        <span className="text-[13px] font-medium text-[#6E6A66]">
+                          {pricingLabel}
+                        </span>
+                      )}
                     </div>
 
-                    <h2 className="mt-4 line-clamp-2 text-[14px] font-bold leading-5 text-slate-900 hover:underline">
-                      {item.title}
+                    <h2 className="mt-3 line-clamp-2 font-display text-[16px] font-semibold leading-snug text-[#141416]">
+                      <Link
+                        href={`/services/${item.id}`}
+                        className="hover:underline focus:outline-none"
+                      >
+                        {item.title}
+                      </Link>
                     </h2>
-                    <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-gray-500">
-                      {item.description ?? "Tidak ada deskripsi."}
+
+                    <p className="mt-1.5 font-display text-[20px] font-bold tracking-tight text-[#141416]">
+                      {priceText}
                     </p>
 
-                    {/* Card footer pushed to bottom */}
-                    <div className="mt-auto pt-4">
-                      <div className="flex items-end justify-between gap-2 border-t border-gray-100 pt-4">
-                        <span className="flex min-w-0 items-center gap-2">
-                          <ProviderAvatar name={providerName} />
-                          <span className="flex min-w-0 flex-col">
-                            <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Penyedia</span>
-                            <span className="truncate text-xs font-medium text-slate-700">{providerName}</span>
-                          </span>
+                    <p className="mt-2 line-clamp-2 flex-1 text-[14px] leading-relaxed text-[#57534E]">
+                      {item.description ?? "Tidak ada deskripsi tambahan."}
+                    </p>
+
+                    <div className="mt-4 flex items-center justify-between gap-2 border-t border-[#F1EDE8] pt-4">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <ProviderAvatar name={providerName} />
+                        <span className="truncate text-[13px] font-medium text-[#141416]">
+                          {providerName}
                         </span>
-                        <span className="shrink-0 text-right">
-                          <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                            {hasRange ? "Kisaran" : "Harga"}
-                          </span>
-                          <span className="text-[14px] font-bold text-slate-900">
-                            {formatPriceRange(item.price_min, item.price_max)}
-                          </span>
+                      </span>
+                      {footerMeta && (
+                        <span className="shrink-0 text-[13px] text-[#6E6A66]">
+                          {footerMeta}
                         </span>
-                      </div>
+                      )}
                     </div>
-                  </Link>
+                  </div>
                 </article>
               );
             })}
@@ -707,18 +776,18 @@ function ServicesContent() {
         {!isLoading && !error && lastPage > 1 && (
           <nav
             aria-label="Navigasi halaman jasa"
-            className="mt-6 flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600"
+            className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-[#E5E0DA] bg-white px-5 py-4 text-[14px] text-[#57534E]"
           >
             <span>
-              Halaman <strong className="text-slate-900">{page}</strong> dari{" "}
-              <strong className="text-slate-900">{lastPage}</strong> ({total} layanan)
+              Halaman <strong className="font-semibold text-[#141416]">{page}</strong> dari{" "}
+              <strong className="font-semibold text-[#141416]">{lastPage}</strong> ({total} layanan)
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <button
                 type="button"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                className="inline-flex h-11 items-center justify-center rounded-full border border-[#E5E0DA] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-40"
               >
                 ← Sebelumnya
               </button>
@@ -726,18 +795,19 @@ function ServicesContent() {
                 type="button"
                 disabled={page >= lastPage}
                 onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                className="inline-flex h-11 items-center justify-center rounded-full border border-[#E5E0DA] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-40"
               >
                 Berikutnya →
               </button>
             </div>
           </nav>
         )}
-      </div>
+      </section>
 
+      {/* Matte Warm-Alabaster Modal Tawarkan Jasa */}
       {isModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#141416]/50 p-3 sm:p-4"
           onClick={closeModal}
         >
           <div
@@ -745,43 +815,46 @@ function ServicesContent() {
             aria-modal="true"
             aria-labelledby="pasang-jasa-title"
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[92vh] w-full max-w-[960px] overflow-y-auto rounded-2xl border border-gray-200 bg-[#F4F5F7]"
+            className="auth-shell-enter max-h-[92vh] w-full max-w-[960px] overflow-y-auto rounded-[24px] border border-[#E5E0DA] bg-[#F4F1EE] p-4 shadow-[0_20px_48px_-20px_rgba(20,20,22,0.20)] sm:rounded-[28px] sm:p-7"
           >
-            <div className="px-5 pt-5 sm:px-7 sm:pt-6">
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-[11px] text-slate-400">
-                  Beranda <span className="mx-1">/</span> Jasa &amp; Servis <span className="mx-1">/</span>{" "}
-                  <span className="font-semibold text-slate-700">Tawarkan Jasa Mahasiswa</span>
+            <div className="flex items-start justify-between gap-4 border-b border-[#E5E0DA] pb-4">
+              <div className="min-w-0">
+                <p className="text-[13px] font-medium text-[#6E6A66]">
+                  Layanan &amp; Jasa UPN · Tawarkan jasa baru
                 </p>
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  disabled={isSubmitting}
-                  aria-label="Tutup modal"
-                  className="rounded-md px-2 py-0.5 text-xl leading-none text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 disabled:opacity-50"
+                <h2
+                  id="pasang-jasa-title"
+                  className="mt-1 font-display text-2xl font-semibold tracking-tight text-[#141416]"
                 >
-                  ×
-                </button>
+                  Tawarkan jasa mahasiswa.{" "}
+                  <span className="font-normal text-[#6E6A66]">
+                    Bagikan keahlian Anda ke sesama mahasiswa.
+                  </span>
+                </h2>
               </div>
-              <h2 id="pasang-jasa-title" className="mt-1.5 text-[22px] font-bold tracking-tight text-slate-900">
-                Pasang Iklan Jasa &amp; Layanan
-              </h2>
-              <p className="mt-0.5 max-w-[620px] text-[13px] leading-5 text-slate-500">
-                Tampilkan keahlian akademik, servis teknis, atau kreativitas Anda untuk mahasiswa
-                se-kampus UPN.
-              </p>
+              <button
+                type="button"
+                onClick={closeModal}
+                disabled={isSubmitting}
+                aria-label="Tutup form tawarkan jasa"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#E5E0DA] bg-white text-lg text-[#57534E] transition-colors hover:border-[#141416] hover:text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-50"
+              >
+                ×
+              </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="px-5 pb-6 pt-4 sm:px-7">
-              <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[1fr_250px]">
-                {/* Main form card */}
-                <div className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
+            <form onSubmit={handleSubmit} className="mt-5">
+              <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[1.45fr_0.85fr]">
+                {/* Form Card */}
+                <div className="min-w-0 space-y-6 rounded-[20px] border border-[#E5E0DA] bg-white p-5 sm:p-6">
                   {/* Informasi Layanan */}
-                  <section aria-labelledby="jasa-info-heading">
-                    <h3 id="jasa-info-heading" className="text-[14px] font-bold text-slate-900">Informasi Layanan</h3>
-                    <div className="mt-3">
-                      <label htmlFor="jasa-title" className="text-[12px] font-semibold text-slate-900">
-                        Judul Jasa / Layanan <span className="text-red-500">*</span>
+                  <section aria-labelledby="jasa-info-heading" className="space-y-4">
+                    <h3 id="jasa-info-heading" className="font-display text-[16px] font-semibold text-[#141416]">
+                      Informasi layanan
+                    </h3>
+                    <div>
+                      <label htmlFor="jasa-title" className="block text-[14px] font-medium text-[#141416]">
+                        Judul jasa atau layanan <span className="text-[#B83232]">*</span>
                       </label>
                       <input
                         id="jasa-title"
@@ -790,106 +863,164 @@ function ServicesContent() {
                         maxLength={255}
                         value={formData.title}
                         onChange={(e) => updateForm("title", e.target.value)}
-                        placeholder="Tutor Pendamping Kalkulus & Aljabar Linear"
-                        className="mt-1.5 w-full rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-600/15"
+                        placeholder="Judul layanan yang ditawarkan"
+                        className="mt-1.5 h-11 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-3.5 text-[14px] text-[#141416] placeholder:text-[#66625E] transition-all focus:border-[#141416] focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
                       />
-                      <p className="mt-1 text-[11px] text-slate-400">
+                      <p className="mt-1.5 text-[13px] text-[#6E6A66]">
                         Gunakan judul spesifik dan jelas agar mudah ditemukan di pencarian.
                       </p>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div>
-                        <label htmlFor="jasa-category" className="text-[12px] font-semibold text-slate-900">
-                          Kategori Layanan <span className="text-red-500">*</span>
+                        <label htmlFor="jasa-category" className="block text-[14px] font-medium text-[#141416]">
+                          Kategori layanan <span className="text-[#B83232]">*</span>
                         </label>
-                        <select
-                          id="jasa-category"
-                          required
-                          value={formData.category_id}
-                          onChange={(e) => updateForm("category_id", e.target.value)}
-                          disabled={categoryOptions.length === 0}
-                          className="mt-1.5 w-full appearance-none rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-700 focus:border-teal-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-600/15 disabled:opacity-60"
-                        >
-                          <option value="">Pilih kategori</option>
-                          {categoryOptions.map((cat) => (
-                            <option key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="relative mt-1.5">
+                          <select
+                            id="jasa-category"
+                            required
+                            value={formData.category_id}
+                            onChange={(e) => updateForm("category_id", e.target.value)}
+                            disabled={categoryOptions.length === 0}
+                            className="h-11 w-full appearance-none rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-3.5 pr-9 text-[14px] text-[#141416] transition-all hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-60"
+                          >
+                            <option value="">Pilih kategori</option>
+                            {categoryOptions.map((cat) => (
+                              <option key={cat.id} value={cat.id}>
+                                {cat.name}
+                              </option>
+                            ))}
+                          </select>
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            aria-hidden="true"
+                            className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
+                          >
+                            <path
+                              d="M4 6l4 4 4-4"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </div>
                         {categoryOptions.length === 0 && (
-                          <p className="mt-1 text-[11px] text-slate-400">
+                          <p className="mt-1.5 text-[13px] text-[#6E6A66]">
                             Kategori belum tersedia. Tunggu data jasa dimuat.
                           </p>
                         )}
                       </div>
+
                       <div>
-                        <label htmlFor="jasa-estimasi" className="text-[12px] font-semibold text-slate-900">
-                          Estimasi Waktu Pengerjaan
+                        <label htmlFor="jasa-estimasi" className="block text-[14px] font-medium text-[#141416]">
+                          Estimasi waktu pengerjaan
                         </label>
-                        <select
-                          id="jasa-estimasi"
-                          value={formData.estimated_time}
-                          onChange={(e) => updateForm("estimated_time", e.target.value)}
-                          className="mt-1.5 w-full appearance-none rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-700 focus:border-teal-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-600/15"
-                        >
-                          {ESTIMASI_OPTIONS.map((opt) => (
-                            <option key={opt} value={opt}>
-                              {opt}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="relative mt-1.5">
+                          <select
+                            id="jasa-estimasi"
+                            value={formData.estimated_time}
+                            onChange={(e) => updateForm("estimated_time", e.target.value)}
+                            className="h-11 w-full appearance-none rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-3.5 pr-9 text-[14px] text-[#141416] transition-all hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                          >
+                            {ESTIMASI_OPTIONS.map((opt) => (
+                              <option key={opt} value={opt}>
+                                {opt}
+                              </option>
+                            ))}
+                          </select>
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            aria-hidden="true"
+                            className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
+                          >
+                            <path
+                              d="M4 6l4 4 4-4"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </div>
                       </div>
                     </div>
 
-                    <fieldset className="mt-4">
-                      <legend className="text-[12px] font-semibold text-slate-900">
-                        Target Fakultas / Jurusan
+                    <fieldset>
+                      <legend className="text-[14px] font-medium text-[#141416]">
+                        Target fakultas atau jurusan
                       </legend>
-                      <div className="mt-1.5 grid grid-cols-1 gap-1.5 rounded-lg border border-slate-200 bg-[#F1F3F5] p-2.5 sm:grid-cols-2" role="group" aria-label="Target fakultas">
-                        <label className="flex cursor-pointer items-center gap-2 rounded-md bg-white px-2.5 py-2 text-[12px] font-semibold text-slate-900 ring-1 ring-inset ring-slate-200">
+                      <div
+                        className="mt-2 grid grid-cols-1 gap-2 rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] p-2.5 sm:grid-cols-2"
+                        role="group"
+                        aria-label="Target fakultas"
+                      >
+                        <label className="flex min-h-[44px] cursor-pointer items-center gap-2.5 rounded-xl border border-[#E5E0DA] bg-white px-3 py-2 text-[13px] font-semibold text-[#141416] transition-colors hover:border-[#CFC8BF] focus-within:ring-2 focus-within:ring-[#141416]">
                           <input
                             type="checkbox"
                             checked={allFakultasSelected}
                             onChange={toggleAllFakultas}
-                            className="h-3.5 w-3.5 shrink-0 accent-teal-700"
+                            className="h-4 w-4 shrink-0 accent-[#141416] focus-visible:outline-none"
                           />
-                          Semua Fakultas
+                          <span>Semua Fakultas</span>
                         </label>
-                        {TARGET_FAKULTAS_OPTIONS.map((f) => (
-                          <label
-                            key={f}
-                            className="flex cursor-pointer items-center gap-2 rounded-md bg-white px-2.5 py-2 text-[12px] text-slate-600 ring-1 ring-inset ring-slate-200 hover:ring-slate-300"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={targetFakultas.includes(f)}
-                              onChange={() => toggleFakultas(f)}
-                              className="h-3.5 w-3.5 shrink-0 accent-teal-700"
-                            />
-                            {f}
-                          </label>
-                        ))}
+                        {TARGET_FAKULTAS_OPTIONS.map((f) => {
+                          const checked = targetFakultas.includes(f);
+                          return (
+                            <label
+                              key={f}
+                              className={`flex min-h-[44px] cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2 text-[13px] font-medium transition-colors focus-within:ring-2 focus-within:ring-[#141416] ${
+                                checked
+                                  ? "border-[#141416] bg-white text-[#141416]"
+                                  : "border-[#E5E0DA] bg-white text-[#57534E] hover:border-[#CFC8BF]"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleFakultas(f)}
+                                className="h-4 w-4 shrink-0 accent-[#141416] focus-visible:outline-none"
+                              />
+                              <span>{f}</span>
+                            </label>
+                          );
+                        })}
                       </div>
                     </fieldset>
                   </section>
 
-                  {/* Tarif & Pembayaran */}
-                  <section aria-labelledby="jasa-tarif-heading" className="mt-6 border-t border-slate-100 pt-5">
-                    <h3 id="jasa-tarif-heading" className="text-[14px] font-bold text-slate-900">Skema Tarif &amp; Pelaksanaan</h3>
-                    <fieldset className="mt-3">
-                      <legend className="text-[12px] font-semibold text-slate-900">Model Tarif</legend>
-                      <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Model tarif">
+                  {/* Skema Tarif & Pembayaran */}
+                  <section
+                    aria-labelledby="jasa-tarif-heading"
+                    className="space-y-4 border-t border-[#F1EDE8] pt-5"
+                  >
+                    <h3 id="jasa-tarif-heading" className="font-display text-[16px] font-semibold text-[#141416]">
+                      Skema tarif &amp; pelaksanaan
+                    </h3>
+
+                    <fieldset>
+                      <legend className="text-[14px] font-medium text-[#141416]">Model tarif</legend>
+                      <div
+                        className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4"
+                        role="radiogroup"
+                        aria-label="Model tarif"
+                      >
                         {PRICING_MODELS.map((opt) => {
                           const checked = pricingType === opt.value;
                           return (
                             <label
                               key={opt.value}
-                              className={`flex cursor-pointer items-center justify-center rounded-lg border px-2 py-2.5 text-center text-[12px] transition-colors ${
+                              className={`flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border px-3 py-2 text-center text-[13px] font-medium transition-all focus-within:ring-2 focus-within:ring-[#141416] focus-within:ring-offset-2 ${
                                 checked
-                                  ? "border-teal-300 bg-teal-50 font-semibold text-teal-800"
-                                  : "border-slate-200 bg-[#F1F3F5] text-slate-500 hover:bg-slate-100"
+                                  ? "border-[#141416] bg-[#141416] text-white"
+                                  : "border-[#E5E0DA] bg-[#F6F4F1] text-[#57534E] hover:border-[#CFC8BF]"
                               }`}
                             >
                               <input
@@ -900,20 +1031,23 @@ function ServicesContent() {
                                 onChange={() => setPricingType(opt.value)}
                                 className="sr-only"
                               />
-                              {opt.label}
+                              <span>{opt.label}</span>
                             </label>
                           );
                         })}
                       </div>
                     </fieldset>
 
-                    <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div>
-                        <label htmlFor="jasa-price-min" className="text-[12px] font-semibold text-slate-900">
-                          Nominal Harga (Rp) <span className="text-red-500">*</span>
+                        <label
+                          htmlFor="jasa-price-min"
+                          className="block text-[14px] font-medium text-[#141416]"
+                        >
+                          Nominal harga (Rp) <span className="text-[#B83232]">*</span>
                         </label>
-                        <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 focus-within:border-teal-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-600/15">
-                          <span className="text-[13px] font-semibold text-slate-500">Rp</span>
+                        <div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-3.5 transition-all focus-within:border-[#141416] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#141416]">
+                          <span className="text-[14px] font-semibold text-[#57534E]">Rp</span>
                           <input
                             id="jasa-price-min"
                             type="number"
@@ -922,17 +1056,22 @@ function ServicesContent() {
                             step="any"
                             value={formData.price_min}
                             onChange={(e) => updateForm("price_min", e.target.value)}
-                            placeholder="75.000"
-                            className="w-full bg-transparent text-[13px] font-semibold text-slate-900 placeholder:font-normal placeholder:text-slate-400 focus:outline-none"
+                            placeholder="Masukkan nominal minimal"
+                            className="w-full bg-transparent text-[14px] font-semibold text-[#141416] placeholder:font-normal placeholder:text-[#66625E] focus:outline-none"
                           />
                         </div>
                       </div>
+
                       <div>
-                        <label htmlFor="jasa-price-max" className="text-[12px] font-semibold text-slate-900">
-                          Harga Maksimal (Rp) <span className="font-normal text-slate-400">(opsional)</span>
+                        <label
+                          htmlFor="jasa-price-max"
+                          className="block text-[14px] font-medium text-[#141416]"
+                        >
+                          Harga maksimal (Rp){" "}
+                          <span className="font-normal text-[#6E6A66]">(opsional)</span>
                         </label>
-                        <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 focus-within:border-teal-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-600/15">
-                          <span className="text-[13px] font-semibold text-slate-500">Rp</span>
+                        <div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-3.5 transition-all focus-within:border-[#141416] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#141416]">
+                          <span className="text-[14px] font-semibold text-[#57534E]">Rp</span>
                           <input
                             id="jasa-price-max"
                             type="number"
@@ -940,25 +1079,31 @@ function ServicesContent() {
                             step="any"
                             value={formData.price_max}
                             onChange={(e) => updateForm("price_max", e.target.value)}
-                            placeholder="150.000"
-                            className="w-full bg-transparent text-[13px] font-semibold text-slate-900 placeholder:font-normal placeholder:text-slate-400 focus:outline-none"
+                            placeholder="Opsional jika tarif tetap"
+                            className="w-full bg-transparent text-[14px] font-semibold text-[#141416] placeholder:font-normal placeholder:text-[#66625E] focus:outline-none"
                           />
                         </div>
                       </div>
                     </div>
 
-                    <fieldset className="mt-4">
-                      <legend className="text-[12px] font-semibold text-slate-900">Metode Pembayaran</legend>
-                      <div className="mt-1.5 grid grid-cols-1 gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Metode pembayaran">
+                    <fieldset>
+                      <legend className="text-[14px] font-medium text-[#141416]">
+                        Metode pembayaran
+                      </legend>
+                      <div
+                        className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3"
+                        role="radiogroup"
+                        aria-label="Metode pembayaran"
+                      >
                         {PAYMENT_METHODS.map((opt) => {
                           const checked = paymentMethod === opt.value;
                           return (
                             <label
                               key={opt.value}
-                              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-[12px] ${
+                              className={`flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border px-3 py-2 text-center text-[13px] font-medium transition-all focus-within:ring-2 focus-within:ring-[#141416] focus-within:ring-offset-2 ${
                                 checked
-                                  ? "border-teal-300 bg-teal-50 font-semibold text-teal-800"
-                                  : "border-slate-200 bg-[#F1F3F5] text-slate-500 hover:bg-slate-100"
+                                  ? "border-[#141416] bg-[#141416] text-white"
+                                  : "border-[#E5E0DA] bg-[#F6F4F1] text-[#57534E] hover:border-[#CFC8BF]"
                               }`}
                             >
                               <input
@@ -967,9 +1112,9 @@ function ServicesContent() {
                                 value={opt.value}
                                 checked={checked}
                                 onChange={() => setPaymentMethod(opt.value)}
-                                className="h-3.5 w-3.5 shrink-0 accent-teal-700"
+                                className="sr-only"
                               />
-                              {opt.label}
+                              <span>{opt.label}</span>
                             </label>
                           );
                         })}
@@ -978,52 +1123,75 @@ function ServicesContent() {
                   </section>
 
                   {/* Deskripsi & Kontak */}
-                  <section aria-labelledby="jasa-deskripsi-heading" className="mt-6 border-t border-slate-100 pt-5">
-                    <h3 id="jasa-deskripsi-heading" className="text-[14px] font-bold text-slate-900">Deskripsi &amp; Kontak</h3>
-                    <div className="mt-3">
-                      <label htmlFor="jasa-description" className="text-[12px] font-semibold text-slate-900">
-                        Deskripsi Layanan <span className="text-red-500">*</span>
+                  <section
+                    aria-labelledby="jasa-deskripsi-heading"
+                    className="space-y-4 border-t border-[#F1EDE8] pt-5"
+                  >
+                    <h3 id="jasa-deskripsi-heading" className="font-display text-[16px] font-semibold text-[#141416]">
+                      Deskripsi &amp; kontak
+                    </h3>
+                    <div>
+                      <label
+                        htmlFor="jasa-description"
+                        className="block text-[14px] font-medium text-[#141416]"
+                      >
+                        Deskripsi layanan <span className="text-[#B83232]">*</span>
                       </label>
                       <textarea
                         id="jasa-description"
                         required
-                        rows={5}
+                        rows={4}
                         value={formData.description}
                         onChange={(e) => updateForm("description", e.target.value)}
-                        placeholder="Jelaskan layanan, materi, estimasi pengerjaan, dan cara pemesanan…"
-                        className="mt-1.5 w-full rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] leading-5 text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-600/15"
+                        placeholder="Jelaskan cakupan layanan, metode pengerjaan, dan cara pemesanan"
+                        className="mt-1.5 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] p-3.5 text-[14px] leading-relaxed text-[#141416] placeholder:text-[#66625E] transition-all focus:border-[#141416] focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
                       />
                     </div>
 
-                    <div className="mt-4">
-                      <span id="jasa-photos-label" className="text-[12px] font-semibold text-slate-900">
-                        Foto Sampul / Portofolio <span className="font-normal text-slate-400">(opsional)</span>
+                    <div>
+                      <span
+                        id="jasa-photos-label"
+                        className="block text-[14px] font-medium text-[#141416]"
+                      >
+                        Foto sampul atau portofolio (maksimal 6)
                       </span>
-                      <div className="mt-1.5 flex flex-wrap gap-2" role="group" aria-labelledby="jasa-photos-label">
+                      <div
+                        className="mt-2 flex flex-wrap gap-3"
+                        role="group"
+                        aria-labelledby="jasa-photos-label"
+                      >
                         {photos.map((photo, i) => (
-                          <span key={photo.id} className="relative h-16 w-16">
+                          <span key={photo.id} className="relative h-20 w-20">
                             {/* eslint-disable-next-line @next/next/no-img-element -- local object URLs for instant upload preview only */}
                             <img
                               src={photo.url}
                               alt={`Foto portofolio ${i + 1}`}
-                              className="h-16 w-16 rounded-lg border border-slate-200 object-cover"
+                              width={80}
+                              height={80}
+                              className="h-20 w-20 rounded-xl border border-[#E5E0DA] object-cover"
                             />
                             <button
                               type="button"
                               onClick={() => removePhoto(photo.id)}
                               aria-label={`Hapus foto portofolio ${i + 1}`}
-                              className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[11px] font-bold leading-none text-white hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
+                              className="group absolute -right-3 -top-3 flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
                             >
-                              ×
+                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#141416] text-[13px] font-bold leading-none text-white transition-colors group-hover:bg-[#B83232]">
+                                ×
+                              </span>
                             </button>
                           </span>
                         ))}
-                        <label className="flex h-16 min-w-[120px] flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-slate-300 bg-[#F1F3F5] px-3 text-slate-500 hover:border-slate-400 hover:bg-slate-100 focus-within:outline-none focus-within:ring-2 focus-within:ring-teal-600 focus-within:ring-offset-2">
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                            <path d="M8 10.5V2.5M8 2.5L5 5.5M8 2.5L11 5.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M2.5 10.5V12.5C2.5 13.3 3.2 14 4 14H12C12.8 14 13.5 13.3 13.5 12.5V10.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                        <label className="flex h-20 min-w-[120px] cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[#CFC8BF] bg-[#F6F4F1] px-4 text-[#57534E] transition-colors hover:border-[#141416] hover:bg-white focus-within:ring-2 focus-within:ring-[#141416]">
+                          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path
+                              d="M8 3v10M3 8h10"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                            />
                           </svg>
-                          <span className="text-center text-[10px] font-medium">Unggah foto (Maks. 5 MB)</span>
+                          <span className="text-[13px] font-medium">Tambah foto</span>
                           <input
                             type="file"
                             accept="image/*"
@@ -1039,87 +1207,112 @@ function ServicesContent() {
                       </div>
                     </div>
 
-                    <div className="mt-4">
-                      <label htmlFor="jasa-wa" className="text-[12px] font-semibold text-slate-900">
-                        Nomor WhatsApp / Fast Response
+                    <div>
+                      <label htmlFor="jasa-wa" className="block text-[14px] font-medium text-[#141416]">
+                        Nomor WhatsApp{" "}
+                        <span className="font-normal text-[#6E6A66]">(opsional)</span>
                       </label>
                       <input
                         id="jasa-wa"
                         type="tel"
                         value={formData.whatsapp_number}
                         onChange={(e) => updateForm("whatsapp_number", e.target.value)}
-                        placeholder="0812-3456-7890"
-                        className="mt-1.5 w-full rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-600/15"
+                        placeholder="Nomor WhatsApp aktif (opsional)"
+                        className="mt-1.5 h-11 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-3.5 text-[14px] text-[#141416] placeholder:text-[#66625E] transition-all focus:border-[#141416] focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
                       />
                     </div>
                   </section>
 
                   {submitError && (
-                    <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                    <p
+                      role="alert"
+                      className="rounded-xl border border-[#F1C9C9] bg-[#FDF2F2] px-4 py-3 text-[13px] font-medium text-[#B83232]"
+                    >
                       {submitError}
                     </p>
                   )}
 
-                  <div className="mt-5 flex items-center justify-end gap-2">
+                  <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[#F1EDE8] pt-4">
                     <button
                       type="button"
                       onClick={closeModal}
                       disabled={isSubmitting}
-                      className="rounded-lg bg-slate-100 px-4 py-2 text-[13px] font-semibold text-slate-600 hover:bg-slate-200 disabled:opacity-50"
+                      className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-50"
                     >
                       Batal
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="rounded-lg bg-[#0A2342] px-5 py-2 text-[13px] font-semibold text-white hover:bg-[#12325e] disabled:opacity-60"
+                      className="inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-60 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
                     >
-                      {isSubmitting ? "Menyimpan…" : "Terbitkan Layanan"}
+                      {isSubmitting ? "Menyimpan layanan…" : "Terbitkan layanan"}
                     </button>
                   </div>
                 </div>
 
-                {/* Live preview card */}
-                <aside aria-label="Pratinjau kartu jasa" className="rounded-xl border border-gray-200 bg-white p-3 lg:sticky lg:top-0">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Pratinjau Kartu</p>
-                    <span className="rounded-md bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-700">
-                      Etalase Jasa
-                    </span>
-                  </div>
-                  <div className="mt-2 overflow-hidden rounded-lg border border-slate-100">
-                    <div className="flex items-center gap-2 bg-teal-600 p-3">
-                      <span className="rounded bg-white/15 px-2 py-1 text-[10px] font-bold leading-4 text-white">
-                        {previewCategory}
-                      </span>
-                      <span className="text-[10px] font-medium leading-4 text-teal-50">
-                        {fakultasSummary}
-                      </span>
-                    </div>
-                    <div className="p-3">
-                      <p className="line-clamp-2 text-[12px] font-bold leading-5 text-slate-900">
-                        {formData.title || "Judul layanan akan tampil di sini"}
-                      </p>
-                      <p className="mt-1.5 text-[13px] font-bold text-slate-900">
-                        {previewPriceLine}{" "}
-                        <span className="text-[10px] font-semibold text-teal-700">{previewModelLabel}</span>
-                      </p>
-                      <p className="mt-1.5 flex items-center gap-1 text-[10px] text-slate-500">
-                        <span aria-hidden="true">⚡</span> {formData.estimated_time || "1-2 Hari Kerja"}
-                      </p>
-                      <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-500">
-                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[8px] font-bold text-white">
-                          {previewProviderInitials}
+                {/* Live Preview Card */}
+                <aside
+                  aria-label="Pratinjau kartu jasa"
+                  className="min-w-0 rounded-[20px] border border-[#E5E0DA] bg-white p-5 lg:sticky lg:top-0"
+                >
+                  <p className="text-[13px] font-semibold text-[#141416]">
+                    Pratinjau tampilan katalog
+                  </p>
+                  <div className="mt-3 overflow-hidden rounded-2xl border border-[#EAE5DF] bg-white">
+                    <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-[#EFECE8] text-[#5F5B57]">
+                      {photos.length > 0 ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- local preview before upload
+                        <img
+                          src={photos[0].url}
+                          alt="Pratinjau foto portofolio layanan"
+                          width={640}
+                          height={480}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-[13px] font-medium">
+                          Belum ada foto dipilih
                         </span>
-                        <span className="truncate">{previewProviderName}</span>
-                        <span className="text-slate-300">|</span>
-                        <span className="truncate">{previewProviderFaculty}</span>
-                      </p>
-                      {formData.whatsapp_number.trim() !== "" && (
-                        <p className="mt-1.5 truncate text-[10px] font-medium text-emerald-700">
-                          WA: {formData.whatsapp_number.trim()}
-                        </p>
                       )}
+                    </div>
+                    <div className="p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="rounded-md bg-[#F4F1EE] px-2.5 py-0.5 text-[13px] font-medium text-[#57534E]">
+                          {previewCategory}
+                        </span>
+                        <span className="text-[13px] font-medium text-[#6E6A66]">
+                          {previewModelLabel}
+                        </span>
+                      </div>
+                      <p className="mt-2.5 line-clamp-2 font-display text-[15px] font-semibold text-[#141416]">
+                        {formData.title.trim() || "Judul layanan belum diisi"}
+                      </p>
+                      <p
+                        className={`mt-1 font-display text-[17px] ${
+                          hasValidPreviewPrice ? "font-bold text-[#141416]" : "font-medium text-[#6E6A66]"
+                        }`}
+                      >
+                        {previewPriceLine}
+                      </p>
+                      <div className="mt-2 space-y-1 text-[13px] text-[#57534E]">
+                        <p className="truncate">Estimasi: {formData.estimated_time || "Fleksibel"}</p>
+                        <p className="truncate">Target: {fakultasSummary}</p>
+                        {formData.whatsapp_number.trim() !== "" && (
+                          <p className="truncate">WhatsApp: {formData.whatsapp_number.trim()}</p>
+                        )}
+                      </div>
+                      <div className="mt-3 flex items-center gap-2 border-t border-[#F1EDE8] pt-3">
+                        <ProviderAvatar name={previewProviderName} />
+                        <div className="min-w-0">
+                          <p className="truncate text-[13px] font-medium text-[#141416]">
+                            {previewProviderName}
+                          </p>
+                          <p className="truncate text-[13px] text-[#6E6A66]">
+                            {previewProviderFaculty}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </aside>
@@ -1134,7 +1327,7 @@ function ServicesContent() {
 
 export default function ServicesPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-slate-500">Memuat jasa…</p>}>
+    <Suspense fallback={<p className="text-[14px] text-[#6E6A66]">Memuat jasa…</p>}>
       <ServicesContent />
     </Suspense>
   );
