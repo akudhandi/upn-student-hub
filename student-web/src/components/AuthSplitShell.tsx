@@ -3,30 +3,74 @@
 import React from "react";
 import Link from "next/link";
 
-const WORKSPACE_MODULES = [
+const HUB_PILLARS = [
   {
-    name: "Marketplace Mahasiswa",
-    detail: "Jual beli kebutuhan kuliah antar mahasiswa",
-    tag: "Aktif",
-    tagClass: "bg-[#E4F2EA] text-[#226A46]",
+    label: "Marketplace",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M6 8h12l-1 11H7L6 8z"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M9.5 8V6.5a2.5 2.5 0 015 0V8"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
   },
   {
-    name: "Jasa & Layanan",
-    detail: "Les privat, desain, dan layanan kampus",
-    tag: "Terverifikasi",
-    tagClass: "bg-[#E7EEF9] text-[#35518C]",
+    label: "Layanan",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M12 3l2.2 5.3L19.5 10l-5.3 1.8L12 17l-2.2-5.2L4.5 10l5.3-1.7L12 3z"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
   },
   {
-    name: "Barang Hilang",
-    detail: "Pelaporan temuan dan kehilangan di area kampus",
-    tag: "Prioritas",
-    tagClass: "bg-[#FBEAD8] text-[#8E581A]",
+    label: "Temuan",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="11" cy="11" r="6" stroke="currentColor" strokeWidth="1.6" />
+        <path
+          d="M15.5 15.5L20 20"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
   },
   {
-    name: "Event & Info",
-    detail: "Agenda seminar, UKM, dan pengumuman resmi",
-    tag: "Terjadwal",
-    tagClass: "bg-[#ECEAF9] text-[#53469B]",
+    label: "Agenda",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect
+          x="4"
+          y="5.5"
+          width="16"
+          height="14.5"
+          rx="3"
+          stroke="currentColor"
+          strokeWidth="1.6"
+        />
+        <path
+          d="M8 3.5v3M16 3.5v3M4 10h16"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
   },
 ] as const;
 
@@ -46,7 +90,7 @@ export function AuthSplitShell({
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#DFDBD7] px-3 py-5 text-[#141416] sm:px-6 sm:py-8">
       <div className="w-full max-w-[1040px] rounded-[28px] border border-[#E7E2DD] bg-[#F4F1EE] p-4 shadow-[0_24px_60px_-28px_rgba(20,20,22,0.18)] sm:p-6 lg:p-7">
-        {/* Top Bar (Planex-inspired header) */}
+        {/* Top Bar */}
         <header className="flex flex-wrap items-center justify-between gap-3 pb-5">
           <Link
             href="/"
@@ -103,73 +147,59 @@ export function AuthSplitShell({
 
         {/* Main Workspace Split */}
         <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-[0.95fr_1.05fr]">
-          {/* Left Warm-Stone Bento Preview Panel */}
-          <aside className="hidden flex-col justify-between rounded-[22px] bg-[#ECE8E4] p-6 lg:flex">
-            <div>
-              <p className="text-[11px] font-medium tracking-wide text-[#787470] uppercase">
-                Portal Mahasiswa UPN Veteran Jawa Timur
+          {/* Left Calm Editorial Showcase */}
+          <aside className="hidden flex-col justify-between rounded-[22px] bg-[#ECE8E4] p-8 lg:flex">
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-[#787470]">
+                UPN &ldquo;Veteran&rdquo; Jawa Timur
               </p>
-              <h2 className="mt-2 text-[22px] font-semibold leading-snug tracking-tight text-[#141416]">
-                Satu ruang terpadu untuk aktivitas kampus Anda.
+              <h2 className="text-[26px] font-semibold leading-[1.24] tracking-tight text-[#141416]">
+                Semua aktivitas kampus dalam satu ruang yang rapi.
               </h2>
-              <p className="mt-1.5 text-xs leading-relaxed text-[#6E6A66]">
-                Akses marketplace mahasiswa, penawaran jasa, laporan barang hilang, hingga agenda
-                kampus dengan akun email resmi UPN.
+              <p className="max-w-[330px] text-[13px] leading-relaxed text-[#6E6A66]">
+                Ruang khusus mahasiswa untuk jual beli, layanan sebaya, dan info acara kampus.
               </p>
+            </div>
 
-              {/* Overview Card mimicking Planex clean table/list surface */}
-              <div className="mt-6 rounded-2xl border border-[#E6E1DC] bg-white p-4">
-                <div className="flex items-center justify-between border-b border-[#F1EDE9] pb-3">
-                  <div>
-                    <p className="text-xs font-semibold text-[#141416]">Modul Portal</p>
-                    <p className="text-[11px] text-[#7D7974]">Tersedia setelah login mahasiswa</p>
+            {/* Spacious Minimal 2x2 Visual Grid */}
+            <div className="my-auto py-8">
+              <div className="grid grid-cols-2 gap-3.5">
+                {HUB_PILLARS.map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex flex-col items-start justify-between rounded-2xl border border-[#E5E0DA] bg-white p-4 shadow-[0_8px_20px_-14px_rgba(20,20,22,0.12)]"
+                  >
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F4F1EE] text-[#141416]">
+                      {item.icon}
+                    </span>
+                    <span className="mt-5 text-xs font-medium text-[#141416]">
+                      {item.label}
+                    </span>
                   </div>
-                  <span className="rounded-full bg-[#F4F1EE] px-2.5 py-1 text-[11px] font-medium text-[#57534E]">
-                    4 Layanan
-                  </span>
-                </div>
-
-                <ul className="divide-y divide-[#F3EFEA]">
-                  {WORKSPACE_MODULES.map((item) => (
-                    <li
-                      key={item.name}
-                      className="flex items-center justify-between gap-3 py-3 first:pt-3 last:pb-0.5"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-xs font-medium text-[#141416]">{item.name}</p>
-                        <p className="truncate text-[11px] text-[#85817C]">{item.detail}</p>
-                      </div>
-                      <span
-                        className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-medium ${item.tagClass}`}
-                      >
-                        {item.tag}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                ))}
               </div>
             </div>
 
-            {/* Bottom Verification Policy Card */}
-            <div className="mt-5 rounded-2xl border border-[#E6E1DC] bg-white p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-[#141416]">Standar Akun Terverifikasi</p>
-                <span className="rounded-full bg-[#141416] px-2.5 py-0.5 text-[10px] font-medium text-white">
-                  UPN Jatim
-                </span>
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl bg-[#F6F3F0] p-3">
-                <div>
-                  <p className="text-[10px] font-medium text-[#85817C]">Domain Email</p>
-                  <p className="mt-0.5 truncate text-xs font-medium text-[#141416]">
-                    @student.upnjatim.ac.id
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-medium text-[#85817C]">Identitas NPM</p>
-                  <p className="mt-0.5 text-xs font-medium text-[#141416]">11 Digit Numerik</p>
-                </div>
-              </div>
+            {/* Quiet Verification Line */}
+            <div className="flex items-center gap-2 border-t border-[#DFDAD4] pt-4 text-xs text-[#6E6A66]">
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+                className="shrink-0 text-[#141416]"
+              >
+                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
+                <path
+                  d="M8.5 12.2l2.3 2.3 4.7-4.8"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span>Khusus email mahasiswa @student.upnjatim.ac.id</span>
             </div>
           </aside>
 
