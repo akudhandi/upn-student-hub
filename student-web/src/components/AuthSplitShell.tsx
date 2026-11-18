@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { LoginFormPanel, RegisterFormPanel } from "@/components/AuthForms";
 
 const HUB_PILLARS = [
   {
@@ -75,42 +75,98 @@ const HUB_PILLARS = [
   },
 ] as const;
 
-export function AuthSplitShell({
-  activeTab,
-  title,
-  subtitle,
-  children,
-  footer,
+export function AuthWorkspace({
+  initialTab,
 }: {
-  activeTab: "login" | "register";
-  title: string;
-  subtitle: string;
-  children: React.ReactNode;
-  footer: React.ReactNode;
+  initialTab: "login" | "register";
 }) {
-  const router = useRouter();
-  const [pendingTab, setPendingTab] = useState<"login" | "register" | null>(null);
+  const [activeTab, setActiveTab] = useState<"login" | "register">(initialTab);
+  const [stageHeight, setStageHeight] = useState<number | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const activeTabRef = useRef(activeTab);
+  const loginRef = useRef<HTMLDivElement>(null);
+  const registerRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
-    router.prefetch("/login");
-    router.prefetch("/register");
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  const animateSwitch = useCallback(
+    (nextTab: "login" | "register", pushUrl: boolean) => {
+      const currentTab = activeTabRef.current;
+      if (nextTab === currentTab) return;
+
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+
+      const currentEl =
+        currentTab === "login" ? loginRef.current : registerRef.current;
+      const targetEl =
+        nextTab === "login" ? loginRef.current : registerRef.current;
+
+      const startHeight = currentEl?.offsetHeight ?? null;
+      const endHeight = targetEl?.offsetHeight ?? null;
+      const reducedMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (pushUrl && typeof window !== "undefined") {
+        window.history.pushState(
+          null,
+          "",
+          nextTab === "register" ? "/register" : "/login"
+        );
       }
+
+      if (startHeight && endHeight && !reducedMotion) {
+        setStageHeight(startHeight);
+        setIsTransitioning(true);
+        activeTabRef.current = nextTab;
+        setActiveTab(nextTab);
+
+        rafRef.current = requestAnimationFrame(() => {
+          rafRef.current = requestAnimationFrame(() => {
+            setStageHeight(endHeight);
+          });
+        });
+
+        timerRef.current = setTimeout(() => {
+          setIsTransitioning(false);
+          setStageHeight(null);
+        }, 400);
+      } else {
+        activeTabRef.current = nextTab;
+        setActiveTab(nextTab);
+        setIsTransitioning(false);
+        setStageHeight(null);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    function handlePopState() {
+      const pathTab =
+        window.location.pathname === "/register" ? "register" : "login";
+      animateSwitch(pathTab, false);
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [router]);
+  }, [animateSwitch]);
 
-  const displayedTab = pendingTab ?? activeTab;
-
-  function triggerSmoothSwitch(
+  function handleTabAnchorClick(
     targetTab: "login" | "register",
-    event: React.MouseEvent
+    event: React.MouseEvent<HTMLAnchorElement>
   ) {
     if (
-      targetTab === activeTab ||
-      pendingTab !== null ||
       event.metaKey ||
       event.ctrlKey ||
       event.shiftKey ||
@@ -120,36 +176,13 @@ export function AuthSplitShell({
       return;
     }
     event.preventDefault();
-    setPendingTab(targetTab);
-    timerRef.current = setTimeout(() => {
-      router.push(targetTab === "register" ? "/register" : "/login");
-    }, 210);
+    animateSwitch(targetTab, true);
   }
-
-  function handleFooterClickCapture(event: React.MouseEvent<HTMLDivElement>) {
-    const anchor = (event.target as HTMLElement).closest("a");
-    if (!anchor) return;
-    const href = anchor.getAttribute("href");
-    if (href === "/register") {
-      triggerSmoothSwitch("register", event);
-    } else if (href === "/login") {
-      triggerSmoothSwitch("login", event);
-    }
-  }
-
-  const formMotionClass =
-    pendingTab !== null
-      ? pendingTab === "register"
-        ? "-translate-x-3 opacity-0 transition-all duration-200 ease-out"
-        : "translate-x-3 opacity-0 transition-all duration-200 ease-out"
-      : activeTab === "register"
-        ? "auth-panel-slide-right"
-        : "auth-panel-slide-left";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#DFDBD7] px-3 py-5 text-[#141416] sm:px-6 sm:py-8">
       <div className="auth-shell-enter w-full max-w-[1040px] rounded-[28px] border border-[#E7E2DD] bg-[#F4F1EE] p-4 shadow-[0_24px_60px_-28px_rgba(20,20,22,0.18)] sm:p-6 lg:p-7">
-        {/* Top Bar */}
+        {/* Top Bar (stays mounted with zero reload) */}
         <header className="flex flex-wrap items-center justify-between gap-3 pb-5">
           <Link
             href="/"
@@ -167,41 +200,40 @@ export function AuthSplitShell({
           </Link>
 
           <div className="flex items-center gap-2">
-            {/* Sliding Segmented Control */}
             <nav
               aria-label="Navigasi autentikasi"
               className="relative inline-grid grid-cols-2 items-center rounded-full bg-[#EAE6E2] p-1"
             >
               <span
                 aria-hidden="true"
-                className={`pointer-events-none absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] rounded-full bg-white shadow-[0_2px_10px_-2px_rgba(20,20,22,0.12)] transition-transform duration-350 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                  displayedTab === "register" ? "translate-x-full" : "translate-x-0"
+                className={`pointer-events-none absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] rounded-full bg-white shadow-[0_2px_10px_-2px_rgba(20,20,22,0.12)] transition-transform duration-380 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  activeTab === "register" ? "translate-x-full" : "translate-x-0"
                 }`}
               />
-              <Link
+              <a
                 href="/login"
-                onClick={(e) => triggerSmoothSwitch("login", e)}
-                aria-current={displayedTab === "login" ? "page" : undefined}
+                onClick={(e) => handleTabAnchorClick("login", e)}
+                aria-current={activeTab === "login" ? "page" : undefined}
                 className={`relative z-10 min-w-[76px] rounded-full px-4 py-1.5 text-center text-xs font-medium transition-colors duration-300 ${
-                  displayedTab === "login"
+                  activeTab === "login"
                     ? "text-[#141416]"
                     : "text-[#6E6A66] hover:text-[#141416]"
                 }`}
               >
                 Masuk
-              </Link>
-              <Link
+              </a>
+              <a
                 href="/register"
-                onClick={(e) => triggerSmoothSwitch("register", e)}
-                aria-current={displayedTab === "register" ? "page" : undefined}
+                onClick={(e) => handleTabAnchorClick("register", e)}
+                aria-current={activeTab === "register" ? "page" : undefined}
                 className={`relative z-10 min-w-[76px] rounded-full px-4 py-1.5 text-center text-xs font-medium transition-colors duration-300 ${
-                  displayedTab === "register"
+                  activeTab === "register"
                     ? "text-[#141416]"
                     : "text-[#6E6A66] hover:text-[#141416]"
                 }`}
               >
                 Daftar
-              </Link>
+              </a>
             </nav>
 
             <Link
@@ -229,7 +261,6 @@ export function AuthSplitShell({
               </p>
             </div>
 
-            {/* Spacious Minimal 2x2 Visual Grid with Subtle Hover Physics */}
             <div className="my-auto py-8">
               <div className="grid grid-cols-2 gap-3.5">
                 {HUB_PILLARS.map((item) => (
@@ -248,7 +279,6 @@ export function AuthSplitShell({
               </div>
             </div>
 
-            {/* Quiet Verification Line */}
             <div className="flex items-center gap-2 border-t border-[#DFDAD4] pt-4 text-xs text-[#6E6A66]">
               <svg
                 width="15"
@@ -271,82 +301,45 @@ export function AuthSplitShell({
             </div>
           </aside>
 
-          {/* Right Form Card with Directional Slide Transition */}
-          <section className="flex flex-col justify-center overflow-hidden rounded-[22px] border border-[#E7E2DD] bg-white px-5 py-6 sm:px-9 sm:py-8">
-            <div className={`mx-auto w-full max-w-[420px] ${formMotionClass}`}>
-              <div>
-                <h1 className="text-2xl font-semibold tracking-tight text-[#141416] sm:text-[26px]">
-                  {title}
-                </h1>
-                <p className="mt-1.5 text-xs leading-relaxed text-[#787470]">{subtitle}</p>
+          {/* Right Form Card with Zero-Reload Cross-Slide & Smooth Height */}
+          <section className="flex flex-col justify-center rounded-[22px] border border-[#E7E2DD] bg-white px-5 py-6 sm:px-9 sm:py-8">
+            <div
+              style={stageHeight !== null ? { height: `${stageHeight}px` } : undefined}
+              className={`relative mx-auto w-full max-w-[420px] transition-[height] duration-380 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                isTransitioning ? "overflow-hidden" : "overflow-visible"
+              }`}
+            >
+              <div
+                ref={loginRef}
+                aria-hidden={activeTab !== "login"}
+                className={`w-full transition-[transform,opacity,visibility] duration-380 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  activeTab === "login"
+                    ? "visible relative z-10 translate-x-0 opacity-100"
+                    : "invisible pointer-events-none absolute inset-x-0 top-0 z-0 -translate-x-7 opacity-0"
+                }`}
+              >
+                <LoginFormPanel
+                  onSwitchToRegister={() => animateSwitch("register", true)}
+                />
               </div>
 
-              <div className="mt-6">{children}</div>
-
               <div
-                onClickCapture={handleFooterClickCapture}
-                className="mt-6 border-t border-[#F1EDE9] pt-5 text-center text-xs text-[#787470]"
+                ref={registerRef}
+                aria-hidden={activeTab !== "register"}
+                className={`w-full transition-[transform,opacity,visibility] duration-380 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  activeTab === "register"
+                    ? "visible relative z-10 translate-x-0 opacity-100"
+                    : "invisible pointer-events-none absolute inset-x-0 top-0 z-0 translate-x-7 opacity-0"
+                }`}
               >
-                {footer}
+                <RegisterFormPanel
+                  onSwitchToLogin={() => animateSwitch("login", true)}
+                />
               </div>
             </div>
           </section>
         </div>
       </div>
     </main>
-  );
-}
-
-export function PasswordEyeButton({
-  shown,
-  onToggle,
-  ariaLabel,
-}: {
-  shown: boolean;
-  onToggle: () => void;
-  ariaLabel?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-label={ariaLabel ?? (shown ? "Sembunyikan password" : "Tampilkan password")}
-      title={ariaLabel ?? (shown ? "Sembunyikan password" : "Tampilkan password")}
-      className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-[#85817C] transition-all duration-200 ease-out hover:bg-[#EAE6E2] hover:text-[#141416] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
-    >
-      {shown ? (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M3 3l18 18M10.58 10.58a2 2 0 002.83 2.83M9.88 4.24A10.94 10.94 0 0112 4c5.5 0 9.5 4.2 10.7 8-.5 1.56-1.45 3.1-2.74 4.37M6.61 6.61C4.55 8 3.06 10.02 2.3 12c1.2 3.8 5.2 8 9.7 8 1.58 0 3.07-.37 4.4-1.02"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      ) : (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M2.3 12C3.5 8.2 7.5 4 12 4s8.5 4.2 9.7 8c-1.2 3.8-5.2 8-9.7 8s-8.5-4.2-9.7-8z"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinejoin="round"
-          />
-          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" />
-        </svg>
-      )}
-    </button>
-  );
-}
-
-export function FieldErrorMessage({ message }: { message: string | null }) {
-  if (!message) return null;
-  return (
-    <p
-      role="alert"
-      className="auth-error-enter mt-1.5 text-[11px] leading-4 font-medium text-[#C53939]"
-    >
-      {message}
-    </p>
   );
 }
