@@ -350,4 +350,31 @@ class AuditStageATest extends TestCase
 
         $this->assertSame('events/poster-2.png', $updatedEvent->json('data.images.0.file_path'));
     }
+
+    public function test_student_register_validates_upn_domain_and_nim_and_saves_profile(): void
+    {
+        // Non-UPN domain and overly long NIM must fail 422
+        $this->postJson('/api/v1/auth/register', [
+            'name' => 'Testing User',
+            'email' => 'aisjdi@gjkal.coma',
+            'password' => '1234567',
+            'password_confirmation' => '1234567',
+            'nim' => '2390182930810293890',
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors(['email', 'password', 'nim']);
+
+        // Valid UPN student registration saves profile (nim + faculty) and returns token
+        $ok = $this->postJson('/api/v1/auth/register', [
+            'name' => 'Budi Santoso',
+            'email' => '22081010099@student.upnjatim.ac.id',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'nim' => '22081010099',
+            'faculty' => 'Fakultas Ilmu Komputer',
+        ])->assertCreated();
+
+        $ok->assertJsonPath('user.profile.nim', '22081010099');
+        $ok->assertJsonPath('user.profile.faculty', 'Fakultas Ilmu Komputer');
+        $this->assertNotEmpty($ok->json('token'));
+    }
 }

@@ -122,6 +122,7 @@ export type RegisterPayload = {
   password: string;
   password_confirmation: string;
   nim?: string;
+  faculty?: string;
 };
 
 export type AuthResponse = {
