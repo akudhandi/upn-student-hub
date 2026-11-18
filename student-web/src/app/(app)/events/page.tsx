@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
+import { apiFetch, fetchPublicCategories, type PublicCategory } from "@/lib/api";
 import ListingImage from "@/components/ListingImage";
 import type { ApiImage } from "@/lib/images";
 
@@ -37,16 +38,11 @@ type EventListResponse = {
   };
 };
 
-type CategoryPill = "Semua" | "Event / Seminar" | "Pengumuman" | "Akademik" | "Organisasi";
-
-const CATEGORY_PILLS: CategoryPill[] = ["Semua", "Event / Seminar", "Pengumuman", "Akademik", "Organisasi"];
-
-// Design pill -> backend category names. "Pengumuman" matches uncategorized info.
-const PILL_CATEGORY_MAP: Record<Exclude<CategoryPill, "Semua" | "Pengumuman">, string[]> = {
-  "Event / Seminar": ["Seminar"],
-  Akademik: ["Akademik"],
-  Organisasi: ["UKM"],
-};
+function isUpcomingEvent(isoDate: string): boolean {
+  const ts = new Date(isoDate).getTime();
+  if (Number.isNaN(ts)) return false;
+  return ts >= Date.now();
+}
 
 function formatLongDateTime(item: ApiEventItem): string {
   const date = new Date(item.event_date);
@@ -109,78 +105,106 @@ function EventCardSkeleton() {
   );
 }
 
-export default function EventsPage() {
+function EventsContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlQuery = (searchParams.get("q") ?? "").trim();
+
   const [items, setItems] = useState<ApiEventItem[]>([]);
+  const [categories, setCategories] = useState<PublicCategory[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activePill, setActivePill] = useState<CategoryPill>("Semua");
-  const [query, setQuery] = useState("");
+  const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
+  const [query, setQuery] = useState(urlQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(urlQuery);
 
-  const loadEvents = useCallback(async (pageNum: number, signal?: AbortSignal) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      // Resolves to http://localhost:8000/api/v1/events by default
-      // (or NEXT_PUBLIC_API_URL when configured).
-      const res = await apiFetch<EventListResponse>(`/v1/events?page=${pageNum}`);
-      if (signal?.aborted) return;
-      setItems(res.data.data);
-      setTotal(res.data.total);
-      setPage(res.data.current_page);
-      setLastPage(res.data.last_page);
-    } catch {
-      if (signal?.aborted) return;
-      setItems([]);
-      setError("Gagal memuat data event. Periksa koneksi ke backend lalu coba lagi.");
-    } finally {
-      if (signal?.aborted) return;
-      setIsLoading(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setDebouncedQuery(query.trim());
+      setPage(1);
+    }, 350);
+    return () => window.clearTimeout(t);
+  }, [query]);
+
+  useEffect(() => {
+    if (urlQuery !== "") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync query from header search URL
+      setQuery(urlQuery);
+      setDebouncedQuery(urlQuery);
+      setPage(1);
     }
-  }, []);
+  }, [urlQuery]);
 
   useEffect(() => {
     const controller = new AbortController();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch must populate state on mount
-    void loadEvents(1, controller.signal);
+    fetchPublicCategories("event")
+      .then((cats) => {
+        if (!controller.signal.aborted) setCategories(cats);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+
+  const loadEvents = useCallback(
+    async (
+      pageNum: number,
+      categoryId: number | null,
+      searchQuery: string,
+      signal?: AbortSignal
+    ) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const params = new URLSearchParams();
+        params.set("page", String(pageNum));
+        if (categoryId !== null) params.set("category_id", String(categoryId));
+        if (searchQuery !== "") params.set("q", searchQuery);
+        const res = await apiFetch<EventListResponse>(`/v1/events?${params.toString()}`);
+        if (signal?.aborted) return;
+        setItems(res.data.data);
+        setTotal(res.data.total);
+        setPage(res.data.current_page);
+        setLastPage(res.data.last_page);
+      } catch {
+        if (signal?.aborted) return;
+        setItems([]);
+        setError("Gagal memuat data event. Periksa koneksi ke backend lalu coba lagi.");
+      } finally {
+        if (signal?.aborted) return;
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch must populate state when filters/page change
+    void loadEvents(page, activeCategoryId, debouncedQuery, controller.signal);
     return () => {
       controller.abort();
     };
-  }, [loadEvents]);
+  }, [page, activeCategoryId, debouncedQuery, loadEvents]);
 
-  const filtered = useMemo(() => {
-    return items.filter((item) => {
-      if (activePill !== "Semua") {
-        if (activePill === "Pengumuman") {
-          if (item.category?.name) return false;
-        } else {
-          const names = PILL_CATEGORY_MAP[activePill];
-          if (!names.includes(item.category?.name ?? "")) return false;
-        }
-      }
-      const q = query.trim().toLowerCase();
-      if (!q) return true;
-      return (
-        item.title.toLowerCase().includes(q) ||
-        item.organizer_name.toLowerCase().includes(q) ||
-        item.location.toLowerCase().includes(q) ||
-        (item.description ?? "").toLowerCase().includes(q)
-      );
-    });
-  }, [items, activePill, query]);
-
+  const filtered = items;
   const [featured, ...rest] = filtered;
 
   function clearFilters() {
-    setActivePill("Semua");
+    setActiveCategoryId(null);
     setQuery("");
+    setDebouncedQuery("");
+    setPage(1);
+    if (urlQuery !== "") {
+      router.replace("/events");
+    }
   }
 
   function goToPage(pageNum: number) {
     if (pageNum < 1 || pageNum > lastPage || pageNum === page) return;
-    void loadEvents(pageNum);
+    setPage(pageNum);
   }
 
   return (
@@ -195,7 +219,7 @@ export default function EventsPage() {
       </nav>
 
       {/* Header */}
-      <div className="mt-2">
+      <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-[22px] font-bold tracking-tight text-slate-900 sm:text-[26px]">
             Event &amp; Informasi Kampus
@@ -204,6 +228,12 @@ export default function EventsPage() {
             Temukan kegiatan mahasiswa, seminar, lomba, dan pengumuman resmi UPN Veteran Jawa Timur.
           </p>
         </div>
+        <Link
+          href="/events/create"
+          className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-[#0A2342] px-4 text-xs font-semibold text-white hover:bg-[#12325e]"
+        >
+          + Ajukan Event
+        </Link>
       </div>
 
       {/* Search */}
@@ -227,13 +257,31 @@ export default function EventsPage() {
 
       {/* Category pills */}
       <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filter berdasarkan kategori">
-        {CATEGORY_PILLS.map((pill) => {
-          const isActive = activePill === pill;
+        <button
+          type="button"
+          onClick={() => {
+            setActiveCategoryId(null);
+            setPage(1);
+          }}
+          aria-pressed={activeCategoryId === null}
+          className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2 ${
+            activeCategoryId === null
+              ? "border-[#0A2342] bg-[#0A2342] text-white"
+              : "border-gray-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+          }`}
+        >
+          Semua
+        </button>
+        {categories.map((cat) => {
+          const isActive = activeCategoryId === cat.id;
           return (
             <button
-              key={pill}
+              key={cat.id}
               type="button"
-              onClick={() => setActivePill(pill)}
+              onClick={() => {
+                setActiveCategoryId(cat.id);
+                setPage(1);
+              }}
               aria-pressed={isActive}
               className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2 ${
                 isActive
@@ -241,7 +289,7 @@ export default function EventsPage() {
                   : "border-gray-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
               }`}
             >
-              {pill}
+              {cat.name}
             </button>
           );
         })}
@@ -277,7 +325,7 @@ export default function EventsPage() {
             <p className="mt-1 text-xs text-slate-500">{error}</p>
             <button
               type="button"
-              onClick={() => void loadEvents(page)}
+              onClick={() => void loadEvents(page, activeCategoryId, debouncedQuery)}
               className="mt-4 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
             >
               Coba lagi
@@ -287,12 +335,12 @@ export default function EventsPage() {
           <div role="status" className="rounded-xl border border-gray-200 bg-white px-6 py-12 text-center">
             <p className="text-sm font-medium text-slate-900">Belum Ada Event Dipublikasikan</p>
             <p className="mt-1 text-xs text-slate-500">
-              {items.length === 0
+              {activeCategoryId === null && debouncedQuery === ""
                 ? "Jadilah yang pertama mengajukan event untuk kampus."
                 : "Coba kata kunci atau kategori lain."}
             </p>
             <div className="mt-4 flex items-center justify-center gap-2">
-              {items.length > 0 && (
+              {(activeCategoryId !== null || debouncedQuery !== "") && (
                 <button
                   type="button"
                   onClick={clearFilters}
@@ -318,7 +366,8 @@ export default function EventsPage() {
                 </Link>
                 <div className="flex min-w-0 flex-col p-5 sm:p-6">
                   <p className="text-[11px] font-bold text-teal-700">
-                    {featured.category?.name ?? "Event Kampus"} • Segera Hadir
+                    {featured.category?.name ?? "Event Kampus"} •{" "}
+                    {isUpcomingEvent(featured.event_date) ? "Segera Hadir" : "Telah Berlangsung"}
                   </p>
                   <h2 className="mt-1.5 line-clamp-2 text-lg font-bold leading-7 tracking-tight text-slate-900">
                     <Link href={`/events/${featured.id}`} className="hover:underline focus:outline-none">
@@ -428,5 +477,13 @@ export default function EventsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function EventsPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-slate-500">Memuat event…</p>}>
+      <EventsContent />
+    </Suspense>
   );
 }

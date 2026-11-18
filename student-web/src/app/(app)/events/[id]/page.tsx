@@ -423,50 +423,6 @@ export default function EventDetailPage() {
             )}
           </section>
 
-          {/* Contacts */}
-          <section aria-labelledby="kontak-heading" className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
-            <h2 id="kontak-heading" className="flex items-center gap-2 text-[15px] font-bold text-slate-900">
-              <span className="h-4 w-1 rounded-full bg-[#0A2342]" aria-hidden="true" />
-              Kontak &amp; Narahubung Panitia
-            </h2>
-            {pics.length > 0 ? (
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {pics.map((pic, i) => {
-                  const wa = pic.whatsapp?.trim() ? normalizeWaNumber(pic.whatsapp.trim()) : null;
-                  return (
-                    <div key={`${pic.name}-${i}`} className="flex items-center gap-3 rounded-lg bg-slate-50 p-3 ring-1 ring-inset ring-slate-100">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700" aria-hidden="true">
-                        <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-                          <path d="M8 1.5C4.4 1.5 1.5 4.4 1.5 8C1.5 9.4 1.9 10.7 2.6 11.8L1.5 14.5L4.3 13.4C5.4 14.1 6.6 14.5 8 14.5C11.6 14.5 14.5 11.6 14.5 8C14.5 4.4 11.6 1.5 8 1.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-                        </svg>
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[12px] font-bold text-slate-900">
-                          {pic.whatsapp?.trim() || pic.name}
-                        </span>
-                        <span className="block truncate text-[11px] text-slate-500">{pic.name}</span>
-                      </span>
-                      {wa ? (
-                        <a
-                          href={`https://wa.me/${wa}?text=${encodeURIComponent(`Halo, saya ingin bertanya tentang event "${item.title}".`)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="shrink-0 rounded-md bg-emerald-600 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
-                        >
-                          WhatsApp
-                        </a>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="mt-3 text-[13px] text-slate-500">
-                Belum ada kontak panitia yang tercantum.
-              </p>
-            )}
-          </section>
-
           {/* Related */}
           {related.length > 0 && (
             <section aria-labelledby="terkait-heading" className="pt-1">
@@ -518,14 +474,31 @@ export default function EventDetailPage() {
 
         {/* Sidebar */}
         <div className="min-w-0 space-y-5 lg:sticky lg:top-24">
-          <aside aria-label="Dokumen dan lampiran" className="rounded-xl border border-slate-200 bg-white p-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Dokumen &amp; Lampiran</p>
-            {documents.length > 0 ? (
+          {item.registration_link && (
+            <aside aria-label="Pendaftaran event" className="rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Pendaftaran</p>
+              <p className="mt-1.5 text-xs text-slate-600">
+                Daftar secara daring melalui tautan resmi penyelenggara.
+              </p>
+              <a
+                href={item.registration_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 flex w-full items-center justify-center rounded-lg bg-[#0A2342] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#12325e]"
+              >
+                Daftar Event ↗
+              </a>
+            </aside>
+          )}
+
+          {documents.length > 0 && (
+            <aside aria-label="Dokumen dan lampiran" className="rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Dokumen &amp; Lampiran</p>
               <ul className="mt-2.5 space-y-2">
                 {documents.map((doc, i) => (
                   <li key={`${doc.name}-${i}`} className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 ring-1 ring-inset ring-slate-100">
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-50 text-[10px] font-bold text-red-600" aria-hidden="true">
-                      PDF
+                      DOC
                     </span>
                     <span className="min-w-0">
                       <span className="block truncate text-[12px] font-semibold text-slate-900">{doc.name}</span>
@@ -534,10 +507,8 @@ export default function EventDetailPage() {
                   </li>
                 ))}
               </ul>
-            ) : (
-              <p className="mt-2 text-[12px] text-slate-500">Belum ada dokumen lampiran.</p>
-            )}
-          </aside>
+            </aside>
+          )}
 
           <aside aria-label="Kontak narahubung" className="rounded-xl border border-slate-200 bg-white p-4">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Kontak Narahubung</p>

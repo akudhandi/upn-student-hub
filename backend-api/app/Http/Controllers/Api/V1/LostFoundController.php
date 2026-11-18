@@ -74,6 +74,10 @@ class LostFoundController extends Controller
             }
         }
 
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->query('category_id'));
+        }
+
         if ($request->filled('q')) {
             $keyword = (string) $request->query('q');
             $query->where(function ($q) use ($keyword) {

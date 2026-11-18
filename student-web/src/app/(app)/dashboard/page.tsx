@@ -21,14 +21,19 @@ const MODULES: ModuleCard[] = [
     href: "/marketplace",
   },
   {
-    title: "Services",
+    title: "Jasa & Layanan",
     description: "Les privat, desain, dan servis oleh sesama mahasiswa.",
     href: "/services",
   },
   {
-    title: "Lost & Found",
+    title: "Barang Hilang",
     description: "Laporkan atau temukan barang hilang di kampus.",
     href: "/lost-found",
+  },
+  {
+    title: "Event & Info",
+    description: "Seminar, lomba, agenda UKM, dan info resmi kampus.",
+    href: "/events",
   },
 ];
 
@@ -84,13 +89,17 @@ function ModuleIcon({ title }: { title: string }) {
       wrapper: "bg-[#FFF7ED] border-orange-200",
       icon: "text-[#C2410C]",
     },
-    Services: {
+    "Jasa & Layanan": {
       wrapper: "bg-[#ECFDF5] border-emerald-200",
       icon: "text-[#047857]",
     },
-    "Lost & Found": {
+    "Barang Hilang": {
       wrapper: "bg-[#F5F3FF] border-violet-200",
       icon: "text-[#6D28D9]",
+    },
+    "Event & Info": {
+      wrapper: "bg-[#EFF6FF] border-sky-200",
+      icon: "text-[#0369A1]",
     },
   };
   const style = styles[title] ?? {
@@ -106,12 +115,20 @@ function ModuleIcon({ title }: { title: string }) {
         <path d="M6 13V7H10V13" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" />
       </svg>
     );
-  } else if (title === "Services") {
+  } else if (title === "Jasa & Layanan") {
     icon = (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M8 3.5L2.5 6L8 8.5L13.5 6L8 3.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
         <path d="M2.5 8L8 10.5L13.5 8" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
         <path d="M2.5 10L8 12.5L13.5 10" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      </svg>
+    );
+  } else if (title === "Event & Info") {
+    icon = (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+        <path d="M2 6.5H14M5.5 1.8V3.5M10.5 1.8V3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        <path d="M5.5 9.5L7 11L10.5 7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   } else {
@@ -338,7 +355,7 @@ export default function DashboardPage() {
         <h2 id="quick-access-heading" className="sr-only">
           Akses cepat
         </h2>
-        <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
           {MODULES.map((m) => (
             <Link
               key={m.title}
@@ -509,7 +526,7 @@ export default function DashboardPage() {
                   return (
                     <li key={conv.id}>
                       <Link
-                        href={`/messages?c=${conv.id}`}
+                        href={`/messages?conversation_id=${conv.id}`}
                         className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-slate-50"
                       >
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[11px] font-semibold text-white">

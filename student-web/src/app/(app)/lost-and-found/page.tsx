@@ -191,12 +191,21 @@ function ReportCardSkeleton() {
 }
 
 export function LostAndFoundContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const createRequested = searchParams.get("action") === "create";
+  const urlQuery = (searchParams.get("q") ?? "").trim();
+
   const [items, setItems] = useState<ApiLostFoundItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
+  const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
+  const [query, setQuery] = useState(urlQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(urlQuery);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reportType, setReportType] = useState<ReportType>("lost");
   const [formData, setFormData] = useState(EMPTY_FORM);
@@ -205,29 +214,57 @@ export function LostAndFoundContent() {
   const photoIdRef = useRef(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const createRequested = searchParams.get("action") === "create";
 
-  const loadReports = useCallback(async (type: TypeFilter, signal?: AbortSignal) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      // Resolves to http://localhost:8000/api/v1/lost-found by default
-      // (or NEXT_PUBLIC_API_URL when configured).
-      const path = type === "all" ? "/v1/lost-found" : `/v1/lost-found?type=${type}`;
-      const res = await apiFetch<LostFoundListResponse>(path);
-      if (signal?.aborted) return;
-      setItems(res.data.data);
-    } catch {
-      if (signal?.aborted) return;
-      setItems([]);
-      setError("Gagal memuat data laporan. Periksa koneksi ke backend lalu coba lagi.");
-    } finally {
-      if (signal?.aborted) return;
-      setIsLoading(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setDebouncedQuery(query.trim());
+      setPage(1);
+    }, 350);
+    return () => window.clearTimeout(t);
+  }, [query]);
+
+  useEffect(() => {
+    if (urlQuery !== "") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync query from header search URL
+      setQuery(urlQuery);
+      setDebouncedQuery(urlQuery);
+      setPage(1);
     }
-  }, []);
+  }, [urlQuery]);
+
+  const loadReports = useCallback(
+    async (
+      type: TypeFilter,
+      pageNum: number,
+      categoryId: number | null,
+      searchQuery: string,
+      signal?: AbortSignal
+    ) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const params = new URLSearchParams();
+        params.set("page", String(pageNum));
+        if (type !== "all") params.set("type", type);
+        if (categoryId !== null) params.set("category_id", String(categoryId));
+        if (searchQuery !== "") params.set("q", searchQuery);
+        const res = await apiFetch<LostFoundListResponse>(`/v1/lost-found?${params.toString()}`);
+        if (signal?.aborted) return;
+        setItems(res.data.data);
+        setPage(res.data.current_page);
+        setLastPage(res.data.last_page);
+        setTotal(res.data.total);
+      } catch {
+        if (signal?.aborted) return;
+        setItems([]);
+        setError("Gagal memuat data laporan. Periksa koneksi ke backend lalu coba lagi.");
+      } finally {
+        if (signal?.aborted) return;
+        setIsLoading(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -243,20 +280,25 @@ export function LostAndFoundContent() {
 
   useEffect(() => {
     const controller = new AbortController();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch must populate state on mount and when the type filter changes
-    void loadReports(typeFilter, controller.signal);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch must populate state when filters/page change
+    void loadReports(typeFilter, page, activeCategoryId, debouncedQuery, controller.signal);
     return () => {
       controller.abort();
     };
-  }, [typeFilter, loadReports]);
+  }, [typeFilter, page, activeCategoryId, debouncedQuery, loadReports]);
 
-  const categories = useMemo(() => {
-    const names = new Set<string>();
-    for (const item of items) {
-      if (item.category?.name) names.add(item.category.name);
+  const filterCategories = useMemo(() => {
+    if (backendCategories.length > 0) {
+      return backendCategories.map((c) => ({ id: c.id, name: c.name }));
     }
-    return [...names];
-  }, [items]);
+    const byId = new Map<number, string>();
+    for (const item of items) {
+      if (item.category?.id && item.category?.name) {
+        byId.set(item.category.id, item.category.name);
+      }
+    }
+    return [...byId.entries()].map(([id, name]) => ({ id, name }));
+  }, [backendCategories, items]);
 
   const categoryOptions = useMemo(() => {
     const byId = new Map<number, string>();
@@ -294,9 +336,12 @@ export function LostAndFoundContent() {
 
   const clearCreateParam = useCallback(() => {
     if (searchParams.get("action") === "create") {
-      router.replace("/lost-and-found");
+      const next = urlQuery
+        ? `/lost-found?q=${encodeURIComponent(urlQuery)}`
+        : "/lost-found";
+      router.replace(next);
     }
-  }, [router, searchParams]);
+  }, [router, searchParams, urlQuery]);
 
   const closeModal = useCallback(() => {
     if (isSubmitting) return;
@@ -344,6 +389,12 @@ export function LostAndFoundContent() {
         photos.length > 0
           ? await Promise.all(photos.map((p) => uploadMedia(p.file, "lost-found")))
           : [];
+      const rawContact = formData.contact_info.trim();
+      const contactDigits = rawContact.replace(/\D/g, "");
+      const normalizedContact =
+        contactDigits.startsWith("8") && contactDigits.length >= 9
+          ? `0${contactDigits}`
+          : rawContact;
       await apiFetch<LostFoundCreateResponse>("/v1/lost-found", {
         method: "POST",
         body: JSON.stringify({
@@ -357,7 +408,7 @@ export function LostAndFoundContent() {
               ? null
               : `Rp ${Number(rewardRaw).toLocaleString("id-ID")}`,
           description: formData.description.trim(),
-          contact_info: formData.contact_info.trim(),
+          contact_info: normalizedContact,
           image_paths: uploaded.map((u) => u.path),
         }),
       });
@@ -371,8 +422,9 @@ export function LostAndFoundContent() {
       clearCreateParam();
       // Switch the list filter to the new report's type so it appears immediately.
       setTypeFilter(createdType);
-      setActiveCategory(null);
-      await loadReports(createdType);
+      setActiveCategoryId(null);
+      setPage(1);
+      await loadReports(createdType, 1, null, debouncedQuery);
     } catch (err) {
       const apiError = err as ApiError;
       const fieldErrors = apiError.errors
@@ -394,21 +446,19 @@ export function LostAndFoundContent() {
       })
     : "Tanggal kejadian";
 
-  const filtered = items.filter((item) => {
-    if (activeCategory && (item.category?.name ?? "") !== activeCategory) return false;
-    const q = query.trim().toLowerCase();
-    if (!q) return true;
-    return (
-      item.title.toLowerCase().includes(q) ||
-      item.location.toLowerCase().includes(q) ||
-      (item.description ?? "").toLowerCase().includes(q)
-    );
-  });
+  const filtered = items;
+  const activeCategoryName =
+    filterCategories.find((c) => c.id === activeCategoryId)?.name ?? null;
 
   function clearFilters() {
     setTypeFilter("all");
-    setActiveCategory(null);
+    setActiveCategoryId(null);
     setQuery("");
+    setDebouncedQuery("");
+    setPage(1);
+    if (urlQuery !== "") {
+      router.replace("/lost-found");
+    }
   }
 
   return (
@@ -496,7 +546,10 @@ export function LostAndFoundContent() {
                     name="lost-found-status"
                     value={opt.value}
                     checked={typeFilter === opt.value}
-                    onChange={() => setTypeFilter(opt.value)}
+                    onChange={() => {
+                      setTypeFilter(opt.value);
+                      setPage(1);
+                    }}
                     className="h-3.5 w-3.5 shrink-0 accent-[#002147]"
                   />
                   <span className={`h-2 w-2 shrink-0 rounded-full ${opt.dot}`} aria-hidden="true" />
@@ -506,19 +559,22 @@ export function LostAndFoundContent() {
             </div>
           </section>
 
-          {categories.length > 0 && (
+          {filterCategories.length > 0 && (
             <section className="rounded-lg border border-slate-200 bg-white p-4">
               <h2 id="categories-heading" className="text-[13px] font-semibold text-slate-900">
                 Kategori
               </h2>
               <div className="mt-3 flex flex-wrap gap-2" role="group" aria-labelledby="categories-heading">
-                {categories.map((cat) => {
-                  const isActive = activeCategory === cat;
+                {filterCategories.map((cat) => {
+                  const isActive = activeCategoryId === cat.id;
                   return (
                     <button
-                      key={cat}
+                      key={cat.id}
                       type="button"
-                      onClick={() => setActiveCategory(isActive ? null : cat)}
+                      onClick={() => {
+                        setActiveCategoryId(isActive ? null : cat.id);
+                        setPage(1);
+                      }}
                       aria-pressed={isActive}
                       className={`rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2 ${
                         isActive
@@ -526,7 +582,7 @@ export function LostAndFoundContent() {
                           : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                       }`}
                     >
-                      {cat}
+                      {cat.name}
                     </button>
                   );
                 })}
@@ -558,7 +614,7 @@ export function LostAndFoundContent() {
               <p className="mt-1 text-xs text-slate-500">{error}</p>
               <button
                 type="button"
-                onClick={() => void loadReports(typeFilter)}
+                onClick={() => void loadReports(typeFilter, page, activeCategoryId, debouncedQuery)}
                 className="mt-4 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
               >
                 Coba lagi
@@ -567,8 +623,8 @@ export function LostAndFoundContent() {
           ) : (
             <>
               <p className="text-xs text-slate-500" aria-live="polite" role="status">
-                Menampilkan {filtered.length} dari {items.length} laporan
-                {activeCategory ? ` di ${activeCategory}` : ""}
+                Menampilkan {filtered.length} dari {total} laporan
+                {activeCategoryName ? ` di ${activeCategoryName}` : ""}
               </p>
 
               {filtered.length === 0 ? (
@@ -679,6 +735,36 @@ export function LostAndFoundContent() {
                     );
                   })}
                 </div>
+              )}
+
+              {lastPage > 1 && (
+                <nav
+                  aria-label="Navigasi halaman lost & found"
+                  className="mt-5 flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600"
+                >
+                  <span>
+                    Halaman <strong className="text-slate-900">{page}</strong> dari{" "}
+                    <strong className="text-slate-900">{lastPage}</strong> ({total} laporan)
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={page <= 1}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                    >
+                      ← Sebelumnya
+                    </button>
+                    <button
+                      type="button"
+                      disabled={page >= lastPage}
+                      onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                    >
+                      Berikutnya →
+                    </button>
+                  </div>
+                </nav>
               )}
             </>
           )}
@@ -987,7 +1073,7 @@ export function LostAndFoundContent() {
                       disabled={isSubmitting}
                       className="rounded-lg bg-slate-100 px-4 py-2 text-[13px] font-semibold text-slate-600 hover:bg-slate-200 disabled:opacity-50"
                     >
-                      Simpan Draft
+                      Batal
                     </button>
                     <button
                       type="submit"

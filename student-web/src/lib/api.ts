@@ -144,4 +144,10 @@ export function register(payload: RegisterPayload): Promise<AuthResponse> {
   });
 }
 
+export function logout(): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>("/v1/auth/logout", {
+    method: "POST",
+  });
+}
+
 export { API_BASE_URL };

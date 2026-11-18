@@ -137,6 +137,11 @@ function MessagesContent() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const activeIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    activeIdRef.current = activeId;
+  }, [activeId]);
 
   const loadThreads = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -185,9 +190,10 @@ function MessagesContent() {
           t.id === id ? { ...t, unread_count: 0, last_message: detail.last_message } : t
         )
       );
-      if (markRead) {
+      if (markRead || (detail.unread_count ?? 0) > 0) {
         try {
           await markConversationRead(id);
+          window.dispatchEvent(new Event("upn-messages-updated"));
         } catch {
           // Non-fatal: unread badge refreshes on next poll.
         }
@@ -219,19 +225,30 @@ function MessagesContent() {
 
   // Periodic thread-list refresh every 15s.
   useEffect(() => {
+    let cancelled = false;
     const timer = setInterval(() => {
-      const controller = new AbortController();
       void (async () => {
         try {
           const data = await fetchConversations();
-          if (!controller.signal.aborted) setThreads(data);
+          if (cancelled) return;
+          const currentActive = activeIdRef.current;
+          setThreads(
+            data.map((t) =>
+              currentActive !== null && t.id === currentActive
+                ? { ...t, unread_count: 0 }
+                : t
+            )
+          );
+          window.dispatchEvent(new Event("upn-messages-updated"));
         } catch {
           // Non-fatal background refresh.
         }
       })();
-      return () => controller.abort();
     }, 15000);
-    return () => clearInterval(timer);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
   }, []);
 
   useEffect(() => {

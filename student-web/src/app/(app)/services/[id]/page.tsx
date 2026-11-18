@@ -167,7 +167,7 @@ function ServiceCover({
       />
       <div className="absolute left-3 top-3 flex gap-1.5">
         <span className="rounded-md bg-white/95 px-2 py-1 text-[11px] font-bold text-teal-800">
-          ✓ Jasa Terverifikasi
+          Jasa Mahasiswa UPN
         </span>
         <span className="rounded-md bg-teal-950/60 px-2 py-1 text-[11px] font-bold text-white">
           {category}
@@ -218,12 +218,14 @@ export default function ServiceDetailPage() {
   const { isFavorite, toggle: toggleFavorite } = useFavorite("service", id);
   const [reportOpen, setReportOpen] = useState(false);
   const [shareNotice, setShareNotice] = useState<string | null>(null);
+  const [activePhotoIdx, setActivePhotoIdx] = useState(0);
 
   const loadDetail = useCallback(async (itemId: string, signal?: AbortSignal) => {
     try {
       setIsLoading(true);
       setIsNotFound(false);
       setError(null);
+      setActivePhotoIdx(0);
       const res = await apiFetch<ServiceDetailResponse>(
         `/v1/services/${encodeURIComponent(itemId)}`
       );
@@ -381,7 +383,45 @@ export default function ServiceDetailPage() {
 
       {/* Hero header card */}
       <section aria-labelledby="jasa-title" className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
-        <ServiceCover category={categoryName} title={item.title} seed={item.id} images={item.images} />
+        <ServiceCover
+          category={categoryName}
+          title={item.title}
+          seed={item.id}
+          images={
+            item.images && item.images.length > 0
+              ? [item.images[Math.min(activePhotoIdx, item.images.length - 1)]]
+              : null
+          }
+        />
+        {item.images && item.images.length > 1 && (
+          <div className="grid grid-cols-3 gap-2 border-b border-slate-100 p-3 sm:grid-cols-6">
+            {item.images.map((img, i) => {
+              const selected = i === activePhotoIdx;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setActivePhotoIdx(i)}
+                  aria-label={`Lihat portofolio ${i + 1}`}
+                  aria-pressed={selected}
+                  className={`overflow-hidden rounded-lg border-2 transition ${
+                    selected
+                      ? "border-teal-700 ring-2 ring-teal-700/20"
+                      : "border-slate-100 hover:border-slate-300"
+                  }`}
+                >
+                  <ListingImage
+                    module="service"
+                    seed={`${item.id}-p${i}`}
+                    images={[img]}
+                    alt={`Portofolio ${item.title} ${i + 1}`}
+                    className="aspect-[4/3] w-full object-cover"
+                  />
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="p-5 sm:p-6">
           <p className="text-[11px] font-medium text-slate-500">
             <span className="font-bold text-teal-700">{categoryName}</span>

@@ -11,6 +11,7 @@ import {
   type PublicCategory,
 } from "@/lib/api";
 import ListingImage from "@/components/ListingImage";
+import { getUser } from "@/lib/auth";
 import type { ApiImage } from "@/lib/images";
 
 // ---------------------------------------------------------------------------
@@ -153,9 +154,12 @@ function ItemCardSkeleton() {
 
 function MarketplaceContent() {
   const [items, setItems] = useState<ApiMarketplaceItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string>("Semua");
+  const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
   const [priceFilter, setPriceFilter] = useState("any");
   const [conditionFilter, setConditionFilter] = useState("any");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -165,6 +169,7 @@ function MarketplaceContent() {
   const [codLocation, setCodLocation] = useState("Perpustakaan Pusat UPN Lantai 1 / Gazebo FTI");
   const [photos, setPhotos] = useState<{ id: number; url: string; file: File }[]>([]);
   const [backendCategories, setBackendCategories] = useState<PublicCategory[]>([]);
+  const [currentUser] = useState(() => getUser());
   const photoIdRef = useRef(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -173,29 +178,44 @@ function MarketplaceContent() {
   const createRequested = searchParams.get("action") === "create";
   const urlSearchQuery = (searchParams.get("q") ?? "").trim();
 
-  const loadItems = useCallback(async (signal?: AbortSignal) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      // Resolves to http://localhost:8000/api/v1/marketplace by default
-      // (or NEXT_PUBLIC_API_URL when configured).
-      const res = await apiFetch<MarketplaceListResponse>("/v1/marketplace");
-      if (signal?.aborted) return;
-      setItems(res.data.data);
-    } catch {
-      if (signal?.aborted) return;
-      setItems([]);
-      setError("Gagal memuat data. Periksa koneksi ke backend lalu coba lagi.");
-    } finally {
-      if (signal?.aborted) return;
-      setIsLoading(false);
-    }
-  }, []);
+  const loadItems = useCallback(
+    async (
+      pageNum: number,
+      categoryId: number | null,
+      condition: string,
+      searchQuery: string,
+      signal?: AbortSignal
+    ) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const params = new URLSearchParams();
+        params.set("page", String(pageNum));
+        if (categoryId !== null) params.set("category_id", String(categoryId));
+        if (condition !== "any") params.set("condition", condition);
+        if (searchQuery !== "") params.set("q", searchQuery);
+        const res = await apiFetch<MarketplaceListResponse>(
+          `/v1/marketplace?${params.toString()}`
+        );
+        if (signal?.aborted) return;
+        setItems(res.data.data);
+        setPage(res.data.current_page);
+        setLastPage(res.data.last_page);
+        setTotal(res.data.total);
+      } catch {
+        if (signal?.aborted) return;
+        setItems([]);
+        setError("Gagal memuat data. Periksa koneksi ke backend lalu coba lagi.");
+      } finally {
+        if (signal?.aborted) return;
+        setIsLoading(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     const controller = new AbortController();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch must populate state on mount
-    void loadItems(controller.signal);
     fetchPublicCategories("marketplace")
       .then((cats) => {
         if (!controller.signal.aborted) setBackendCategories(cats);
@@ -204,13 +224,25 @@ function MarketplaceContent() {
     return () => {
       controller.abort();
     };
-  }, [loadItems]);
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch must populate state when filters/page change
+    void loadItems(page, activeCategoryId, conditionFilter, urlSearchQuery, controller.signal);
+    return () => {
+      controller.abort();
+    };
+  }, [page, activeCategoryId, conditionFilter, urlSearchQuery, loadItems]);
 
   const clearCreateParam = useCallback(() => {
     if (searchParams.get("action") === "create") {
-      router.replace("/marketplace");
+      const next = urlSearchQuery
+        ? `/marketplace?q=${encodeURIComponent(urlSearchQuery)}`
+        : "/marketplace";
+      router.replace(next);
     }
-  }, [router, searchParams]);
+  }, [router, searchParams, urlSearchQuery]);
 
   const closeModal = useCallback(() => {
     if (isSubmitting) return;
@@ -233,13 +265,18 @@ function MarketplaceContent() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isModalOpen, closeModal]);
 
-  const categories = useMemo(() => {
-    const names = new Set<string>();
-    for (const item of items) {
-      if (item.category?.name) names.add(item.category.name);
+  const filterCategories = useMemo(() => {
+    if (backendCategories.length > 0) {
+      return backendCategories.map((c) => ({ id: c.id, name: c.name }));
     }
-    return ["Semua", ...names];
-  }, [items]);
+    const byId = new Map<number, string>();
+    for (const item of items) {
+      if (item.category?.id && item.category?.name) {
+        byId.set(item.category.id, item.category.name);
+      }
+    }
+    return [...byId.entries()].map(([id, name]) => ({ id, name }));
+  }, [backendCategories, items]);
 
   const categoryOptions = useMemo(() => {
     const byId = new Map<number, string>();
@@ -347,7 +384,8 @@ function MarketplaceContent() {
         return [];
       });
       clearCreateParam();
-      await loadItems();
+      setPage(1);
+      await loadItems(1, activeCategoryId, conditionFilter, urlSearchQuery);
     } catch (err) {
       const apiError = err as ApiError;
       const fieldErrors = apiError.errors
@@ -360,14 +398,7 @@ function MarketplaceContent() {
   }
 
   const filtered = items.filter((item) => {
-    const categoryName = item.category?.name ?? "";
     const price = Number(item.price);
-    if (urlSearchQuery !== "") {
-      const haystack = `${item.title} ${item.description ?? ""} ${categoryName}`.toLowerCase();
-      if (!haystack.includes(urlSearchQuery.toLowerCase())) return false;
-    }
-    if (activeCategory !== "Semua" && categoryName !== activeCategory) return false;
-    if (conditionFilter !== "any" && item.condition !== conditionFilter) return false;
     if (priceFilter === "under500" && price >= 500000) return false;
     if (priceFilter === "500-1000" && (price < 500000 || price > 1000000)) return false;
     if (priceFilter === "over1000" && price <= 1000000) return false;
@@ -375,10 +406,26 @@ function MarketplaceContent() {
   });
 
   function resetFilters() {
-    setActiveCategory("Semua");
+    setActiveCategoryId(null);
     setPriceFilter("any");
     setConditionFilter("any");
+    setPage(1);
+    if (urlSearchQuery !== "") {
+      router.replace("/marketplace");
+    }
   }
+
+  const previewCategoryName =
+    categoryOptions.find((c) => String(c.id) === formData.category_id)?.name ?? "Kategori";
+  const previewSellerName = currentUser?.profile?.name || currentUser?.name || "Mahasiswa UPN";
+  const previewSellerFaculty = currentUser?.profile?.faculty || "UPN Veteran Jatim";
+  const previewSellerInitials = previewSellerName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase() || "UP";
 
   return (
     <div className="mx-auto max-w-[1180px]">
@@ -386,20 +433,68 @@ function MarketplaceContent() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr] lg:items-start">
         {/* Title Card — must be bg-white border rounded-xl p-6 with thick accent top border */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 border-t-4 border-t-[#D4AF37]">
-          <div>
-            <h1 className="text-[26px] font-bold tracking-tight text-slate-900">Marketplace</h1>
-            <p className="mt-1 text-sm text-slate-500">Beli dan jual barang di lingkungan komunitas UPN.</p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="text-[26px] font-bold tracking-tight text-slate-900">Marketplace</h1>
+              <p className="mt-1 text-sm text-slate-500">Beli dan jual barang di lingkungan komunitas UPN.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSubmitError(null);
+                setIsModalOpen(true);
+              }}
+              className="rounded-lg bg-[#0A2342] px-4 py-2 text-xs font-semibold text-white hover:bg-[#12325e]"
+            >
+              + Jual Barang
+            </button>
           </div>
+
+          {urlSearchQuery !== "" && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-slate-600">
+              <span>
+                Hasil pencarian: <strong className="text-slate-900">“{urlSearchQuery}”</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setPage(1);
+                  router.replace("/marketplace");
+                }}
+                className="font-semibold text-[#002147] hover:underline"
+              >
+                Hapus pencarian
+              </button>
+            </div>
+          )}
 
           {/* Category Pills — inside the Title Card */}
           <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Filter berdasarkan kategori">
-            {categories.map((cat) => {
-              const isActive = activeCategory === cat;
+            <button
+              type="button"
+              onClick={() => {
+                setActiveCategoryId(null);
+                setPage(1);
+              }}
+              aria-pressed={activeCategoryId === null}
+              className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 ${
+                activeCategoryId === null
+                  ? "border-amber-200 bg-amber-50 text-amber-800"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+              }`}
+            >
+              Semua Barang
+            </button>
+            {filterCategories.map((cat) => {
+              const isActive = activeCategoryId === cat.id;
               return (
                 <button
-                  key={cat}
+                  key={cat.id}
                   type="button"
-                  onClick={() => setActiveCategory(cat)}
+                  onClick={() => {
+                    setActiveCategoryId(cat.id);
+                    setPage(1);
+                  }}
                   aria-pressed={isActive}
                   className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 ${
                     isActive
@@ -407,7 +502,7 @@ function MarketplaceContent() {
                       : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                   }`}
                 >
-                  {cat === "Semua" ? "Semua Barang" : cat}
+                  {cat.name}
                 </button>
               );
             })}
@@ -452,7 +547,10 @@ function MarketplaceContent() {
               <select
                 id="condition"
                 value={conditionFilter}
-                onChange={(e) => setConditionFilter(e.target.value)}
+                onChange={(e) => {
+                  setConditionFilter(e.target.value);
+                  setPage(1);
+                }}
                 className="mt-1 w-full rounded border border-slate-200 bg-[#F8F9FB] px-2.5 py-2 text-xs text-slate-700 focus:border-[#002147] focus:bg-white focus:outline-none"
               >
                 <option value="any">Semua Kondisi</option>
@@ -489,7 +587,7 @@ function MarketplaceContent() {
             <p className="mt-1 text-xs text-slate-500">{error}</p>
             <button
               type="button"
-              onClick={() => void loadItems()}
+              onClick={() => void loadItems(page, activeCategoryId, conditionFilter, urlSearchQuery)}
               className="mt-4 rounded border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
             >
               Coba lagi
@@ -553,6 +651,36 @@ function MarketplaceContent() {
               );
             })}
           </div>
+        )}
+
+        {!isLoading && !error && lastPage > 1 && (
+          <nav
+            aria-label="Navigasi halaman marketplace"
+            className="mt-6 flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600"
+          >
+            <span>
+              Halaman <strong className="text-slate-900">{page}</strong> dari{" "}
+              <strong className="text-slate-900">{lastPage}</strong> ({total} barang)
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+              >
+                ← Sebelumnya
+              </button>
+              <button
+                type="button"
+                disabled={page >= lastPage}
+                onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+              >
+                Berikutnya →
+              </button>
+            </div>
+          </nav>
         )}
       </div>
 
@@ -830,7 +958,7 @@ function MarketplaceContent() {
                       disabled={isSubmitting}
                       className="rounded-lg bg-slate-100 px-4 py-2 text-[13px] font-semibold text-slate-600 hover:bg-slate-200 disabled:opacity-50"
                     >
-                      Simpan Draft
+                      Batal
                     </button>
                     <button
                       type="submit"
@@ -852,20 +980,20 @@ function MarketplaceContent() {
                     </span>
                   </div>
                   <div className="mt-2 overflow-hidden rounded-lg border border-slate-100">
-                    <div className="relative flex aspect-[4/3] items-center justify-center bg-[#E9EDF2]">
-                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-slate-400">
-                        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.3" />
-                        <circle cx="9" cy="9" r="2" stroke="currentColor" strokeWidth="1.3" />
-                        <path d="M3 16L8.5 11L13 15.5L16 13L21 18" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round" />
-                      </svg>
-                      <span className="absolute left-2 top-2 rounded bg-slate-900/80 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                        FTI / Buku
-                      </span>
-                      {isNegotiable && (
-                        <span className="absolute bottom-2 right-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">
-                          Bisa Nego
-                        </span>
+                    <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-[#E9EDF2]">
+                      {photos.length > 0 ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- local preview before upload
+                        <img src={photos[0].url} alt="Pratinjau foto barang" className="h-full w-full object-cover" />
+                      ) : (
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-slate-400">
+                          <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.3" />
+                          <circle cx="9" cy="9" r="2" stroke="currentColor" strokeWidth="1.3" />
+                          <path d="M3 16L8.5 11L13 15.5L16 13L21 18" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round" />
+                        </svg>
                       )}
+                      <span className="absolute left-2 top-2 rounded bg-slate-900/80 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                        {previewCategoryName}
+                      </span>
                     </div>
                     <div className="p-3">
                       <div className="flex items-baseline justify-between gap-2">
@@ -877,13 +1005,15 @@ function MarketplaceContent() {
                         </span>
                       </div>
                       <p className="mt-1 line-clamp-2 text-[12px] font-semibold leading-5 text-slate-900">
-                        {formData.title || "Buku Kalkulus Stewart Edisi ke-9 (Lengkap Catatan Kuliah)"}
+                        {formData.title || "Judul produk akan tampil di sini"}
                       </p>
                       <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-500">
                         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[8px] font-bold text-white">
-                          AR
+                          {previewSellerInitials}
                         </span>
-                        Alex Rivera <span className="text-slate-300">|</span> Informatika &apos;22
+                        <span className="truncate">{previewSellerName}</span>
+                        <span className="text-slate-300">|</span>
+                        <span className="truncate">{previewSellerFaculty}</span>
                       </p>
                       <p className="mt-2 rounded-lg bg-slate-50 px-2 py-1.5 text-[10px] font-medium leading-4 text-slate-500">
                         Target: {fakultasSummary}

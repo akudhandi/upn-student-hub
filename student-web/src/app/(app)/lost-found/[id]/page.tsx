@@ -89,15 +89,16 @@ function normalizeWaNumber(raw: string): string | null {
   if (digits.length < 9) return null;
   if (digits.startsWith("0")) return `62${digits.slice(1)}`;
   if (digits.startsWith("62")) return digits;
+  if (digits.startsWith("8")) return `62${digits}`;
   return null;
 }
 
 function StatusPill({ type, status }: { type: "lost" | "found"; status: string }) {
-  if (status === "resolved") {
+  if (status === "resolved" || status === "closed") {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-600">
         <span className="h-1.5 w-1.5 rounded-full bg-slate-400" aria-hidden="true" />
-        Selesai
+        {status === "closed" ? "Ditutup" : "Selesai"}
       </span>
     );
   }
@@ -154,7 +155,7 @@ export default function LostFoundDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const { isFavorite, toggle: toggleFavorite } = useFavorite("lostfound", id);
   const [reportOpen, setReportOpen] = useState(false);
-  const [claimNotice, setClaimNotice] = useState(false);
+  const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const [shareNotice, setShareNotice] = useState<string | null>(null);
 
   const loadDetail = useCallback(async (itemId: string, signal?: AbortSignal) => {
@@ -162,6 +163,7 @@ export default function LostFoundDetailPage() {
       setIsLoading(true);
       setIsNotFound(false);
       setError(null);
+      setActivePhotoIdx(0);
       const res = await apiFetch<LostFoundDetailResponse>(
         `/v1/lost-found/${encodeURIComponent(itemId)}`
       );
@@ -333,13 +335,17 @@ export default function LostFoundDetailPage() {
               </span>
             </p>
 
-            {/* Photo placeholder */}
+            {/* Photo gallery */}
             <div className="relative mt-4 overflow-hidden rounded-xl">
               <ListingImage
                 module="lostfound"
                 seed={item.id}
                 hint={`${item.type} ${item.title}`}
-                images={item.images}
+                images={
+                  item.images && item.images.length > 0
+                    ? [item.images[Math.min(activePhotoIdx, item.images.length - 1)]]
+                    : null
+                }
                 alt={`Foto dokumentasi ${item.title}`}
                 eager
                 className="aspect-[16/8] w-full object-cover"
@@ -348,6 +354,35 @@ export default function LostFoundDetailPage() {
                 Foto Dokumentasi Barang {item.type === "lost" ? "Hilang" : "Temuan"}
               </span>
             </div>
+            {item.images && item.images.length > 1 && (
+              <div className="mt-2.5 grid grid-cols-3 gap-2">
+                {item.images.map((img, i) => {
+                  const selected = i === activePhotoIdx;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setActivePhotoIdx(i)}
+                      aria-label={`Lihat foto ${i + 1}`}
+                      aria-pressed={selected}
+                      className={`overflow-hidden rounded-lg border-2 transition ${
+                        selected
+                          ? "border-[#002147] ring-2 ring-[#002147]/20"
+                          : "border-slate-100 hover:border-slate-300"
+                      }`}
+                    >
+                      <ListingImage
+                        module="lostfound"
+                        seed={`${item.id}-lf${i}`}
+                        images={[img]}
+                        alt={`Foto ${item.title} ${i + 1}`}
+                        className="aspect-[16/10] w-full object-cover"
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {item.reward && (
               <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-[13px] font-bold text-amber-800 ring-1 ring-inset ring-amber-200" role="note">
@@ -376,7 +411,17 @@ export default function LostFoundDetailPage() {
               {[
                 { label: "Tanggal Kejadian", value: formatEventDate(item.date_event) },
                 { label: "Kategori", value: categoryName ?? "-" },
-                { label: "Status", value: item.status === "resolved" ? "Selesai" : item.type === "lost" ? "Dicari" : "Belum Diambil" },
+                {
+                  label: "Status",
+                  value:
+                    item.status === "resolved"
+                      ? "Selesai"
+                      : item.status === "closed"
+                        ? "Ditutup"
+                        : item.type === "lost"
+                          ? "Dicari"
+                          : "Belum Diambil",
+                },
               ].map((spec) => (
                 <div key={spec.label} className="rounded-lg bg-slate-50 px-3 py-2.5 text-center ring-1 ring-inset ring-slate-100">
                   <dt className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{spec.label}</dt>
@@ -482,19 +527,7 @@ export default function LostFoundDetailPage() {
                 ? "Melihat barang ini? Hubungi pelapor agar barang kembali ke pemiliknya."
                 : "Apakah ini barang Anda? Ajukan klaim dan hubungi pelapor untuk verifikasi."}
             </p>
-            <button
-              type="button"
-              onClick={() => setClaimNotice(true)}
-              className="mt-3 w-full rounded-lg bg-indigo-500 px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-            >
-              {item.type === "lost" ? "Saya Melihat Barang Ini" : "Klaim Barang Ini"}
-            </button>
-            {claimNotice && (
-              <p role="status" className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-500">
-                Fitur klaim online segera hadir. Sementara waktu, hubungi kontak di bawah untuk koordinasi.
-              </p>
-            )}
-            <div className="mt-2">
+            <div className="mt-3">
               <ChatButton
                 recipientId={item.user?.id}
                 listingType="lostfound"
@@ -502,7 +535,7 @@ export default function LostFoundDetailPage() {
                 ariaLabel={`Chat ${item.type === "lost" ? "pelapor" : "penemu"} ${reporterName}`}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#002147] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#001a38] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2 disabled:opacity-60"
               >
-                {item.type === "lost" ? "Chat Pelapor" : "Chat Penemu"}
+                {item.type === "lost" ? "Saya Melihat Barang Ini (Chat)" : "Klaim Barang Ini (Chat)"}
               </ChatButton>
             </div>
             {waNumber ? (

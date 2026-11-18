@@ -11,6 +11,7 @@ import {
   type PublicCategory,
 } from "@/lib/api";
 import ListingImage from "@/components/ListingImage";
+import { getUser } from "@/lib/auth";
 import type { ApiImage } from "@/lib/images";
 
 // ---------------------------------------------------------------------------
@@ -202,11 +203,20 @@ function ServiceCardSkeleton() {
 }
 
 function ServicesContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const createRequested = searchParams.get("action") === "create";
+  const urlQuery = (searchParams.get("q") ?? "").trim();
+
   const [items, setItems] = useState<ApiServiceItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string>("Semua");
-  const [query, setQuery] = useState("");
+  const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
+  const [query, setQuery] = useState(urlQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(urlQuery);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [pricingType, setPricingType] = useState<string>("starting_from");
@@ -214,36 +224,62 @@ function ServicesContent() {
   const [targetFakultas, setTargetFakultas] = useState<string[]>([...TARGET_FAKULTAS_OPTIONS]);
   const [photos, setPhotos] = useState<{ id: number; url: string; file: File }[]>([]);
   const [backendCategories, setBackendCategories] = useState<PublicCategory[]>([]);
+  const [currentUser] = useState(() => getUser());
   const photoIdRef = useRef(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const createRequested = searchParams.get("action") === "create";
 
-  const loadServices = useCallback(async (signal?: AbortSignal) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      // Resolves to http://localhost:8000/api/v1/services by default
-      // (or NEXT_PUBLIC_API_URL when configured).
-      const res = await apiFetch<ServiceListResponse>("/v1/services");
-      if (signal?.aborted) return;
-      setItems(res.data.data);
-    } catch {
-      if (signal?.aborted) return;
-      setItems([]);
-      setError("Gagal memuat data jasa. Periksa koneksi ke backend lalu coba lagi.");
-    } finally {
-      if (signal?.aborted) return;
-      setIsLoading(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setDebouncedQuery(query.trim());
+      setPage(1);
+    }, 350);
+    return () => window.clearTimeout(t);
+  }, [query]);
+
+  useEffect(() => {
+    if (urlQuery !== "") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync query from header search URL
+      setQuery(urlQuery);
+      setDebouncedQuery(urlQuery);
+      setPage(1);
     }
-  }, []);
+  }, [urlQuery]);
+
+  const loadServices = useCallback(
+    async (
+      pageNum: number,
+      categoryId: number | null,
+      searchQuery: string,
+      signal?: AbortSignal
+    ) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const params = new URLSearchParams();
+        params.set("page", String(pageNum));
+        if (categoryId !== null) params.set("category_id", String(categoryId));
+        if (searchQuery !== "") params.set("q", searchQuery);
+        const res = await apiFetch<ServiceListResponse>(`/v1/services?${params.toString()}`);
+        if (signal?.aborted) return;
+        setItems(res.data.data);
+        setPage(res.data.current_page);
+        setLastPage(res.data.last_page);
+        setTotal(res.data.total);
+      } catch {
+        if (signal?.aborted) return;
+        setItems([]);
+        setError("Gagal memuat data jasa. Periksa koneksi ke backend lalu coba lagi.");
+      } finally {
+        if (signal?.aborted) return;
+        setIsLoading(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     const controller = new AbortController();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch must populate state on mount
-    void loadServices(controller.signal);
     fetchPublicCategories("service")
       .then((cats) => {
         if (!controller.signal.aborted) setBackendCategories(cats);
@@ -252,15 +288,29 @@ function ServicesContent() {
     return () => {
       controller.abort();
     };
-  }, [loadServices]);
+  }, []);
 
-  const categories = useMemo(() => {
-    const names = new Set<string>();
-    for (const item of items) {
-      if (item.category?.name) names.add(item.category.name);
+  useEffect(() => {
+    const controller = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch must populate state when filters/page change
+    void loadServices(page, activeCategoryId, debouncedQuery, controller.signal);
+    return () => {
+      controller.abort();
+    };
+  }, [page, activeCategoryId, debouncedQuery, loadServices]);
+
+  const filterCategories = useMemo(() => {
+    if (backendCategories.length > 0) {
+      return backendCategories.map((c) => ({ id: c.id, name: c.name }));
     }
-    return ["Semua", ...names];
-  }, [items]);
+    const byId = new Map<number, string>();
+    for (const item of items) {
+      if (item.category?.id && item.category?.name) {
+        byId.set(item.category.id, item.category.name);
+      }
+    }
+    return [...byId.entries()].map(([id, name]) => ({ id, name }));
+  }, [backendCategories, items]);
 
   const categoryOptions = useMemo(() => {
     const byId = new Map<number, string>();
@@ -400,7 +450,8 @@ function ServicesContent() {
       setTargetFakultas([...TARGET_FAKULTAS_OPTIONS]);
       clearPhotos();
       clearCreateParam();
-      await loadServices();
+      setPage(1);
+      await loadServices(1, activeCategoryId, debouncedQuery);
     } catch (err) {
       const apiError = err as ApiError;
       const fieldErrors = apiError.errors
@@ -428,61 +479,100 @@ function ServicesContent() {
         ? `${previewPrice} • Nego`
         : previewPrice;
 
-  const filtered = items.filter((item) => {
-    const categoryName = item.category?.name ?? "";
-    if (activeCategory !== "Semua" && categoryName !== activeCategory) return false;
-    const q = query.trim().toLowerCase();
-    if (!q) return true;
-    return (
-      item.title.toLowerCase().includes(q) ||
-      (item.description ?? "").toLowerCase().includes(q) ||
-      (item.user?.name ?? "").toLowerCase().includes(q)
-    );
-  });
+  const previewProviderName =
+    currentUser?.profile?.name || currentUser?.name || "Mahasiswa UPN";
+  const previewProviderFaculty =
+    currentUser?.profile?.faculty || "Mahasiswa UPN";
+  const previewProviderInitials =
+    previewProviderName
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase() || "UP";
+
+  const filtered = items;
 
   function clearFilters() {
-    setActiveCategory("Semua");
+    setActiveCategoryId(null);
     setQuery("");
+    setDebouncedQuery("");
+    setPage(1);
+    if (urlQuery !== "") {
+      router.replace("/services");
+    }
   }
 
   return (
     <div className="mx-auto max-w-[1180px]">
-      {/* Top section: title (left) + search (right) */}
+      {/* Top section: title (left) + search & CTA (right) */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-[28px] font-bold tracking-tight text-slate-900">Jasa &amp; Layanan Mahasiswa</h1>
           <p className="mt-1 text-sm text-gray-500">Temukan mahasiswa terampil untuk les, desain, servis, dan lainnya.</p>
         </div>
-        <div className="relative w-full sm:w-[260px] sm:shrink-0 sm:pt-1">
-          <label htmlFor="services-search" className="sr-only">
-            Cari jasa
-          </label>
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 sm:top-[calc(50%+2px)]">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.3" />
-              <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-            </svg>
-          </span>
-          <input
-            id="services-search"
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cari jasa..."
-            className="h-9 w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-gray-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-          />
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:pt-1">
+          <div className="relative w-full sm:w-[240px]">
+            <label htmlFor="services-search" className="sr-only">
+              Cari jasa
+            </label>
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.3" />
+                <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+              </svg>
+            </span>
+            <input
+              id="services-search"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Cari jasa..."
+              className="h-9 w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-gray-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSubmitError(null);
+              setIsModalOpen(true);
+            }}
+            className="h-9 shrink-0 rounded-lg bg-[#0A2342] px-4 text-xs font-semibold text-white hover:bg-[#12325e]"
+          >
+            + Tawarkan Jasa
+          </button>
         </div>
       </div>
 
       {/* Category pills with icons */}
       <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Filter berdasarkan kategori">
-        {categories.map((cat) => {
-          const isActive = activeCategory === cat;
+        <button
+          type="button"
+          onClick={() => {
+            setActiveCategoryId(null);
+            setPage(1);
+          }}
+          aria-pressed={activeCategoryId === null}
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 ${
+            activeCategoryId === null
+              ? "border-teal-200 bg-teal-50 text-teal-700"
+              : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+          }`}
+        >
+          <CategoryGlyph category="Semua" />
+          Semua Jasa
+        </button>
+        {filterCategories.map((cat) => {
+          const isActive = activeCategoryId === cat.id;
           return (
             <button
-              key={cat}
+              key={cat.id}
               type="button"
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => {
+                setActiveCategoryId(cat.id);
+                setPage(1);
+              }}
               aria-pressed={isActive}
               className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 ${
                 isActive
@@ -490,8 +580,8 @@ function ServicesContent() {
                   : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
               }`}
             >
-              <CategoryGlyph category={cat} />
-              {cat === "Semua" ? "Semua Jasa" : cat}
+              <CategoryGlyph category={cat.name} />
+              {cat.name}
             </button>
           );
         })}
@@ -520,7 +610,7 @@ function ServicesContent() {
             <p className="mt-1 text-xs text-gray-500">{error}</p>
             <button
               type="button"
-              onClick={() => void loadServices()}
+              onClick={() => void loadServices(page, activeCategoryId, debouncedQuery)}
               className="mt-4 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
             >
               Coba lagi
@@ -612,6 +702,36 @@ function ServicesContent() {
               );
             })}
           </div>
+        )}
+
+        {!isLoading && !error && lastPage > 1 && (
+          <nav
+            aria-label="Navigasi halaman jasa"
+            className="mt-6 flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600"
+          >
+            <span>
+              Halaman <strong className="text-slate-900">{page}</strong> dari{" "}
+              <strong className="text-slate-900">{lastPage}</strong> ({total} layanan)
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+              >
+                ← Sebelumnya
+              </button>
+              <button
+                type="button"
+                disabled={page >= lastPage}
+                onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+              >
+                Berikutnya →
+              </button>
+            </div>
+          </nav>
         )}
       </div>
 
@@ -947,7 +1067,7 @@ function ServicesContent() {
                       disabled={isSubmitting}
                       className="rounded-lg bg-slate-100 px-4 py-2 text-[13px] font-semibold text-slate-600 hover:bg-slate-200 disabled:opacity-50"
                     >
-                      Simpan Draft
+                      Batal
                     </button>
                     <button
                       type="submit"
@@ -978,7 +1098,7 @@ function ServicesContent() {
                     </div>
                     <div className="p-3">
                       <p className="line-clamp-2 text-[12px] font-bold leading-5 text-slate-900">
-                        {formData.title || "Tutor Pendamping Kalkulus & Aljabar Linear"}
+                        {formData.title || "Judul layanan akan tampil di sini"}
                       </p>
                       <p className="mt-1.5 text-[13px] font-bold text-slate-900">
                         {previewPriceLine}{" "}
@@ -989,9 +1109,11 @@ function ServicesContent() {
                       </p>
                       <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-500">
                         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[8px] font-bold text-white">
-                          AR
+                          {previewProviderInitials}
                         </span>
-                        Penyedia Jasa <span className="text-slate-300">|</span> Mahasiswa UPN
+                        <span className="truncate">{previewProviderName}</span>
+                        <span className="text-slate-300">|</span>
+                        <span className="truncate">{previewProviderFaculty}</span>
                       </p>
                       {formData.whatsapp_number.trim() !== "" && (
                         <p className="mt-1.5 truncate text-[10px] font-medium text-emerald-700">

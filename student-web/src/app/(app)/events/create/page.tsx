@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -39,19 +39,9 @@ type SpeakerForm = {
   name: string;
   organization: string;
   topic: string;
-  photoUrl: string | null;
 };
 
-type DocForm = { localId: number; name: string; meta: string };
-
 type PicForm = { localId: number; name: string; whatsapp: string };
-
-const ACTIVITY_TYPES = [
-  { value: "seminar", label: "Event / Seminar", match: "Seminar" },
-  { value: "pengumuman", label: "Pengumuman", match: null },
-  { value: "akademik", label: "Akademik", match: "Akademik" },
-  { value: "organisasi", label: "Organisasi", match: "UKM" },
-] as const;
 
 const DEFAULT_BENEFITS = [
   "E-Sertifikat Resmi UPN",
@@ -97,25 +87,24 @@ export default function EventCreatePage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [organizer, setOrganizer] = useState("");
-  const [activityType, setActivityType] = useState<string>("seminar");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [categoryOptions, setCategoryOptions] = useState<{ id: number; name: string }[]>([]);
   const [eventDate, setEventDate] = useState("");
   const [eventTime, setEventTime] = useState("08:30");
   const [location, setLocation] = useState("");
+  const [registrationLink, setRegistrationLink] = useState("");
   const [speakers, setSpeakers] = useState<SpeakerForm[]>([]);
   const [benefits, setBenefits] = useState<string[]>([...DEFAULT_BENEFITS]);
   const [benefitInput, setBenefitInput] = useState("");
   const [description, setDescription] = useState("");
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [posterFile, setPosterFile] = useState<File | null>(null);
-  const [docs, setDocs] = useState<DocForm[]>([]);
   const [pics, setPics] = useState<PicForm[]>([{ localId: 1, name: "", whatsapp: "" }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const localIdRef = useRef(2);
-  const photoIdRef = useRef(0);
 
-  // Resolve backend category ids once for the pill mapping.
+  // Fetch active event categories dynamically from backend.
   useEffect(() => {
     const controller = new AbortController();
     void (async () => {
@@ -140,14 +129,6 @@ export default function EventCreatePage() {
     return () => controller.abort();
   }, []);
 
-  const categoryByName = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const c of categoryOptions) {
-      if (!map.has(c.name.toLowerCase())) map.set(c.name.toLowerCase(), c.id);
-    }
-    return map;
-  }, [categoryOptions]);
-
   function nextLocalId(): number {
     localIdRef.current += 1;
     return localIdRef.current;
@@ -156,7 +137,7 @@ export default function EventCreatePage() {
   function addSpeaker() {
     setSpeakers((prev) => [
       ...prev,
-      { localId: nextLocalId(), role: "narasumber", name: "", organization: "", topic: "", photoUrl: null },
+      { localId: nextLocalId(), role: "narasumber", name: "", organization: "", topic: "" },
     ]);
   }
 
@@ -165,24 +146,7 @@ export default function EventCreatePage() {
   }
 
   function removeSpeaker(id: number) {
-    setSpeakers((prev) => {
-      const target = prev.find((s) => s.localId === id);
-      if (target?.photoUrl) URL.revokeObjectURL(target.photoUrl);
-      return prev.filter((s) => s.localId !== id);
-    });
-  }
-
-  function setSpeakerPhoto(id: number, files: FileList | null) {
-    if (!files || files.length === 0) return;
-    photoIdRef.current += 1;
-    const url = URL.createObjectURL(files[0]);
-    setSpeakers((prev) =>
-      prev.map((s) => {
-        if (s.localId !== id) return s;
-        if (s.photoUrl) URL.revokeObjectURL(s.photoUrl);
-        return { ...s, photoUrl: url };
-      })
-    );
+    setSpeakers((prev) => prev.filter((s) => s.localId !== id));
   }
 
   function removeBenefit(value: string) {
@@ -203,28 +167,6 @@ export default function EventCreatePage() {
     setPosterUrl(URL.createObjectURL(files[0]));
   }
 
-  function formatFileSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
-  function addDocFiles(files: FileList | null) {
-    if (!files) return;
-    const next = Array.from(files)
-      .filter((file) => file.size <= 5 * 1024 * 1024)
-      .map((file) => ({
-        localId: nextLocalId(),
-        name: file.name,
-        meta: formatFileSize(file.size),
-      }));
-    setDocs((prev) => [...prev, ...next].slice(0, 5));
-  }
-
-  function removeDoc(id: number) {
-    setDocs((prev) => prev.filter((d) => d.localId !== id));
-  }
-
   function addPic() {
     setPics((prev) => [...prev, { localId: nextLocalId(), name: "", whatsapp: "" }]);
   }
@@ -237,12 +179,6 @@ export default function EventCreatePage() {
     if (posterUrl) URL.revokeObjectURL(posterUrl);
     setPosterUrl(null);
     setPosterFile(null);
-    setSpeakers((prev) => {
-      prev.forEach((s) => {
-        if (s.photoUrl) URL.revokeObjectURL(s.photoUrl);
-      });
-      return prev.map((s) => ({ ...s, photoUrl: null }));
-    });
   }, [posterUrl]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -250,8 +186,7 @@ export default function EventCreatePage() {
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      const match = ACTIVITY_TYPES.find((t) => t.value === activityType)?.match ?? null;
-      const categoryId = match ? (categoryByName.get(match.toLowerCase()) ?? null) : null;
+      const categoryId = selectedCategoryId ? Number(selectedCategoryId) : null;
       const uploadedPoster = posterFile
         ? await uploadMedia(posterFile, "events")
         : null;
@@ -264,6 +199,8 @@ export default function EventCreatePage() {
           event_date: eventDate,
           event_time: eventTime.trim() === "" ? null : eventTime.trim(),
           location: location.trim(),
+          registration_link:
+            registrationLink.trim() === "" ? null : registrationLink.trim(),
           description: description.trim(),
           image_paths: uploadedPoster ? [uploadedPoster.path] : [],
           speakers: speakers
@@ -280,12 +217,6 @@ export default function EventCreatePage() {
             .map((p) => ({
               name: p.name.trim(),
               whatsapp: p.whatsapp.trim() === "" ? null : p.whatsapp.trim(),
-            })),
-          documents: docs
-            .filter((d) => d.name.trim() !== "")
-            .map((d) => ({
-              name: d.name.trim(),
-              meta: d.meta.trim() === "" ? null : d.meta.trim(),
             })),
         }),
       });
@@ -326,15 +257,33 @@ export default function EventCreatePage() {
         <SectionCard step="1" title="Informasi Acara">
           <fieldset>
             <legend className={labelClass}>
-              Kategori Kegiatan <span className="text-red-500">*</span>
+              Kategori Kegiatan
             </legend>
-            <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Kategori kegiatan">
-              {ACTIVITY_TYPES.map((opt) => {
-                const checked = activityType === opt.value;
+            <div className="mt-1.5 flex flex-wrap gap-2" role="radiogroup" aria-label="Kategori kegiatan">
+              <label
+                className={`flex cursor-pointer items-center justify-center rounded-lg border px-3 py-2 text-center text-[12px] transition-colors ${
+                  selectedCategoryId === ""
+                    ? "border-[#0A2342] bg-[#0A2342] font-semibold text-white"
+                    : "border-slate-200 bg-[#F1F3F5] text-slate-500 hover:bg-slate-100"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="event-activity"
+                  value=""
+                  checked={selectedCategoryId === ""}
+                  onChange={() => setSelectedCategoryId("")}
+                  className="sr-only"
+                />
+                Umum / Pengumuman
+              </label>
+              {categoryOptions.map((cat) => {
+                const value = String(cat.id);
+                const checked = selectedCategoryId === value;
                 return (
                   <label
-                    key={opt.value}
-                    className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-2 py-2.5 text-center text-[12px] transition-colors ${
+                    key={cat.id}
+                    className={`flex cursor-pointer items-center justify-center rounded-lg border px-3 py-2 text-center text-[12px] transition-colors ${
                       checked
                         ? "border-[#0A2342] bg-[#0A2342] font-semibold text-white"
                         : "border-slate-200 bg-[#F1F3F5] text-slate-500 hover:bg-slate-100"
@@ -343,13 +292,12 @@ export default function EventCreatePage() {
                     <input
                       type="radio"
                       name="event-activity"
-                      value={opt.value}
+                      value={value}
                       checked={checked}
-                      onChange={() => setActivityType(opt.value)}
-                      required
+                      onChange={() => setSelectedCategoryId(value)}
                       className="sr-only"
                     />
-                    {opt.label}
+                    {cat.name}
                   </label>
                 );
               })}
@@ -432,6 +380,20 @@ export default function EventCreatePage() {
               className={inputClass}
             />
           </div>
+          <div className="mt-4">
+            <label htmlFor="event-registration-link" className={labelClass}>
+              Tautan Pendaftaran <span className="font-normal text-slate-400">(Opsional)</span>
+            </label>
+            <input
+              id="event-registration-link"
+              type="url"
+              maxLength={2048}
+              value={registrationLink}
+              onChange={(e) => setRegistrationLink(e.target.value)}
+              placeholder="https://forms.gle/..."
+              className={inputClass}
+            />
+          </div>
         </SectionCard>
 
         {/* 3. Pembicara & Moderator */}
@@ -478,61 +440,38 @@ export default function EventCreatePage() {
                     🗑
                   </button>
                 </div>
-                <div className="mt-2.5 flex flex-col gap-3 sm:flex-row">
-                  <label className="flex h-20 w-20 shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 overflow-hidden rounded-lg border-2 border-dashed border-slate-300 bg-white text-slate-500 hover:border-slate-400 focus-within:outline-none focus-within:ring-2 focus-within:ring-[#002147]">
-                    {speaker.photoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- local object URL preview only
-                      <img src={speaker.photoUrl} alt={`Foto pembicara ${index + 1}`} className="h-full w-full object-cover" />
-                    ) : (
-                      <>
-                        <span className="text-[10px] font-medium">Pilih Foto</span>
-                        <span className="text-[9px] text-slate-400">Maks 2MB</span>
-                      </>
-                    )}
+                <div className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                  <label className="text-[11px] font-semibold text-slate-700">
+                    Nama Lengkap &amp; Gelar <span className="text-red-500">*</span>
                     <input
-                      type="file"
-                      accept="image/*"
-                      aria-label={`Foto pembicara ${index + 1}`}
-                      className="sr-only"
-                      onChange={(e) => {
-                        setSpeakerPhoto(speaker.localId, e.target.files);
-                        e.target.value = "";
-                      }}
+                      type="text"
+                      required
+                      value={speaker.name}
+                      onChange={(e) => updateSpeaker(speaker.localId, { name: e.target.value })}
+                      placeholder="Dr. Pratama Wicaksono, S.T., M.T."
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[12px] text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:outline-none"
                     />
                   </label>
-                  <div className="grid flex-1 grid-cols-1 gap-2.5 sm:grid-cols-2">
-                    <label className="text-[11px] font-semibold text-slate-700">
-                      Nama Lengkap &amp; Gelar <span className="text-red-500">*</span>
-                      <input
-                        type="text"
-                        required
-                        value={speaker.name}
-                        onChange={(e) => updateSpeaker(speaker.localId, { name: e.target.value })}
-                        placeholder="Dr. Pratama Wicaksono, S.T., M.T."
-                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[12px] text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:outline-none"
-                      />
-                    </label>
-                    <label className="text-[11px] font-semibold text-slate-700">
-                      Instansi / Jabatan Profesional
-                      <input
-                        type="text"
-                        value={speaker.organization}
-                        onChange={(e) => updateSpeaker(speaker.localId, { organization: e.target.value })}
-                        placeholder="AI Researcher BRIN"
-                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[12px] text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:outline-none"
-                      />
-                    </label>
-                    <label className="text-[11px] font-semibold text-slate-700 sm:col-span-2">
-                      Deskripsi Singkat / Topik Materi
-                      <input
-                        type="text"
-                        value={speaker.topic}
-                        onChange={(e) => updateSpeaker(speaker.localId, { topic: e.target.value })}
-                        placeholder="Pakar Rekayasa Kecerdasan Buatan & Transformasi Digital"
-                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[12px] text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:outline-none"
-                      />
-                    </label>
-                  </div>
+                  <label className="text-[11px] font-semibold text-slate-700">
+                    Instansi / Jabatan Profesional
+                    <input
+                      type="text"
+                      value={speaker.organization}
+                      onChange={(e) => updateSpeaker(speaker.localId, { organization: e.target.value })}
+                      placeholder="AI Researcher BRIN"
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[12px] text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:outline-none"
+                    />
+                  </label>
+                  <label className="text-[11px] font-semibold text-slate-700 sm:col-span-2">
+                    Deskripsi Singkat / Topik Materi
+                    <input
+                      type="text"
+                      value={speaker.topic}
+                      onChange={(e) => updateSpeaker(speaker.localId, { topic: e.target.value })}
+                      placeholder="Pakar Rekayasa Kecerdasan Buatan & Transformasi Digital"
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[12px] text-slate-900 placeholder:text-slate-400 focus:border-[#002147] focus:outline-none"
+                    />
+                  </label>
                 </div>
               </div>
             ))}
@@ -610,7 +549,7 @@ export default function EventCreatePage() {
           </div>
           <div className="mt-4">
             <span id="event-poster-label" className="text-[12px] font-semibold text-slate-900">
-              Unggah Poster Acara <span className="text-red-500">*</span>
+              Unggah Poster Acara <span className="font-normal text-slate-400">(Opsional)</span>
             </span>
             <label className="mt-1.5 flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-slate-300 bg-[#F1F3F5] px-3 py-6 text-slate-500 hover:border-slate-400 hover:bg-slate-100 focus-within:outline-none focus-within:ring-2 focus-within:ring-[#002147]">
               {posterUrl ? (
@@ -622,13 +561,13 @@ export default function EventCreatePage() {
                     <path d="M8 10.5V2.5M8 2.5L5 5.5M8 2.5L11 5.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                     <path d="M2.5 10.5V12.5C2.5 13.3 3.2 14 4 14H12C12.8 14 13.5 13.3 13.5 12.5V10.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
                   </svg>
-                  <span className="text-[12px] font-semibold">Unggah Poster Acara (PNG/JPG, maks 5MB)</span>
-                  <span className="text-[10px] text-slate-400">Klik untuk memilih berkas atau seret ke area ini</span>
+                  <span className="text-[12px] font-semibold">Unggah Poster Acara (PNG/JPG/WebP, maks 5MB)</span>
+                  <span className="text-[10px] text-slate-400">Klik untuk memilih berkas</span>
                 </>
               )}
               <input
                 type="file"
-                accept="image/png,image/jpeg"
+                accept="image/png,image/jpeg,image/webp"
                 aria-labelledby="event-poster-label"
                 className="sr-only"
                 onChange={(e) => {
@@ -637,49 +576,6 @@ export default function EventCreatePage() {
                 }}
               />
             </label>
-          </div>
-          <div className="mt-4">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-[12px] font-semibold text-slate-900">
-                Lampiran File Informasi Event Terkait <span className="font-normal text-slate-400">(Opsional)</span>
-              </span>
-              <span className="text-[10px] text-slate-400">Maks. 5 Berkas (PDF, DOCX, maks. 5MB)</span>
-            </div>
-            <div className="mt-1.5 space-y-2">
-              {docs.map((doc) => (
-                <div key={doc.localId} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-[#F1F3F5] px-3 py-2">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0 text-slate-400">
-                    <path d="M4 1.5H10L13 4.5V14.5H4V1.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-                    <path d="M10 1.5V4.5H13" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-                  </svg>
-                  <span className="w-full truncate text-[12px] text-slate-900">{doc.name}</span>
-                  <span className="shrink-0 text-[11px] text-slate-500">{doc.meta}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeDoc(doc.localId)}
-                    aria-label={`Hapus lampiran ${doc.name}`}
-                    className="shrink-0 rounded px-1 text-slate-400 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
-                  >
-                    🗑
-                  </button>
-                </div>
-              ))}
-              <label className="block w-full cursor-pointer rounded-lg border-2 border-dashed border-slate-300 px-3 py-2.5 text-center text-[12px] font-semibold text-slate-500 hover:border-slate-400 hover:bg-slate-50 focus-within:outline-none focus-within:ring-2 focus-within:ring-[#002147]">
-                + Tambah Berkas / File Lampiran
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.doc,.docx"
-                  aria-label="Pilih berkas lampiran (PDF/DOCX, maks 5MB per berkas)"
-                  className="sr-only"
-                  onChange={(e) => {
-                    addDocFiles(e.target.files);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
-              <p className="text-[10px] text-slate-400">Maks. 5 berkas, masing-masing maks. 5MB.</p>
-            </div>
           </div>
         </SectionCard>
 
@@ -748,7 +644,7 @@ export default function EventCreatePage() {
               disabled={isSubmitting}
               className="rounded-lg bg-slate-100 px-4 py-2 text-[13px] font-semibold text-slate-600 hover:bg-slate-200 disabled:opacity-50"
             >
-              Simpan Draft
+              Batal
             </button>
             <button
               type="submit"

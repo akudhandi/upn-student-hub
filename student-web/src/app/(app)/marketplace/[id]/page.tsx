@@ -159,12 +159,14 @@ export default function MarketplaceDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const { isFavorite, toggle: toggleFavorite } = useFavorite("marketplace", id);
   const [reportOpen, setReportOpen] = useState(false);
+  const [activePhotoIdx, setActivePhotoIdx] = useState(0);
 
   const loadDetail = useCallback(async (itemId: string, signal?: AbortSignal) => {
     try {
       setIsLoading(true);
       setIsNotFound(false);
       setError(null);
+      setActivePhotoIdx(0);
       const res = await apiFetch<MarketplaceDetailResponse>(
         `/v1/marketplace/${encodeURIComponent(itemId)}`
       );
@@ -254,6 +256,16 @@ export default function MarketplaceDetailPage() {
   const sellerName = item.user?.name ?? "Mahasiswa UPN";
   const conditionLabel = CONDITION_LABELS[item.condition] ?? item.condition;
   const isAvailable = item.status === "active";
+  const statusLabel = isAvailable
+    ? "Tersedia"
+    : item.status === "sold"
+      ? "Terjual"
+      : "Tidak Tersedia";
+  const uploadedImages = item.images ?? [];
+  const selectedImage =
+    uploadedImages.length > 0
+      ? [uploadedImages[Math.min(activePhotoIdx, uploadedImages.length - 1)]]
+      : null;
   const descriptionParagraphs = (item.description ?? "")
     .split(/\n\s*\n/)
     .map((p) => p.trim())
@@ -294,39 +306,60 @@ export default function MarketplaceDetailPage() {
           {/* Gallery card */}
           <section aria-label="Galeri foto barang" className="overflow-hidden rounded-xl border border-gray-200 bg-white">
             <div className="relative">
-              <GalleryImage title={item.title} large seed={item.id} hint={`${categoryName} ${item.title}`} images={item.images} />
+              <GalleryImage
+                title={item.title}
+                large
+                seed={item.id}
+                hint={`${categoryName} ${item.title}`}
+                images={selectedImage}
+              />
               <div className="absolute left-3 top-3 flex gap-1.5">
                 <span
                   className={`rounded-md px-2 py-1 text-[11px] font-bold ${
-                    isAvailable ? "bg-green-100 text-green-800" : "bg-slate-200 text-slate-600"
+                    isAvailable ? "bg-green-100 text-green-800" : "bg-slate-200 text-slate-700"
                   }`}
                 >
-                  {isAvailable ? "Tersedia" : "Terjual"}
-                </span>
-                <span className="rounded-md bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-900">
-                  Bisa Nego
+                  {statusLabel}
                 </span>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3 p-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="overflow-hidden rounded-lg border border-slate-100">
-                  <GalleryImage
-                    title={`${item.title} ${i + 1}`}
-                    seed={`${item.id}-t${i}`}
-                    hint={`${categoryName} ${item.title}`}
-                    images={item.images?.slice(i, i + 1)}
-                  />
-                </div>
-              ))}
-            </div>
+            {uploadedImages.length > 1 && (
+              <div className="grid grid-cols-3 gap-2.5 p-3 sm:grid-cols-6">
+                {uploadedImages.map((img, i) => {
+                  const selected = i === activePhotoIdx;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setActivePhotoIdx(i)}
+                      aria-label={`Lihat foto ${i + 1} dari ${uploadedImages.length}`}
+                      aria-pressed={selected}
+                      className={`overflow-hidden rounded-lg border-2 transition ${
+                        selected
+                          ? "border-[#002147] ring-2 ring-[#002147]/20"
+                          : "border-slate-100 hover:border-slate-300"
+                      }`}
+                    >
+                      <GalleryImage
+                        title={`${item.title} ${i + 1}`}
+                        seed={`${item.id}-t${i}`}
+                        hint={`${categoryName} ${item.title}`}
+                        images={[img]}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </section>
 
           {/* Title + price card */}
           <section aria-labelledby="barang-title" className="mt-5 rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
             <p className="text-[11px] font-medium text-slate-500">
               {categoryName} <span className="mx-1 text-slate-300">•</span>{" "}
-              <span className="text-green-700">{isAvailable ? "Tersedia" : "Terjual"}</span>
+              <span className={isAvailable ? "font-semibold text-green-700" : "font-semibold text-slate-500"}>
+                {statusLabel}
+              </span>
             </p>
             <h1 id="barang-title" className="mt-1.5 text-xl font-bold leading-7 tracking-tight text-slate-900 sm:text-[22px]">
               {item.title}

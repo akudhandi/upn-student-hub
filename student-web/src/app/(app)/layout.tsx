@@ -10,6 +10,8 @@ import {
   USER_UPDATED_EVENT,
   type AuthUser,
 } from "@/lib/auth";
+import { logout } from "@/lib/api";
+import { fetchConversations } from "@/lib/interactions";
 import { resolveStorageUrl } from "@/lib/images";
 import DevUserSwitcher from "@/components/DevUserSwitcher";
 import NotificationBell from "@/components/NotificationBell";
@@ -117,7 +119,7 @@ const MAIN_NAV_ITEMS: NavItem[] = [
 ];
 
 const ACTIVITY_NAV_ITEMS: NavItem[] = [
-  { label: "Pesan", href: "/messages", icon: <IconMessages />, badge: "2" },
+  { label: "Pesan", href: "/messages", icon: <IconMessages /> },
   { label: "Tersimpan", href: "/favorites", icon: <IconFavorites /> },
   { label: "Profil Saya", href: "/profile", icon: <IconProfile /> },
 ];
@@ -169,6 +171,7 @@ export default function AppLayout({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [searchInput, setSearchInput] = useState("");
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
 
   useEffect(() => {
     const token = getToken();
@@ -189,9 +192,49 @@ export default function AppLayout({
     };
   }, [router]);
 
-  function handleLogout() {
-    clearAuth();
-    router.replace("/login");
+  useEffect(() => {
+    if (!checked) return;
+    let cancelled = false;
+
+    function loadUnread() {
+      fetchConversations()
+        .then((list) => {
+          if (cancelled) return;
+          const total = list.reduce((sum, item) => sum + (item.unread_count || 0), 0);
+          setUnreadMessagesCount(total);
+        })
+        .catch(() => {
+          // Ignore transient network errors for badge
+        });
+    }
+
+    loadUnread();
+    window.addEventListener("upn-messages-updated", loadUnread);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("upn-messages-updated", loadUnread);
+    };
+  }, [checked, pathname]);
+
+  async function handleLogout() {
+    try {
+      const token = getToken();
+      if (token && token !== "dev-token") {
+        await logout();
+      }
+    } catch {
+      // Token may already be expired/revoked; still clear local session
+    } finally {
+      clearAuth();
+      router.replace("/login");
+    }
+  }
+
+  function isNavActive(href: string): boolean {
+    if (!pathname) return false;
+    if (pathname === href) return true;
+    if (href === "/lost-found" && pathname.startsWith("/lost-and-found")) return true;
+    return pathname.startsWith(`${href}/`);
   }
 
   function handleCreateClick() {
@@ -218,7 +261,7 @@ export default function AppLayout({
   const displayName =
     (user?.profile && typeof user.profile === "object" && "name" in user.profile
       ? (user.profile as { name?: string }).name
-      : null) || user?.name || "Alex Rivera";
+      : null) || user?.name || "Mahasiswa UPN";
   const displayFaculty =
     (user?.profile && typeof user.profile === "object" && "faculty" in user.profile
       ? (user.profile as { faculty?: string | null }).faculty
@@ -276,7 +319,7 @@ export default function AppLayout({
               <li key={item.href}>
                 <NavLink
                   item={item}
-                  isActive={pathname === item.href}
+                  isActive={isNavActive(item.href)}
                   onNavigate={() => setMobileOpen(false)}
                 />
               </li>
@@ -287,15 +330,21 @@ export default function AppLayout({
             Aktivitas Saya
           </p>
           <ul className="space-y-1">
-            {ACTIVITY_NAV_ITEMS.map((item) => (
-              <li key={item.href}>
-                <NavLink
-                  item={item}
-                  isActive={pathname === item.href}
-                  onNavigate={() => setMobileOpen(false)}
-                />
-              </li>
-            ))}
+            {ACTIVITY_NAV_ITEMS.map((item) => {
+              const resolvedItem =
+                item.href === "/messages" && unreadMessagesCount > 0
+                  ? { ...item, badge: String(unreadMessagesCount) }
+                  : item;
+              return (
+                <li key={item.href}>
+                  <NavLink
+                    item={resolvedItem}
+                    isActive={isNavActive(item.href)}
+                    onNavigate={() => setMobileOpen(false)}
+                  />
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
@@ -355,11 +404,18 @@ export default function AppLayout({
             onSubmit={(e) => {
               e.preventDefault();
               const q = searchInput.trim();
+              const targetBase = pathname?.startsWith("/services")
+                ? "/services"
+                : pathname?.startsWith("/lost-found") || pathname?.startsWith("/lost-and-found")
+                  ? "/lost-found"
+                  : pathname?.startsWith("/events")
+                    ? "/events"
+                    : "/marketplace";
               if (!q) {
-                router.push("/marketplace");
+                router.push(targetBase);
                 return;
               }
-              router.push(`/marketplace?q=${encodeURIComponent(q)}`);
+              router.push(`${targetBase}?q=${encodeURIComponent(q)}`);
             }}
           >
             <label htmlFor="dashboard-search" className="sr-only">
@@ -377,7 +433,7 @@ export default function AppLayout({
                 type="search"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Cari buku, jasa skripsi, event kampus..."
+                placeholder="Cari barang, jasa, laporan, atau event..."
                 className="h-9 w-full rounded border border-slate-200 bg-[#F8F9FB] py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
               />
             </div>
@@ -387,17 +443,6 @@ export default function AppLayout({
           <div className="flex items-center gap-2 sm:gap-3">
             <DevUserSwitcher />
             <NotificationBell />
-            <button
-              type="button"
-              aria-label="Bantuan"
-              className="hidden h-8 w-8 items-center justify-center rounded text-slate-500 hover:bg-slate-50 hover:text-slate-700 sm:inline-flex"
-            >
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.2" />
-                <path d="M7.2 7.2C7.2 6.1 8.1 5.3 9.2 5.3C10.3 5.3 11 6 11 7C11 8.2 10 8.6 9.4 9.1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                <circle cx="8" cy="11.2" r="0.7" fill="currentColor" />
-              </svg>
-            </button>
             <div className="hidden items-center gap-3 sm:flex">
               <div className="h-6 w-px bg-slate-200" aria-hidden="true" />
               <div className="flex items-center gap-2">

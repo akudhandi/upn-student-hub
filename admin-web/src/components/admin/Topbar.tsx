@@ -62,7 +62,6 @@ export default function Topbar({
               strokeWidth={2}
             />
           </svg>
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white" />
         </Link>
 
         <div className="hidden h-6 w-px bg-slate-200 sm:block" />
