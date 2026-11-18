@@ -70,16 +70,30 @@ class AuditStageATest extends TestCase
 
         $pendingEventId = $submit->json('data.id');
 
-        // Also create published, draft, and archived events
-        $published = Event::factory()->create(['status' => 'published', 'title' => 'Event Publik']);
+        // Also create published (past & future), draft, and archived events
+        $pastPublished = Event::factory()->create([
+            'status' => 'published',
+            'title' => 'Event Publik Lampau',
+            'event_date' => now()->subDays(5),
+        ]);
+        $futurePublished = Event::factory()->create([
+            'status' => 'published',
+            'title' => 'Event Publik Mendatang',
+            'event_date' => now()->addDays(5),
+        ]);
         Event::factory()->create(['status' => 'draft', 'title' => 'Event Draft']);
         Event::factory()->create(['status' => 'archived', 'title' => 'Event Arsip']);
 
         // Public index only returns published events
         $this->app['auth']->forgetGuards();
         $index = $this->getJson('/api/v1/events')->assertOk();
-        $this->assertSame(1, $index->json('data.total'));
-        $this->assertSame($published->id, $index->json('data.data.0.id'));
+        $this->assertSame(2, $index->json('data.total'));
+        $this->assertSame($pastPublished->id, $index->json('data.data.0.id'));
+
+        // Upcoming filter excludes past events
+        $upcoming = $this->getJson('/api/v1/events?upcoming=1')->assertOk();
+        $this->assertSame(1, $upcoming->json('data.total'));
+        $this->assertSame($futurePublished->id, $upcoming->json('data.data.0.id'));
 
         // Guest and other student receive 404 for pending event detail
         $this->app['auth']->forgetGuards();

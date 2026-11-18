@@ -91,6 +91,10 @@ class EventController extends Controller
             $query->where('category_id', $request->query('category_id'));
         }
 
+        if ($request->boolean('upcoming')) {
+            $query->where('event_date', '>=', now()->startOfDay());
+        }
+
         if ($request->filled('q')) {
             $keyword = (string) $request->query('q');
             $query->where(function ($q) use ($keyword) {

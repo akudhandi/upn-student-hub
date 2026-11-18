@@ -123,7 +123,9 @@ function ModuleIcon({ title }: { title: string }) {
   } else if (title === "Jasa & Layanan") {
     icon = (
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 3l2.2 5.3L19.5 10l-5.3 1.8L12 17l-2.2-5.2L4.5 10l5.3-1.7L12 3z" stroke="currentColor" strokeWidth="1.65" strokeLinejoin="round" />
+        <rect x="3" y="7" width="18" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.65" />
+        <path d="M8.5 7V5a1.5 1.5 0 011.5-1.5h4A1.5 1.5 0 0115.5 5v2" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M3 12h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
     );
   } else if (title === "Event & Info") {
@@ -218,13 +220,25 @@ export default function DashboardPage() {
           images?: ApiImage[] | null;
         }>
       >("/v1/events").catch(() => null),
-    ]).then(([mkt, svc, lf, evt]) => {
+      apiFetch<
+        PaginatedData<{
+          id: number;
+          title: string;
+          organizer_name: string;
+          event_date: string;
+        }>
+      >("/v1/events?upcoming=1").catch(() => null),
+    ]).then(([mkt, svc, lf, evt, upcomingEvt]) => {
       if (cancelled) return;
 
       const mktRows = mkt?.data.data ?? [];
       const svcRows = svc?.data.data ?? [];
       const lfRows = lf?.data.data ?? [];
       const evtRows = evt?.data.data ?? [];
+      const upcomingEvtRows = upcomingEvt?.data.data ?? [];
+
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
 
       setCounts({
         marketplace: mkt?.data.total ?? mktRows.length,
@@ -234,12 +248,22 @@ export default function DashboardPage() {
       });
 
       setUpcomingEvents(
-        evtRows.slice(0, 3).map((item) => ({
-          id: item.id,
-          title: item.title,
-          organizer_name: item.organizer_name,
-          event_date: item.event_date,
-        }))
+        upcomingEvtRows
+          .filter((item) => {
+            const eventTime = new Date(item.event_date).getTime();
+            return !Number.isNaN(eventTime) && eventTime >= startOfToday.getTime();
+          })
+          .sort(
+            (a, b) =>
+              new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
+          )
+          .slice(0, 4)
+          .map((item) => ({
+            id: item.id,
+            title: item.title,
+            organizer_name: item.organizer_name,
+            event_date: item.event_date,
+          }))
       );
 
       const merged: CommunityFeedItem[] = [];
@@ -422,7 +446,9 @@ export default function DashboardPage() {
       href: "/services",
       icon: (
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M12 3l2.2 5.3L19.5 10l-5.3 1.8L12 17l-2.2-5.2L4.5 10l5.3-1.7L12 3z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+          <rect x="3" y="7" width="18" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.6" />
+          <path d="M8.5 7V5a1.5 1.5 0 011.5-1.5h4A1.5 1.5 0 0115.5 5v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M3 12h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       ),
     },
@@ -750,9 +776,28 @@ export default function DashboardPage() {
                   <div className="h-12 animate-pulse rounded-xl bg-[#F4F1EE]" />
                 </div>
               ) : upcomingEvents.length === 0 ? (
-                <p className="rounded-xl bg-[#FAF8F6] px-4 py-5 text-center text-xs text-[#787470]">
-                  Belum ada event kampus terjadwal saat ini.
-                </p>
+                <div className="rounded-xl bg-[#FAF8F6] px-4 py-5 text-center">
+                  <p className="text-xs font-medium text-[#57534E]">
+                    Belum ada agenda event mendatang.
+                  </p>
+                  <div className="mt-2 flex items-center justify-center gap-3 text-[11px] font-semibold">
+                    <Link
+                      href="/events/create"
+                      className="text-[#141416] underline-offset-4 hover:underline"
+                    >
+                      + Ajukan Event
+                    </Link>
+                    <span className="text-[#D5CEC6]" aria-hidden="true">
+                      ·
+                    </span>
+                    <Link
+                      href="/events"
+                      className="text-[#787470] underline-offset-4 hover:text-[#141416] hover:underline"
+                    >
+                      Lihat Riwayat
+                    </Link>
+                  </div>
+                </div>
               ) : (
                 <ul className="space-y-2">
                   {upcomingEvents.map((evt) => {
