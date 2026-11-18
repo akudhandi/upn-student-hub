@@ -76,7 +76,7 @@ function FacultyDropdown({
   }, [open, onBlurTrigger]);
 
   return (
-    <div ref={containerRef} className="relative mt-1">
+    <div ref={containerRef} className="relative mt-1.5">
       <button
         id="reg-faculty"
         type="button"
@@ -87,15 +87,15 @@ function FacultyDropdown({
           if (open) onBlurTrigger();
           setOpen((v) => !v);
         }}
-        className={`flex w-full items-center justify-between border-0 border-b bg-transparent px-0 py-1.5 text-left text-sm transition-colors focus:outline-none ${
+        className={`flex h-11 w-full items-center justify-between rounded-xl border px-3.5 text-left text-sm transition-colors focus:outline-none ${
           hasError
-            ? "border-rose-400 focus:border-rose-600"
+            ? "border-[#E06C6C] bg-[#FFF8F8] focus:border-[#C53939]"
             : open
-              ? "border-slate-900"
-              : "border-slate-300 focus:border-slate-900"
+              ? "border-[#141416] bg-white"
+              : "border-[#E6E1DC] bg-[#F6F4F1] hover:border-[#D3CDC6]"
         }`}
       >
-        <span className={value ? "truncate text-slate-900" : "truncate text-slate-300"}>
+        <span className={value ? "truncate text-[#141416]" : "truncate text-[#A8A39E]"}>
           {value || "Pilih fakultas…"}
         </span>
         <svg
@@ -104,14 +104,14 @@ function FacultyDropdown({
           viewBox="0 0 16 16"
           fill="none"
           aria-hidden="true"
-          className={`shrink-0 text-slate-400 transition-transform ${
-            open ? "rotate-180 text-slate-700" : ""
+          className={`shrink-0 text-[#85817C] transition-transform ${
+            open ? "rotate-180 text-[#141416]" : ""
           }`}
         >
           <path
             d="M4 6L8 10L12 6"
             stroke="currentColor"
-            strokeWidth="1.4"
+            strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -122,7 +122,7 @@ function FacultyDropdown({
         <ul
           role="listbox"
           aria-labelledby="reg-faculty-label"
-          className="absolute left-0 right-0 z-30 mt-1.5 max-h-56 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_16px_40px_-12px_rgba(15,23,42,0.18)]"
+          className="absolute left-0 right-0 z-30 mt-1.5 max-h-56 overflow-y-auto rounded-2xl border border-[#E5E0DA] bg-white p-1.5 shadow-[0_14px_34px_-12px_rgba(20,20,22,0.16)]"
         >
           {FAKULTAS_OPTIONS.map((opt) => {
             const selected = value === opt;
@@ -137,8 +137,8 @@ function FacultyDropdown({
                   }}
                   className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-medium transition-colors ${
                     selected
-                      ? "bg-[#18191B] text-white"
-                      : "text-slate-700 hover:bg-slate-100"
+                      ? "bg-[#141416] text-white"
+                      : "text-[#3F3D3A] hover:bg-[#F4F1EE]"
                   }`}
                 >
                   <span>{opt}</span>
@@ -293,24 +293,28 @@ export default function RegisterPage() {
     }
   }
 
-  function inputClass(hasErr: boolean): string {
-    return `mt-1 w-full border-0 border-b bg-transparent px-0 py-1.5 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none ${
+  function inputBoxClass(
+    hasErr: boolean,
+    spacing = "mt-1.5 px-3.5"
+  ): string {
+    return `${spacing} h-11 w-full rounded-xl border text-sm text-[#141416] placeholder:text-[#A8A39E] transition-colors focus:outline-none ${
       hasErr
-        ? "border-rose-400 focus:border-rose-600"
-        : "border-slate-300 focus:border-slate-900"
+        ? "border-[#E06C6C] bg-[#FFF8F8] focus:border-[#C53939] focus:bg-white"
+        : "border-[#E6E1DC] bg-[#F6F4F1] focus:border-[#141416] focus:bg-white"
     }`;
   }
 
   return (
     <AuthSplitShell
+      activeTab="register"
       title="Buat Akun Mahasiswa"
-      subtitle="Daftar menggunakan email resmi @student.upnjatim.ac.id"
+      subtitle="Lengkapi identitas mahasiswa Anda untuk mulai menggunakan UPN Student Hub."
       footer={
         <>
           Sudah punya akun?{" "}
           <Link
             href="/login"
-            className="font-semibold text-slate-900 underline-offset-4 hover:underline"
+            className="font-semibold text-[#141416] underline-offset-4 hover:underline"
           >
             Masuk di sini
           </Link>
@@ -318,13 +322,13 @@ export default function RegisterPage() {
       }
     >
       <form className="space-y-4" onSubmit={handleSubmit} noValidate>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
           <div>
             <label
               htmlFor="reg-fullname"
-              className="block text-[11px] font-medium text-slate-500"
+              className="block text-xs font-medium text-[#57534E]"
             >
-              Nama Lengkap <span className="text-rose-500">*</span>
+              Nama Lengkap <span className="text-[#C53939]">*</span>
             </label>
             <input
               id="reg-fullname"
@@ -339,7 +343,7 @@ export default function RegisterPage() {
               onBlur={() => markTouched("fullName")}
               disabled={loading}
               aria-invalid={Boolean(showNameError)}
-              className={inputClass(Boolean(showNameError))}
+              className={inputBoxClass(Boolean(showNameError))}
             />
             <FieldErrorMessage message={showNameError} />
           </div>
@@ -347,9 +351,9 @@ export default function RegisterPage() {
           <div>
             <label
               htmlFor="reg-npm"
-              className="block text-[11px] font-medium text-slate-500"
+              className="block text-xs font-medium text-[#57534E]"
             >
-              NPM <span className="text-rose-500">*</span>
+              NPM <span className="text-[#C53939]">*</span>
             </label>
             <input
               id="reg-npm"
@@ -366,7 +370,7 @@ export default function RegisterPage() {
               onBlur={() => markTouched("npm")}
               disabled={loading}
               aria-invalid={Boolean(showNpmError)}
-              className={inputClass(Boolean(showNpmError))}
+              className={inputBoxClass(Boolean(showNpmError))}
             />
             <FieldErrorMessage message={showNpmError} />
           </div>
@@ -375,9 +379,9 @@ export default function RegisterPage() {
         <div>
           <span
             id="reg-faculty-label"
-            className="block text-[11px] font-medium text-slate-500"
+            className="block text-xs font-medium text-[#57534E]"
           >
-            Fakultas <span className="text-rose-500">*</span>
+            Fakultas <span className="text-[#C53939]">*</span>
           </span>
           <FacultyDropdown
             value={faculty}
@@ -392,9 +396,9 @@ export default function RegisterPage() {
         <div>
           <label
             htmlFor="reg-email"
-            className="block text-[11px] font-medium text-slate-500"
+            className="block text-xs font-medium text-[#57534E]"
           >
-            Email Kampus <span className="text-rose-500">*</span>
+            Email Kampus <span className="text-[#C53939]">*</span>
           </label>
           <input
             id="reg-email"
@@ -407,31 +411,31 @@ export default function RegisterPage() {
             onBlur={() => markTouched("email")}
             disabled={loading}
             aria-invalid={Boolean(showEmailError)}
-            className={inputClass(Boolean(showEmailError))}
+            className={inputBoxClass(Boolean(showEmailError))}
           />
           <FieldErrorMessage message={showEmailError} />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
           <div>
             <label
               htmlFor="reg-password"
-              className="block text-[11px] font-medium text-slate-500"
+              className="block text-xs font-medium text-[#57534E]"
             >
-              Password <span className="text-rose-500">*</span>
+              Password <span className="text-[#C53939]">*</span>
             </label>
             <input
               id="reg-password"
               name="password"
               type={showPassword ? "text" : "password"}
               autoComplete="new-password"
-              placeholder="••••••••"
+              placeholder="Minimal 8 karakter"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onBlur={() => markTouched("password")}
               disabled={loading}
               aria-invalid={Boolean(showPasswordError)}
-              className={inputClass(Boolean(showPasswordError))}
+              className={inputBoxClass(Boolean(showPasswordError))}
             />
             <FieldErrorMessage message={showPasswordError} />
           </div>
@@ -439,27 +443,23 @@ export default function RegisterPage() {
           <div>
             <label
               htmlFor="reg-confirm"
-              className="block text-[11px] font-medium text-slate-500"
+              className="block text-xs font-medium text-[#57534E]"
             >
-              Konfirmasi Password <span className="text-rose-500">*</span>
+              Konfirmasi Password <span className="text-[#C53939]">*</span>
             </label>
-            <div className="relative mt-1">
+            <div className="relative mt-1.5">
               <input
                 id="reg-confirm"
                 name="confirmPassword"
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
-                placeholder="••••••••"
+                placeholder="Ulangi password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 onBlur={() => markTouched("confirmPassword")}
                 disabled={loading}
                 aria-invalid={Boolean(showConfirmError)}
-                className={`w-full border-0 border-b bg-transparent py-1.5 pr-8 pl-0 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none ${
-                  showConfirmError
-                    ? "border-rose-400 focus:border-rose-600"
-                    : "border-slate-300 focus:border-slate-900"
-                }`}
+                className={inputBoxClass(Boolean(showConfirmError), "pl-3.5 pr-10")}
               />
               <PasswordEyeButton
                 shown={showPassword}
@@ -478,7 +478,7 @@ export default function RegisterPage() {
         {error && (
           <p
             role="alert"
-            className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-700"
+            className="rounded-xl border border-[#F1C9C9] bg-[#FDF2F2] px-3.5 py-2.5 text-xs font-medium text-[#B83232]"
           >
             {error}
           </p>
@@ -488,14 +488,14 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex h-11 w-full items-center justify-center rounded-full bg-[#18191B] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#2a2c30] disabled:opacity-60"
+            className="flex h-11 w-full items-center justify-center rounded-full bg-[#141416] px-5 text-sm font-medium text-white transition-colors hover:bg-[#27272A] disabled:opacity-60"
           >
-            {loading ? "Mendaftarkan Akun…" : "Daftar Akun"}
+            {loading ? "Mendaftarkan Akun…" : "Buat Akun Mahasiswa"}
           </button>
 
           <Link
             href="/"
-            className="flex h-11 w-full items-center justify-center rounded-full bg-[#F3F4F6] px-5 text-sm font-medium text-slate-800 transition-colors hover:bg-[#E5E7EB]"
+            className="flex h-11 w-full items-center justify-center rounded-full bg-[#EFECE8] px-5 text-sm font-medium text-[#27272A] transition-colors hover:bg-[#E5E1DC]"
           >
             Kembali ke Beranda
           </Link>

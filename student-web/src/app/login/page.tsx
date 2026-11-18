@@ -43,8 +43,9 @@ export default function LoginPage() {
     return null;
   }, [password]);
 
-  const showEmailError = (touched.email || submitAttempted) ? emailError : null;
-  const showPasswordError = (touched.password || submitAttempted) ? passwordError : null;
+  const showEmailError = touched.email || submitAttempted ? emailError : null;
+  const showPasswordError =
+    touched.password || submitAttempted ? passwordError : null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,16 +76,25 @@ export default function LoginPage() {
     }
   }
 
+  function inputBoxClass(hasErr: boolean, spacing = "mt-1.5 px-3.5"): string {
+    return `${spacing} h-11 w-full rounded-xl border text-sm text-[#141416] placeholder:text-[#A8A39E] transition-colors focus:outline-none ${
+      hasErr
+        ? "border-[#E06C6C] bg-[#FFF8F8] focus:border-[#C53939] focus:bg-white"
+        : "border-[#E6E1DC] bg-[#F6F4F1] focus:border-[#141416] focus:bg-white"
+    }`;
+  }
+
   return (
     <AuthSplitShell
-      title="Selamat Datang Kembali!"
-      subtitle="Masukkan detail akun mahasiswa Anda di bawah ini"
+      activeTab="login"
+      title="Selamat Datang Kembali"
+      subtitle="Masukkan email kampus dan password untuk mengakses workspace mahasiswa Anda."
       footer={
         <>
           Belum punya akun?{" "}
           <Link
             href="/register"
-            className="font-semibold text-slate-900 underline-offset-4 hover:underline"
+            className="font-semibold text-[#141416] underline-offset-4 hover:underline"
           >
             Daftar sekarang
           </Link>
@@ -95,9 +105,9 @@ export default function LoginPage() {
         <div>
           <label
             htmlFor="login-email"
-            className="block text-[11px] font-medium text-slate-500"
+            className="block text-xs font-medium text-[#57534E]"
           >
-            Email Kampus <span className="text-rose-500">*</span>
+            Email Kampus <span className="text-[#C53939]">*</span>
           </label>
           <input
             id="login-email"
@@ -110,11 +120,7 @@ export default function LoginPage() {
             onBlur={() => markTouched("email")}
             disabled={loading}
             aria-invalid={Boolean(showEmailError)}
-            className={`mt-1 w-full border-0 border-b bg-transparent px-0 py-2 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none ${
-              showEmailError
-                ? "border-rose-400 focus:border-rose-600"
-                : "border-slate-300 focus:border-slate-900"
-            }`}
+            className={inputBoxClass(Boolean(showEmailError))}
           />
           <FieldErrorMessage message={showEmailError} />
         </div>
@@ -122,27 +128,23 @@ export default function LoginPage() {
         <div>
           <label
             htmlFor="login-password"
-            className="block text-[11px] font-medium text-slate-500"
+            className="block text-xs font-medium text-[#57534E]"
           >
-            Password <span className="text-rose-500">*</span>
+            Password <span className="text-[#C53939]">*</span>
           </label>
-          <div className="relative mt-1">
+          <div className="relative mt-1.5">
             <input
               id="login-password"
               name="password"
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
-              placeholder="••••••••"
+              placeholder="Masukkan password Anda"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onBlur={() => markTouched("password")}
               disabled={loading}
               aria-invalid={Boolean(showPasswordError)}
-              className={`w-full border-0 border-b bg-transparent py-2 pr-8 pl-0 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none ${
-                showPasswordError
-                  ? "border-rose-400 focus:border-rose-600"
-                  : "border-slate-300 focus:border-slate-900"
-              }`}
+              className={inputBoxClass(Boolean(showPasswordError), "pl-3.5 pr-10")}
             />
             <PasswordEyeButton
               shown={showPassword}
@@ -155,7 +157,7 @@ export default function LoginPage() {
         {error && (
           <p
             role="alert"
-            className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-700"
+            className="rounded-xl border border-[#F1C9C9] bg-[#FDF2F2] px-3.5 py-2.5 text-xs font-medium text-[#B83232]"
           >
             {error}
           </p>
@@ -165,14 +167,14 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex h-11 w-full items-center justify-center rounded-full bg-[#18191B] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#2a2c30] disabled:opacity-60"
+            className="flex h-11 w-full items-center justify-center rounded-full bg-[#141416] px-5 text-sm font-medium text-white transition-colors hover:bg-[#27272A] disabled:opacity-60"
           >
-            {loading ? "Memproses…" : "Masuk"}
+            {loading ? "Memproses…" : "Masuk ke Portal"}
           </button>
 
           <Link
             href="/"
-            className="flex h-11 w-full items-center justify-center rounded-full bg-[#F3F4F6] px-5 text-sm font-medium text-slate-800 transition-colors hover:bg-[#E5E7EB]"
+            className="flex h-11 w-full items-center justify-center rounded-full bg-[#EFECE8] px-5 text-sm font-medium text-[#27272A] transition-colors hover:bg-[#E5E1DC]"
           >
             Kembali ke Beranda
           </Link>
