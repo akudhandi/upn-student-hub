@@ -7,6 +7,8 @@ import {
   getToken,
   clearAuth,
   getUser,
+  isOfficialAccount,
+  accountTypeLabel,
   USER_UPDATED_EVENT,
   type AuthUser,
 } from "@/lib/auth";
@@ -15,6 +17,7 @@ import { fetchConversations } from "@/lib/interactions";
 import { resolveStorageUrl } from "@/lib/images";
 import DevUserSwitcher from "@/components/DevUserSwitcher";
 import NotificationBell from "@/components/NotificationBell";
+import VerifiedBadge from "@/components/VerifiedBadge";
 
 type NavItem = {
   label: string;
@@ -239,13 +242,15 @@ export default function AppLayout({
     return pathname.startsWith(`${href}/`);
   }
 
+  const canSubmitEvent = isOfficialAccount(user);
+
   function handleCreateClick() {
     setMobileOpen(false);
     if (pathname?.startsWith("/services")) {
       router.push("/services?action=create");
     } else if (pathname?.startsWith("/lost-found") || pathname?.startsWith("/lost-and-found")) {
       router.push("/lost-found?action=create");
-    } else if (pathname?.startsWith("/events")) {
+    } else if (pathname?.startsWith("/events") && canSubmitEvent) {
       router.push("/events/create");
     } else {
       router.push("/marketplace?action=create");
@@ -368,7 +373,7 @@ export default function AppLayout({
             onClick={handleCreateClick}
             className="flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[#141416] px-4 text-xs font-medium text-white transition-all duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-[1px] hover:bg-[#242428] hover:shadow-[0_10px_22px_-10px_rgba(20,20,22,0.38)] active:translate-y-0 active:scale-[0.99]"
           >
-            <IconPlus /> {pathname?.startsWith("/events") ? "Ajukan Event" : "Pasang Iklan"}
+            <IconPlus /> {pathname?.startsWith("/events") && canSubmitEvent ? "Ajukan Event" : "Pasang Iklan"}
           </button>
 
           <div className="mt-3.5 flex items-center gap-2.5 rounded-2xl border border-[#E5E0DA] bg-white p-2.5">
@@ -386,8 +391,18 @@ export default function AppLayout({
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-[#141416]">{displayName}</p>
-                <p className="truncate text-[11px] text-[#787470]">{displayFaculty}</p>
+                <p className="flex items-center gap-1 text-xs font-semibold text-[#141416]">
+                  <span className="truncate">{displayName}</span>
+                  {canSubmitEvent && (
+                    <VerifiedBadge
+                      size="xs"
+                      title={`Akun ${accountTypeLabel(user?.account_type)} terverifikasi`}
+                    />
+                  )}
+                </p>
+                <p className="truncate text-[11px] text-[#787470]">
+                  {canSubmitEvent ? accountTypeLabel(user?.account_type) : displayFaculty}
+                </p>
               </div>
             </Link>
             <button
@@ -484,11 +499,19 @@ export default function AppLayout({
                 )}
               </div>
               <div className="text-left">
-                <p className="max-w-[130px] truncate text-xs font-semibold leading-tight text-[#141416]">
-                  {displayName}
+                <p className="flex max-w-[140px] items-center gap-1 text-xs font-semibold leading-tight text-[#141416]">
+                  <span className="truncate">{displayName}</span>
+                  {canSubmitEvent && (
+                    <VerifiedBadge
+                      size="xs"
+                      title={`Akun ${accountTypeLabel(user?.account_type)} terverifikasi`}
+                    />
+                  )}
                 </p>
-                <p className="max-w-[130px] truncate text-[10px] leading-tight text-[#787470]">
-                  {displayFaculty || displayEmail}
+                <p className="max-w-[140px] truncate text-[10px] leading-tight text-[#787470]">
+                  {canSubmitEvent
+                    ? accountTypeLabel(user?.account_type)
+                    : displayFaculty || displayEmail}
                 </p>
               </div>
             </Link>

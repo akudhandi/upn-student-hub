@@ -43,8 +43,8 @@ class AuditStageATest extends TestCase
 
     public function test_student_event_submission_starts_pending_and_non_published_events_do_not_leak(): void
     {
-        $owner = User::factory()->create();
-        $other = User::factory()->create();
+        $owner = User::factory()->create(['account_type' => 'ormawa']);
+        $other = User::factory()->create(['account_type' => 'student']);
         $ownerToken = $owner->createToken('student_token')->plainTextToken;
         $otherToken = $other->createToken('student_token')->plainTextToken;
 
@@ -55,7 +55,17 @@ class AuditStageATest extends TestCase
             'is_active' => true,
         ]);
 
-        // Student submits an event -> status must be pending
+        // Regular student cannot submit an event
+        $this->postJson('/api/v1/events', [
+            'title' => 'Event Mahasiswa Biasa',
+            'category_id' => $cat->id,
+            'organizer_name' => 'Pribadi',
+            'event_date' => '2026-12-20 09:00:00',
+            'location' => 'Aula Fasilkom',
+            'description' => 'Harus ditolak 403.',
+        ], $this->bearer($otherToken))->assertStatus(403);
+
+        // Official Ormawa/HIMA/Faculty account submits an event -> status pending + is_verified true
         $submit = $this->postJson('/api/v1/events', [
             'title' => 'Workshop Riset Mahasiswa',
             'category_id' => $cat->id,
@@ -66,7 +76,8 @@ class AuditStageATest extends TestCase
         ], $this->bearer($ownerToken));
 
         $submit->assertCreated()
-            ->assertJsonPath('data.status', 'pending');
+            ->assertJsonPath('data.status', 'pending')
+            ->assertJsonPath('data.is_verified', true);
 
         $pendingEventId = $submit->json('data.id');
 
@@ -389,6 +400,63 @@ class AuditStageATest extends TestCase
 
         $ok->assertJsonPath('user.profile.nim', '22081010099');
         $ok->assertJsonPath('user.profile.faculty', 'Fakultas Ilmu Komputer');
+        $ok->assertJsonPath('user.account_type', 'student');
+        $ok->assertJsonPath('user.is_official_account', false);
         $this->assertNotEmpty($ok->json('token'));
+    }
+
+    public function test_admin_can_provision_official_org_account_and_it_can_login_and_submit_verified_event(): void
+    {
+        $adminToken = $this->createAdminToken();
+
+        // Admin provisions a ready-to-use HIMA account with email & password
+        $created = $this->postJson('/api/v1/admin/users', [
+            'name' => 'HIMA Sistem Informasi',
+            'email' => 'himasi@upnjatim.ac.id',
+            'password' => 'ormawa1234',
+            'account_type' => 'hima',
+            'faculty' => 'Fakultas Ilmu Komputer',
+            'bio' => 'Akun resmi HIMA SI UPN Veteran Jatim',
+        ], $this->bearer($adminToken))->assertCreated();
+
+        $created->assertJsonPath('data.account_type', 'hima')
+            ->assertJsonPath('data.is_official_account', true);
+
+        $orgUserId = $created->json('data.id');
+
+        // Official account can log in through the student login endpoint
+        $this->app['auth']->forgetGuards();
+        $login = $this->postJson('/api/v1/auth/login', [
+            'email' => 'himasi@upnjatim.ac.id',
+            'password' => 'ormawa1234',
+        ])->assertOk();
+
+        $login->assertJsonPath('user.account_type', 'hima')
+            ->assertJsonPath('user.is_official_account', true);
+
+        $orgToken = $login->json('token');
+
+        // Official account submits a verified campus event
+        $event = $this->postJson('/api/v1/events', [
+            'title' => 'Seminar Sistem Informasi 2026',
+            'organizer_name' => 'HIMA Sistem Informasi',
+            'event_date' => now()->addDays(10)->format('Y-m-d H:i:s'),
+            'location' => 'Auditorium FIK',
+            'description' => 'Seminar resmi oleh HIMA SI.',
+        ], $this->bearer($orgToken))->assertCreated();
+
+        $event->assertJsonPath('data.is_verified', true)
+            ->assertJsonPath('data.status', 'pending');
+
+        // Admin can also update account_type (e.g., to faculty) & filter users by account_type
+        $this->patchJson("/api/v1/admin/users/{$orgUserId}/account-type", [
+            'account_type' => 'faculty',
+        ], $this->bearer($adminToken))->assertOk()
+            ->assertJsonPath('data.account_type', 'faculty')
+            ->assertJsonPath('data.is_official_account', true);
+
+        $filtered = $this->getJson('/api/v1/admin/users?account_type=faculty', $this->bearer($adminToken))
+            ->assertOk();
+        $this->assertSame(1, $filtered->json('data.total'));
     }
 }

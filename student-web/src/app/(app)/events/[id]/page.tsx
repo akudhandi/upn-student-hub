@@ -7,6 +7,7 @@ import { apiFetch, type ApiError } from "@/lib/api";
 import { useFavorite } from "@/lib/interactions";
 import ReportModal from "@/components/ReportModal";
 import ListingImage from "@/components/ListingImage";
+import VerifiedBadge, { isVerifiedEventOrganizer } from "@/components/VerifiedBadge";
 import type { ApiImage } from "@/lib/images";
 
 // ---------------------------------------------------------------------------
@@ -44,8 +45,9 @@ type ApiEventDetail = {
   contact_pics?: ApiContactPic[] | null;
   documents?: ApiDoc[] | null;
   status: string;
+  is_verified?: boolean;
   created_at: string;
-  user?: { id: number; name: string } | null;
+  user?: { id: number; name: string; account_type?: string } | null;
   images?: ApiImage[] | null;
   category?: { id: number; name: string; slug: string } | null;
 };
@@ -317,8 +319,9 @@ export default function EventDetailPage() {
       <h1 className="mt-2 text-xl font-bold leading-7 tracking-tight text-slate-900 sm:text-2xl">
         {item.title}
       </h1>
-      <p className="mt-1 text-[13px] text-slate-500">
-        Diselenggarakan oleh {item.organizer_name}
+      <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px] text-slate-600">
+        <span>Diselenggarakan oleh <strong className="font-semibold text-slate-900">{item.organizer_name}</strong></span>
+        {isVerifiedEventOrganizer(item) && <VerifiedBadge showLabel />}
       </p>
       <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400">
         <span>🕒 Dipublikasikan: {formatShortDate(item.created_at)}</span>

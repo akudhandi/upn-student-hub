@@ -122,17 +122,22 @@ class AdminEventController extends Controller
 
         $ownerUserId = $request->user() instanceof User
             ? $request->user()->id
-            : (User::query()->value('id') ?? User::query()->create([
-                'name' => 'UPN Kemahasiswaan',
-                'email' => 'kemahasiswaan@upnjatim.ac.id',
-                'password' => Hash::make(Str::random(32)),
-                'status' => 'active',
-            ])->id);
+            : (User::query()
+                ->whereIn('account_type', User::OFFICIAL_ACCOUNT_TYPES)
+                ->value('id')
+                ?? User::query()->create([
+                    'name' => 'UPN Kemahasiswaan',
+                    'email' => 'kemahasiswaan@upnjatim.ac.id',
+                    'password' => Hash::make(Str::random(32)),
+                    'status' => 'active',
+                    'account_type' => 'faculty',
+                ])->id);
 
         $event = Event::create([
             ...$validated,
             'user_id' => $ownerUserId,
             'slug' => Str::slug($validated['title']).'-'.Str::lower(Str::random(5)),
+            'is_verified' => true,
         ]);
 
         $event->update([
@@ -143,7 +148,7 @@ class AdminEventController extends Controller
             $this->syncImages($event, $imagePaths);
         }
 
-        $event->load(['user:id,name', 'category:id,name,slug', 'images']);
+        $event->load(['user:id,name,account_type', 'category:id,name,slug', 'images']);
 
         return response()->json([
             'message' => 'Event berhasil dibuat',

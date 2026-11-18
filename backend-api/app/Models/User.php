@@ -15,6 +15,20 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
+     * Account types provisioned by Admin for verified campus organizations/faculties.
+     *
+     * @var array<int, string>
+     */
+    public const OFFICIAL_ACCOUNT_TYPES = ['hima', 'ormawa', 'faculty'];
+
+    /**
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'is_official_account',
+    ];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -25,11 +39,23 @@ class User extends Authenticatable
         'password',
         'google_id',
         'status',
+        'account_type',
     ];
 
     protected $attributes = [
         'status' => 'active',
+        'account_type' => 'student',
     ];
+
+    public function isOfficialAccount(): bool
+    {
+        return in_array($this->account_type, self::OFFICIAL_ACCOUNT_TYPES, true);
+    }
+
+    public function getIsOfficialAccountAttribute(): bool
+    {
+        return $this->isOfficialAccount();
+    }
 
     /**
      * The attributes that should be hidden for serialization.

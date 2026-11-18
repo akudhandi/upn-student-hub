@@ -9,6 +9,8 @@ import {
   uploadMedia,
   type ApiError,
 } from "@/lib/api";
+import { getUser, isOfficialAccount, USER_UPDATED_EVENT, type AuthUser } from "@/lib/auth";
+import VerifiedBadge from "@/components/VerifiedBadge";
 
 // ---------------------------------------------------------------------------
 // API types — GET /api/v1/events is reused to resolve backend category ids
@@ -85,8 +87,30 @@ function SectionCard({
 
 export default function EventCreatePage() {
   const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [title, setTitle] = useState("");
   const [organizer, setOrganizer] = useState("");
+
+  useEffect(() => {
+    const sync = () => {
+      const u = getUser();
+      setCurrentUser(u);
+      if (u && isOfficialAccount(u)) {
+        const officialName =
+          (u.profile && typeof u.profile === "object" && "name" in u.profile
+            ? (u.profile as { name?: string }).name
+            : null) || u.name;
+        if (officialName) {
+          setOrganizer((prev) => prev || officialName);
+        }
+      }
+    };
+    sync();
+    window.addEventListener(USER_UPDATED_EVENT, sync);
+    return () => window.removeEventListener(USER_UPDATED_EVENT, sync);
+  }, []);
+
+  const canSubmitEvent = isOfficialAccount(currentUser);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [categoryOptions, setCategoryOptions] = useState<{ id: number; name: string }[]>([]);
   const [eventDate, setEventDate] = useState("");
@@ -231,6 +255,36 @@ export default function EventCreatePage() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (!canSubmitEvent) {
+    return (
+      <div className="mx-auto max-w-[720px] py-8">
+        <div className="rounded-[24px] border border-[#E7E2DD] bg-white p-8 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F4F1EE]">
+            <VerifiedBadge size="sm" />
+          </div>
+          <h1 className="mt-4 font-display text-xl font-semibold tracking-tight text-[#141416]">
+            Pengajuan Event Khusus Akun Resmi
+          </h1>
+          <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-[#6E6A66]">
+            Fitur pengajuan event kampus hanya tersedia bagi akun resmi{" "}
+            <strong className="font-semibold text-[#141416]">HIMA</strong>,{" "}
+            <strong className="font-semibold text-[#141416]">Ormawa</strong>, atau{" "}
+            <strong className="font-semibold text-[#141416]">Fakultas</strong> yang
+            telah disiapkan oleh Admin UPN Student Hub.
+          </p>
+          <div className="mt-6 flex items-center justify-center gap-2.5">
+            <Link
+              href="/events"
+              className="inline-flex h-10 items-center justify-center rounded-full bg-[#141416] px-5 text-xs font-medium text-white transition-colors hover:bg-[#242428]"
+            >
+              ← Kembali ke Daftar Event
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

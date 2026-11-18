@@ -560,11 +560,15 @@ export interface StudentProfileInfo {
   avatar?: string | null;
 }
 
+export type UserAccountType = 'student' | 'hima' | 'ormawa' | 'faculty';
+
 export interface AdminUserItem {
   id: number;
   name: string;
   email: string;
   status: UserStatus | string;
+  account_type?: UserAccountType;
+  is_official_account?: boolean;
   created_at: string;
   profile?: StudentProfileInfo | null;
 }
@@ -588,6 +592,7 @@ export interface AdminUserDetail {
 export async function getAdminUsers(params: {
   page?: number;
   status?: string;
+  account_type?: string;
   search?: string;
   faculty?: string;
 }): Promise<Paginated<AdminUserItem>> {
@@ -595,6 +600,33 @@ export async function getAdminUsers(params: {
     message: string;
     data: Paginated<AdminUserItem>;
   }>('/admin/users', { params });
+  return data.data;
+}
+
+export async function createAdminUser(payload: {
+  name: string;
+  email: string;
+  password: string;
+  account_type: UserAccountType;
+  nim?: string;
+  faculty?: string;
+  bio?: string;
+}): Promise<AdminUserItem> {
+  const { data } = await api.post<{
+    message: string;
+    data: AdminUserItem;
+  }>('/admin/users', payload);
+  return data.data;
+}
+
+export async function updateAdminUserAccountType(
+  id: number,
+  payload: { account_type: UserAccountType; password?: string },
+): Promise<AdminUserItem> {
+  const { data } = await api.patch<{
+    message: string;
+    data: AdminUserItem;
+  }>(`/admin/users/${id}/account-type`, payload);
   return data.data;
 }
 

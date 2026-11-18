@@ -29,12 +29,18 @@ class Event extends Model
         'documents',
         'description',
         'status',
+        'is_verified',
+    ];
+
+    protected $attributes = [
+        'is_verified' => false,
     ];
 
     protected function casts(): array
     {
         return [
             'event_date' => 'datetime',
+            'is_verified' => 'boolean',
             'speakers' => 'array',
             'benefits' => 'array',
             'contact_pics' => 'array',

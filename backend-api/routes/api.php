@@ -156,10 +156,12 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::post('/reports/bulk-resolve', [AdminReportController::class, 'bulkResolve']);
         Route::patch('/reports/{id}/resolve', [AdminReportController::class, 'resolve']);
         Route::get('/users', [AdminUserController::class, 'index']);
+        Route::post('/users', [AdminUserController::class, 'store']);
         Route::get('/users/export', [AdminUserController::class, 'export']);
         Route::post('/users/bulk-status', [AdminUserController::class, 'bulkStatus']);
         Route::get('/users/{id}', [AdminUserController::class, 'show']);
         Route::patch('/users/{id}/status', [AdminUserController::class, 'toggleStatus']);
+        Route::patch('/users/{id}/account-type', [AdminUserController::class, 'updateAccountType']);
 
         // Admin settings & system status.
         Route::get('/profile', [AdminSettingsController::class, 'profile']);

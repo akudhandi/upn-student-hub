@@ -4,7 +4,9 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, fetchPublicCategories, type PublicCategory } from "@/lib/api";
+import { getUser, isOfficialAccount, USER_UPDATED_EVENT, type AuthUser } from "@/lib/auth";
 import ListingImage from "@/components/ListingImage";
+import VerifiedBadge, { isVerifiedEventOrganizer } from "@/components/VerifiedBadge";
 import type { ApiImage } from "@/lib/images";
 
 // ---------------------------------------------------------------------------
@@ -22,8 +24,9 @@ type ApiEventItem = {
   event_time?: string | null;
   location: string;
   status: string;
+  is_verified?: boolean;
   created_at: string;
-  user?: { id: number; name: string } | null;
+  user?: { id: number; name: string; account_type?: string } | null;
   category?: { id: number; name: string; slug: string } | null;
   images?: ApiImage[] | null;
 };
@@ -118,6 +121,19 @@ function EventsContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate user from localStorage on mount
+    setCurrentUser(getUser());
+    function syncUser() {
+      setCurrentUser(getUser());
+    }
+    window.addEventListener(USER_UPDATED_EVENT, syncUser);
+    return () => window.removeEventListener(USER_UPDATED_EVENT, syncUser);
+  }, []);
+
+  const canSubmitEvent = isOfficialAccount(currentUser);
   const [query, setQuery] = useState(urlQuery);
   const [debouncedQuery, setDebouncedQuery] = useState(urlQuery);
 
@@ -228,12 +244,14 @@ function EventsContent() {
             Temukan kegiatan mahasiswa, seminar, lomba, dan pengumuman resmi UPN Veteran Jawa Timur.
           </p>
         </div>
-        <Link
-          href="/events/create"
-          className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-[#0A2342] px-4 text-xs font-semibold text-white hover:bg-[#12325e]"
-        >
-          + Ajukan Event
-        </Link>
+        {canSubmitEvent && (
+          <Link
+            href="/events/create"
+            className="inline-flex h-9 shrink-0 items-center justify-center rounded-full bg-[#141416] px-4 text-xs font-semibold text-white transition-colors hover:bg-[#242428]"
+          >
+            + Ajukan Event
+          </Link>
+        )}
       </div>
 
       {/* Search */}
@@ -349,12 +367,14 @@ function EventsContent() {
                   Hapus filter
                 </button>
               )}
-              <Link
-                href="/events/create"
-                className="rounded-lg bg-[#0A2342] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#12325e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
-              >
-                Ajukan Event
-              </Link>
+              {canSubmitEvent && (
+                <Link
+                  href="/events/create"
+                  className="rounded-full bg-[#141416] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2"
+                >
+                  Ajukan Event
+                </Link>
+              )}
             </div>
           </div>
         ) : (
@@ -374,6 +394,10 @@ function EventsContent() {
                       {featured.title}
                     </Link>
                   </h2>
+                  <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                    <span className="truncate">{featured.organizer_name}</span>
+                    {isVerifiedEventOrganizer(featured) && <VerifiedBadge showLabel size="xs" />}
+                  </p>
                   <p className="mt-2 line-clamp-3 text-[13px] leading-6 text-slate-600">
                     {featured.description ?? "Tidak ada deskripsi."}
                   </p>
@@ -428,6 +452,10 @@ function EventsContent() {
                             {item.title}
                           </Link>
                         </h3>
+                        <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-slate-600">
+                          <span className="truncate">{item.organizer_name}</span>
+                          {isVerifiedEventOrganizer(item) && <VerifiedBadge size="xs" />}
+                        </p>
                         <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-slate-500">
                           {item.description ?? "Tidak ada deskripsi."}
                         </p>

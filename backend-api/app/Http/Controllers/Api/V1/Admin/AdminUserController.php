@@ -6,11 +6,14 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Report;
+use App\Models\StudentProfile;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -26,6 +29,90 @@ class AdminUserController extends Controller
         ]);
     }
 
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|min:2|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email',
+            'password' => 'required|string|min:8|max:128',
+            'account_type' => 'required|in:student,hima,ormawa,faculty',
+            'nim' => 'nullable|string|max:30',
+            'faculty' => 'nullable|string|max:150',
+            'bio' => 'nullable|string|max:500',
+        ], [
+            'name.required' => 'Nama akun wajib diisi.',
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'email.unique' => 'Email sudah terdaftar.',
+            'password.required' => 'Password wajib diisi.',
+            'password.min' => 'Password minimal 8 karakter.',
+            'account_type.required' => 'Tipe akun wajib dipilih.',
+            'account_type.in' => 'Tipe akun tidak valid.',
+        ]);
+
+        $user = DB::transaction(function () use ($validated) {
+            $created = User::create([
+                'name' => $validated['name'],
+                'email' => strtolower(trim($validated['email'])),
+                'password' => Hash::make($validated['password']),
+                'status' => 'active',
+                'account_type' => $validated['account_type'],
+                'email_verified_at' => now(),
+            ]);
+
+            StudentProfile::create([
+                'user_id' => $created->id,
+                'name' => $validated['name'],
+                'nim' => $validated['nim'] ?? null,
+                'faculty' => $validated['faculty'] ?? null,
+                'bio' => $validated['bio'] ?? null,
+            ]);
+
+            return $created;
+        });
+
+        $user->load('profile');
+
+        return response()->json([
+            'message' => 'Akun pengguna berhasil dibuat',
+            'data' => $user,
+        ], 201);
+    }
+
+    public function updateAccountType(Request $request, string $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'account_type' => 'required|in:student,hima,ormawa,faculty',
+            'password' => 'nullable|string|min:8|max:128',
+        ], [
+            'account_type.required' => 'Tipe akun wajib dipilih.',
+            'account_type.in' => 'Tipe akun tidak valid.',
+            'password.min' => 'Password baru minimal 8 karakter.',
+        ]);
+
+        try {
+            $user = User::where('id', $id)->firstOrFail();
+        } catch (ModelNotFoundException) {
+            return response()->json([
+                'message' => 'Data pengguna tidak ditemukan',
+                'data' => null,
+            ], 404);
+        }
+
+        $user->account_type = $validated['account_type'];
+        if (! empty($validated['password'])) {
+            $user->password = Hash::make($validated['password']);
+            $user->tokens()->delete();
+        }
+        $user->save();
+        $user->load('profile');
+
+        return response()->json([
+            'message' => 'Tipe akun pengguna berhasil diperbarui',
+            'data' => $user,
+        ]);
+    }
+
     public function export(Request $request): StreamedResponse
     {
         $rows = $this->filteredQuery($this->validateFilters($request))
@@ -37,12 +124,13 @@ class AdminUserController extends Controller
         return response()->streamDownload(function () use ($rows) {
             $handle = fopen('php://output', 'w');
             fwrite($handle, "\xEF\xBB\xBF");
-            fputcsv($handle, ['ID', 'Nama', 'Email', 'NIM', 'Fakultas', 'Status', 'Terdaftar']);
+            fputcsv($handle, ['ID', 'Nama', 'Email', 'Tipe Akun', 'NIM', 'Fakultas', 'Status', 'Terdaftar']);
             foreach ($rows as $row) {
                 fputcsv($handle, [
                     $row->id,
                     $row->profile->name ?? $row->name,
                     $row->email,
+                    $row->account_type ?? 'student',
                     $row->profile->nim ?? '',
                     $row->profile->faculty ?? '',
                     $row->status,
@@ -61,6 +149,7 @@ class AdminUserController extends Controller
         return $request->validate([
             'search' => 'nullable|string|max:255',
             'status' => 'nullable|in:active,suspended,banned,inactive',
+            'account_type' => 'nullable|in:student,hima,ormawa,faculty',
             'faculty' => 'nullable|string|max:100',
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date|after_or_equal:date_from',
@@ -78,6 +167,10 @@ class AdminUserController extends Controller
 
         if (! empty($validated['status'])) {
             $query->where('status', $validated['status']);
+        }
+
+        if (! empty($validated['account_type'])) {
+            $query->where('account_type', $validated['account_type']);
         }
 
         if (! empty($validated['faculty'])) {

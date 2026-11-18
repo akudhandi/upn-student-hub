@@ -2,11 +2,21 @@ export const TOKEN_KEY = "upn_student_hub_token";
 export const USER_KEY = "upn_student_hub_user";
 export const USER_UPDATED_EVENT = "upn-user-updated";
 
+export type AccountType = "student" | "hima" | "ormawa" | "faculty";
+
+export const OFFICIAL_ACCOUNT_TYPES: readonly AccountType[] = [
+  "hima",
+  "ormawa",
+  "faculty",
+];
+
 export type AuthUser = {
   id: number;
   name: string;
   email: string;
   status?: string;
+  account_type?: AccountType | string;
+  is_official_account?: boolean;
   profile?: {
     name?: string;
     nim?: string | null;
@@ -17,6 +27,31 @@ export type AuthUser = {
   // allow additional fields from backend without breaking
   [key: string]: unknown;
 };
+
+export function isOfficialAccount(user: AuthUser | null | undefined): boolean {
+  if (!user) return false;
+  if (user.is_official_account === true) return true;
+  if (
+    typeof user.account_type === "string" &&
+    OFFICIAL_ACCOUNT_TYPES.includes(user.account_type as AccountType)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function accountTypeLabel(accountType?: string | null): string {
+  switch (accountType) {
+    case "ormawa":
+      return "Ormawa Resmi";
+    case "hima":
+      return "HIMA Resmi";
+    case "faculty":
+      return "Akun Fakultas";
+    default:
+      return "Mahasiswa";
+  }
+}
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;

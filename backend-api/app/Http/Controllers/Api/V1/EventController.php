@@ -19,6 +19,13 @@ class EventController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $studentUser = $this->resolveStudentUser($request);
+        if ($studentUser === null || ! $studentUser->isOfficialAccount()) {
+            return response()->json([
+                'message' => 'Pengajuan event hanya tersedia untuk akun resmi HIMA, Ormawa, atau Fakultas.',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
@@ -51,9 +58,10 @@ class EventController extends Controller
 
         $event = Event::create([
             ...$validated,
-            'user_id' => $this->resolveStudentUserId($request),
+            'user_id' => $studentUser->id,
             'slug' => Str::slug($request->title).'-'.Str::lower(Str::random(5)),
             'status' => 'pending',
+            'is_verified' => true,
         ]);
 
         $event->update([
@@ -65,7 +73,7 @@ class EventController extends Controller
         }
 
         $event->load([
-            'user:id,name',
+            'user:id,name,account_type',
             'category:id,name,slug',
             'images',
         ]);
@@ -80,7 +88,7 @@ class EventController extends Controller
     {
         $query = Event::query()
             ->with([
-                'user:id,name',
+                'user:id,name,account_type',
                 'category:id,name,slug',
                 'images',
             ])
@@ -118,7 +126,7 @@ class EventController extends Controller
         try {
             $event = Event::query()
                 ->with([
-                    'user:id,name',
+                    'user:id,name,account_type',
                     'category:id,name,slug',
                     'images',
                 ])

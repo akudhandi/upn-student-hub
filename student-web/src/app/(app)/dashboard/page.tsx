@@ -3,8 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ListingImage from "@/components/ListingImage";
+import VerifiedBadge, { isVerifiedEventOrganizer } from "@/components/VerifiedBadge";
 import { apiFetch } from "@/lib/api";
-import { getUser, USER_UPDATED_EVENT, type AuthUser } from "@/lib/auth";
+import {
+  getUser,
+  isOfficialAccount,
+  USER_UPDATED_EVENT,
+  type AuthUser,
+} from "@/lib/auth";
 import type { ApiImage, ImageModule } from "@/lib/images";
 import { fetchConversations, type ConversationItem } from "@/lib/interactions";
 
@@ -56,6 +62,7 @@ type CommunityFeedItem = {
   metaRight: string;
   href: string;
   createdAt: string;
+  isVerified?: boolean;
   images?: ApiImage[] | null;
 };
 
@@ -64,6 +71,7 @@ type UpcomingEventItem = {
   title: string;
   organizer_name: string;
   event_date: string;
+  is_verified: boolean;
 };
 
 type ModuleCounts = {
@@ -217,6 +225,8 @@ export default function DashboardPage() {
           organizer_name: string;
           event_date: string;
           created_at: string;
+          is_verified?: boolean;
+          user?: { id: number; name: string; account_type?: string } | null;
           images?: ApiImage[] | null;
         }>
       >("/v1/events").catch(() => null),
@@ -226,6 +236,8 @@ export default function DashboardPage() {
           title: string;
           organizer_name: string;
           event_date: string;
+          is_verified?: boolean;
+          user?: { id: number; name: string; account_type?: string } | null;
         }>
       >("/v1/events?upcoming=1").catch(() => null),
     ]).then(([mkt, svc, lf, evt, upcomingEvt]) => {
@@ -263,6 +275,7 @@ export default function DashboardPage() {
             title: item.title,
             organizer_name: item.organizer_name,
             event_date: item.event_date,
+            is_verified: isVerifiedEventOrganizer(item),
           }))
       );
 
@@ -334,6 +347,7 @@ export default function DashboardPage() {
           }),
           href: `/events/${item.id}`,
           createdAt: item.created_at,
+          isVerified: isVerifiedEventOrganizer(item),
           images: item.images,
         });
       }
@@ -492,12 +506,14 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <Link
-            href="/events/create"
-            className="inline-flex h-10 items-center justify-center rounded-full border border-[#E2DDD7] bg-white px-4 text-xs font-medium text-[#27272A] transition-all duration-200 hover:-translate-y-[1px] hover:border-[#D2CBC3] hover:bg-[#FAF8F6]"
-          >
-            Ajukan Event
-          </Link>
+          {isOfficialAccount(user) && (
+            <Link
+              href="/events/create"
+              className="inline-flex h-10 items-center justify-center rounded-full border border-[#E2DDD7] bg-white px-4 text-xs font-medium text-[#27272A] transition-all duration-200 hover:-translate-y-[1px] hover:border-[#D2CBC3] hover:bg-[#FAF8F6]"
+            >
+              Ajukan Event
+            </Link>
+          )}
           <Link
             href="/marketplace?action=create"
             className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-[#141416] px-5 text-xs font-medium text-white transition-all duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-[1px] hover:bg-[#242428] hover:shadow-[0_12px_24px_-12px_rgba(20,20,22,0.42)] active:translate-y-0 active:scale-[0.99]"
@@ -648,8 +664,9 @@ export default function DashboardPage() {
                           <p className="mt-1 truncate text-[13px] font-semibold text-[#141416] group-hover:underline">
                             {item.title}
                           </p>
-                          <p className="truncate text-xs text-[#787470]">
-                            {item.subtitle}
+                          <p className="flex items-center gap-1 text-xs text-[#787470]">
+                            <span className="truncate">{item.subtitle}</span>
+                            {item.isVerified && <VerifiedBadge size="xs" />}
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
@@ -781,15 +798,19 @@ export default function DashboardPage() {
                     Belum ada agenda event mendatang.
                   </p>
                   <div className="mt-2 flex items-center justify-center gap-3 text-[11px] font-semibold">
-                    <Link
-                      href="/events/create"
-                      className="text-[#141416] underline-offset-4 hover:underline"
-                    >
-                      + Ajukan Event
-                    </Link>
-                    <span className="text-[#D5CEC6]" aria-hidden="true">
-                      ·
-                    </span>
+                    {isOfficialAccount(user) && (
+                      <>
+                        <Link
+                          href="/events/create"
+                          className="text-[#141416] underline-offset-4 hover:underline"
+                        >
+                          + Ajukan Event
+                        </Link>
+                        <span className="text-[#D5CEC6]" aria-hidden="true">
+                          ·
+                        </span>
+                      </>
+                    )}
                     <Link
                       href="/events"
                       className="text-[#787470] underline-offset-4 hover:text-[#141416] hover:underline"
@@ -826,8 +847,9 @@ export default function DashboardPage() {
                             <p className="truncate text-xs font-semibold text-[#141416] group-hover:underline">
                               {evt.title}
                             </p>
-                            <p className="truncate text-[11px] text-[#787470]">
-                              {evt.organizer_name}
+                            <p className="mt-0.5 flex items-center gap-1 text-[11px] text-[#787470]">
+                              <span className="truncate">{evt.organizer_name}</span>
+                              {evt.is_verified && <VerifiedBadge size="xs" />}
                             </p>
                           </div>
                           <span

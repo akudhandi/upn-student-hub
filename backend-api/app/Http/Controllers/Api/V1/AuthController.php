@@ -24,6 +24,7 @@ class AuthController extends Controller
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
                 'status' => 'active',
+                'account_type' => 'student',
             ]);
 
             StudentProfile::create([
