@@ -9,7 +9,7 @@ import {
   type InteractableType,
 } from "@/lib/interactions";
 import ListingImage from "@/components/ListingImage";
-import type { ImageModule } from "@/lib/images";
+import type { ApiImage, ImageModule } from "@/lib/images";
 
 type SavedItemType = InteractableType;
 
@@ -23,6 +23,7 @@ type SavedItem = {
   sortPrice: number | null;
   meta: string;
   highlight?: string;
+  images?: ApiImage[] | null;
 };
 
 function formatRupiah(value: number | string): string {
@@ -42,6 +43,7 @@ function normalizeEntry(entry: FavoriteEntry): SavedItem | null {
     key: `${entry.type}-${item.id ?? entry.id}`,
     type: entry.type,
     refId: item.id ?? entry.id,
+    images: Array.isArray(item.images) ? (item.images as ApiImage[]) : null,
   };
   switch (entry.type) {
     case "marketplace":
@@ -213,6 +215,8 @@ export default function FavoritesPage() {
       await toggleFavorite(item.type, item.refId);
       await loadFavorites();
     } catch {
+      setError("Gagal menghapus item dari favorit. Coba lagi.");
+    } finally {
       setRemovingKey(null);
     }
   }
@@ -342,6 +346,7 @@ export default function FavoritesPage() {
                   <ListingImage
                     module={item.type as ImageModule}
                     seed={item.refId}
+                    images={item.images}
                     hint={`${item.badge} ${item.title}`}
                     alt={`Foto ${item.title}`}
                     className="h-full w-full object-cover"

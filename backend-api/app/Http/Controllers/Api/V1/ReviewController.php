@@ -7,13 +7,33 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\V1\Concerns\ResolvesMorphType;
 use App\Http\Controllers\Api\V1\Concerns\ResolvesStudentUser;
 use App\Http\Controllers\Controller;
+use App\Models\MarketplaceListing;
 use App\Models\Rating;
+use App\Models\ServiceListing;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ReviewController extends Controller
 {
     use ResolvesMorphType, ResolvesStudentUser;
+
+    /**
+     * @var list<class-string>
+     */
+    private const REVIEWABLE_CLASSES = [
+        MarketplaceListing::class,
+        ServiceListing::class,
+    ];
+
+    private function resolveReviewableClass(string $type): ?string
+    {
+        $class = static::resolveMorphClass($type);
+        if ($class === null || ! in_array($class, self::REVIEWABLE_CLASSES, true)) {
+            return null;
+        }
+
+        return $class;
+    }
 
     public function index(Request $request): JsonResponse
     {
@@ -22,10 +42,10 @@ class ReviewController extends Controller
             'id' => 'required|integer|min:1',
         ]);
 
-        $class = static::resolveMorphClass($validated['type']);
+        $class = $this->resolveReviewableClass($validated['type']);
         if ($class === null) {
             return response()->json([
-                'message' => 'Tipe ulasan tidak valid',
+                'message' => 'Tipe ulasan tidak valid. Ulasan hanya tersedia untuk Marketplace dan Jasa.',
                 'data' => null,
             ], 422);
         }
@@ -67,10 +87,10 @@ class ReviewController extends Controller
             'comment' => 'nullable|string|max:1000',
         ]);
 
-        $class = static::resolveMorphClass($validated['reviewable_type']);
+        $class = $this->resolveReviewableClass($validated['reviewable_type']);
         if ($class === null) {
             return response()->json([
-                'message' => 'Tipe ulasan tidak valid',
+                'message' => 'Tipe ulasan tidak valid. Ulasan hanya tersedia untuk Marketplace dan Jasa.',
                 'data' => null,
             ], 422);
         }
@@ -83,8 +103,30 @@ class ReviewController extends Controller
             ], 404);
         }
 
+        $userId = $this->resolveStudentUserId($request);
+
+        if ($this->isListingOwner($target, $userId)) {
+            return response()->json([
+                'message' => 'Anda tidak dapat memberikan ulasan pada iklan milik sendiri.',
+                'data' => null,
+            ], 422);
+        }
+
+        $alreadyReviewed = Rating::query()
+            ->where('user_id', $userId)
+            ->where('rateable_type', $class)
+            ->where('rateable_id', $target->id)
+            ->exists();
+
+        if ($alreadyReviewed) {
+            return response()->json([
+                'message' => 'Anda sudah memberikan ulasan untuk iklan ini.',
+                'data' => null,
+            ], 422);
+        }
+
         $rating = Rating::create([
-            'user_id' => $this->resolveStudentUserId($request),
+            'user_id' => $userId,
             'rateable_type' => $class,
             'rateable_id' => $target->id,
             'rating' => $validated['rating'],

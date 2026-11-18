@@ -10,6 +10,7 @@ import EventForm, {
 import {
   createAdminEvent,
   getAdminCategories,
+  uploadAdminMedia,
   type CategoryItem,
 } from "@/lib/admin-api";
 
@@ -36,6 +37,11 @@ export default function EventCreatePage() {
     setSubmitting(true);
     setServerError(null);
     try {
+      let imagePaths: string[] | undefined;
+      if (values.posterFile) {
+        const uploaded = await uploadAdminMedia(values.posterFile, "events");
+        imagePaths = [uploaded.path];
+      }
       await createAdminEvent({
         title: values.title.trim(),
         category_id: values.category_id ? Number(values.category_id) : null,
@@ -46,6 +52,7 @@ export default function EventCreatePage() {
         registration_link: values.registration_link.trim() || null,
         description: values.description.trim(),
         status: values.status,
+        image_paths: imagePaths,
       });
       router.push("/events");
     } catch {

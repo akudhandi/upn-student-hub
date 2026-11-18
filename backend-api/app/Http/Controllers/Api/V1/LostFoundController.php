@@ -37,7 +37,7 @@ class LostFoundController extends Controller
         $report = LostFoundReport::create([
             ...$validated,
             'user_id' => $this->resolveStudentUserId($request),
-            'status' => 'active',
+            'status' => 'open',
         ]);
 
         if (is_array($imagePaths) && $imagePaths !== []) {
@@ -64,6 +64,7 @@ class LostFoundController extends Controller
                 'category:id,name,slug',
                 'images',
             ])
+            ->where('status', '!=', 'hidden')
             ->latest();
 
         if ($request->filled('type')) {
@@ -90,7 +91,7 @@ class LostFoundController extends Controller
         ]);
     }
 
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
         try {
             $report = LostFoundReport::query()
@@ -101,6 +102,13 @@ class LostFoundController extends Controller
                 ])
                 ->where('id', $id)
                 ->firstOrFail();
+
+            if ($report->status === 'hidden') {
+                $viewer = $this->resolveStudentUser($request);
+                if ($viewer === null || ! $this->isListingOwner($report, (int) $viewer->id)) {
+                    throw new ModelNotFoundException();
+                }
+            }
 
             return response()->json([
                 'message' => 'Detail laporan berhasil diambil',
@@ -182,11 +190,19 @@ class LostFoundController extends Controller
             ], 403);
         }
 
+        if ($report->status === 'hidden') {
+            return response()->json([
+                'message' => 'Laporan ini sedang disembunyikan oleh moderator dan tidak dapat diubah statusnya.',
+                'data' => null,
+            ], 403);
+        }
+
         $validated = $request->validate([
             'status' => 'required|in:active,open,resolved,closed',
         ]);
 
-        $report->update(['status' => $validated['status']]);
+        $normalizedStatus = $validated['status'] === 'active' ? 'open' : $validated['status'];
+        $report->update(['status' => $normalizedStatus]);
         $report->load(['user:id,name', 'category:id,name,slug', 'images']);
 
         return response()->json([

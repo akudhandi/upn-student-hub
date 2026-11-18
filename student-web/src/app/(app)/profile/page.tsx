@@ -1351,75 +1351,83 @@ export default function ProfilePage() {
                             Edit
                           </button>
 
-                          {item.kind === "marketplace" &&
-                            (item.status === "sold" ? (
-                              <button
-                                type="button"
-                                disabled={isBusy}
-                                onClick={() =>
-                                  void handleStatusChange(item, "active")
-                                }
-                                className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                              >
-                                Aktifkan Lagi
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                disabled={isBusy}
-                                onClick={() =>
-                                  void handleStatusChange(item, "sold")
-                                }
-                                className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                              >
-                                Tandai Terjual
-                              </button>
-                            ))}
+                          {item.status === "hidden" ? (
+                            <span className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-800">
+                              Disembunyikan moderator
+                            </span>
+                          ) : (
+                            <>
+                              {item.kind === "marketplace" &&
+                                (item.status === "sold" ? (
+                                  <button
+                                    type="button"
+                                    disabled={isBusy}
+                                    onClick={() =>
+                                      void handleStatusChange(item, "active")
+                                    }
+                                    className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                                  >
+                                    Aktifkan Lagi
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled={isBusy}
+                                    onClick={() =>
+                                      void handleStatusChange(item, "sold")
+                                    }
+                                    className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                                  >
+                                    Tandai Terjual
+                                  </button>
+                                ))}
 
-                          {item.kind === "service" && (
-                            <button
-                              type="button"
-                              disabled={isBusy}
-                              onClick={() =>
-                                void handleStatusChange(
-                                  item,
-                                  item.status === "active"
-                                    ? "inactive"
-                                    : "active"
-                                )
-                              }
-                              className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                            >
-                              {item.status === "active"
-                                ? "Tutup Slot"
-                                : "Buka Slot"}
-                            </button>
+                              {item.kind === "service" && (
+                                <button
+                                  type="button"
+                                  disabled={isBusy}
+                                  onClick={() =>
+                                    void handleStatusChange(
+                                      item,
+                                      item.status === "active"
+                                        ? "inactive"
+                                        : "active"
+                                    )
+                                  }
+                                  className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                                >
+                                  {item.status === "active"
+                                    ? "Tutup Slot"
+                                    : "Buka Slot"}
+                                </button>
+                              )}
+
+                              {item.kind === "lostfound" &&
+                                (item.isCompleted ? (
+                                  <button
+                                    type="button"
+                                    disabled={isBusy}
+                                    onClick={() =>
+                                      void handleStatusChange(item, "open")
+                                    }
+                                    className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                                  >
+                                    Buka Kembali
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled={isBusy}
+                                    onClick={() =>
+                                      void handleStatusChange(item, "resolved")
+                                    }
+                                    className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                                  >
+                                    Tandai Selesai
+                                  </button>
+                                ))}
+                            </>
                           )}
-
-                          {item.kind === "lostfound" &&
-                            (item.isCompleted ? (
-                              <button
-                                type="button"
-                                disabled={isBusy}
-                                onClick={() =>
-                                  void handleStatusChange(item, "active")
-                                }
-                                className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                              >
-                                Buka Kembali
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                disabled={isBusy}
-                                onClick={() =>
-                                  void handleStatusChange(item, "resolved")
-                                }
-                                className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                              >
-                                Tandai Selesai
-                              </button>
-                            ))}
 
                           <button
                             type="button"

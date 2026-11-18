@@ -22,6 +22,7 @@ const LOAD_ERROR =
 const MODULE_TABS: ReadonlyArray<{ value: CategoryType; label: string }> = [
   { value: "marketplace", label: "Marketplace" },
   { value: "service", label: "Jasa Mahasiswa" },
+  { value: "lost_found", label: "Lost & Found" },
   { value: "event", label: "Event Kampus" },
 ];
 
@@ -229,8 +230,12 @@ export default function CategoriesAdminPage() {
       await deleteAdminCategory(confirmDelete.id);
       setConfirmDelete(null);
       await reload();
-    } catch {
-      setActionError("Gagal menghapus kategori. Coba lagi.");
+    } catch (err: unknown) {
+      const apiMsg = (
+        err as { response?: { data?: { message?: string } } }
+      )?.response?.data?.message;
+      setConfirmDelete(null);
+      setActionError(apiMsg || "Gagal menghapus kategori. Coba lagi.");
     } finally {
       setBusyId(null);
     }

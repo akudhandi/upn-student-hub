@@ -378,7 +378,7 @@ export default function MarketplaceDetailPage() {
           </section>
 
           <div className="mt-5">
-            <ReviewsSection type="marketplace" id={item.id} />
+            <ReviewsSection type="marketplace" id={item.id} ownerId={item.user?.id} />
           </div>
         </div>
 

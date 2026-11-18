@@ -8,6 +8,7 @@ import {
   getAdminCategories,
   getAdminEvent,
   updateAdminEvent,
+  uploadAdminMedia,
   type AdminEventItem,
   type CategoryItem,
   type EventStatus,
@@ -24,6 +25,8 @@ function toFormValues(item: AdminEventItem): EventFormValues {
     registration_link: item.registration_link ?? "",
     status: (item.status as EventStatus) || "published",
     description: item.description ?? "",
+    existingPosterPath: item.images?.[0]?.file_path ?? null,
+    posterFile: null,
   };
 }
 
@@ -66,6 +69,13 @@ export default function EventEditPage({
     setSubmitting(true);
     setServerError(null);
     try {
+      let imagePaths: string[] = values.existingPosterPath
+        ? [values.existingPosterPath]
+        : [];
+      if (values.posterFile) {
+        const uploaded = await uploadAdminMedia(values.posterFile, "events");
+        imagePaths = [uploaded.path];
+      }
       await updateAdminEvent(id, {
         title: values.title.trim(),
         category_id: values.category_id ? Number(values.category_id) : null,
@@ -76,6 +86,7 @@ export default function EventEditPage({
         registration_link: values.registration_link.trim() || null,
         description: values.description.trim(),
         status: values.status,
+        image_paths: imagePaths,
       });
       router.push("/events");
     } catch {

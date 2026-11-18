@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Concerns\SyncsListingImages;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\User;
@@ -18,6 +19,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminEventController extends Controller
 {
+    use SyncsListingImages;
     public function index(Request $request): JsonResponse
     {
         $query = $this->filteredQuery($this->validateFilters($request));
@@ -115,6 +117,9 @@ class AdminEventController extends Controller
         $validated = $this->validatePayload($request, false);
         $validated['status'] ??= 'draft';
 
+        $imagePaths = $validated['image_paths'] ?? null;
+        unset($validated['image_paths']);
+
         $ownerUserId = $request->user() instanceof User
             ? $request->user()->id
             : (User::query()->value('id') ?? User::query()->create([
@@ -134,7 +139,11 @@ class AdminEventController extends Controller
             'event_code' => sprintf('EVT-%s-%04d', $event->created_at->format('Y'), $event->id),
         ]);
 
-        $event->load(['user:id,name', 'category:id,name,slug']);
+        if (is_array($imagePaths) && $imagePaths !== []) {
+            $this->syncImages($event, $imagePaths);
+        }
+
+        $event->load(['user:id,name', 'category:id,name,slug', 'images']);
 
         return response()->json([
             'message' => 'Event berhasil dibuat',
@@ -173,13 +182,23 @@ class AdminEventController extends Controller
         }
 
         $validated = $this->validatePayload($request, true);
+        $hasImages = array_key_exists('image_paths', $validated);
+        $imagePaths = $validated['image_paths'] ?? [];
+        unset($validated['image_paths']);
 
         if (isset($validated['title']) && $validated['title'] !== $event->title) {
             $validated['slug'] = Str::slug($validated['title']).'-'.Str::lower(Str::random(5));
         }
 
-        $event->update($validated);
-        $event->load(['user:id,name', 'category:id,name,slug']);
+        if ($validated !== []) {
+            $event->update($validated);
+        }
+
+        if ($hasImages && is_array($imagePaths)) {
+            $this->syncImages($event, $imagePaths);
+        }
+
+        $event->load(['user:id,name', 'category:id,name,slug', 'images']);
 
         return response()->json([
             'message' => 'Event berhasil diperbarui',
@@ -268,6 +287,8 @@ class AdminEventController extends Controller
             'documents' => 'nullable|array',
             'description' => "{$required}|string",
             'status' => 'nullable|in:draft,pending,published,rejected,archived',
+            'image_paths' => 'nullable|array|max:3',
+            'image_paths.*' => 'string|max:500',
         ]);
     }
 }

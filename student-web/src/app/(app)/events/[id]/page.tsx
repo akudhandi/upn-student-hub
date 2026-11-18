@@ -289,6 +289,22 @@ export default function EventDetailPage() {
         </button>
       </div>
 
+      {/* Non-published status banner (for owner viewing pending/draft/archived submission) */}
+      {item.status && item.status !== "published" && (
+        <div
+          role="status"
+          className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800"
+        >
+          {item.status === "pending"
+            ? "Pengajuan event ini sedang menunggu kurasi admin dan belum tampil di daftar publik."
+            : item.status === "rejected"
+              ? "Pengajuan event ini ditolak oleh moderator."
+              : item.status === "archived"
+                ? "Event ini berstatus arsip dan tidak lagi tampil di daftar publik."
+                : "Event ini masih berstatus draft dan belum dipublikasikan."}
+        </div>
+      )}
+
       {/* Title block */}
       <div className="mt-3 flex flex-wrap gap-1.5">
         <span className="rounded-md bg-teal-50 px-2 py-1 text-[11px] font-bold text-teal-700 ring-1 ring-inset ring-teal-100">

@@ -26,7 +26,7 @@ class AdminDashboardController extends Controller
 
         $activeListings = MarketplaceListing::where('status', 'active')->count()
             + ServiceListing::where('status', 'active')->count()
-            + LostFoundReport::where('status', 'open')->count();
+            + LostFoundReport::whereIn('status', ['open', 'active'])->count();
 
         $pendingEventsCount = Event::whereIn('status', ['draft', 'pending'])->count();
         $pendingReportsCount = Report::where('status', 'pending')->count();

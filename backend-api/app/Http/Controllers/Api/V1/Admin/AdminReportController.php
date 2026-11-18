@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Event;
 use App\Models\LostFoundReport;
+use App\Models\MarketplaceListing;
 use App\Models\Report;
+use App\Models\ServiceListing;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -77,7 +81,7 @@ class AdminReportController extends Controller
         $query = Report::query()
             ->with([
                 'reporter:id,name,email',
-                'reportable',
+                'reportable' => $this->reportableWithTrashedLoader(),
             ])
             ->latest();
 
@@ -119,7 +123,9 @@ class AdminReportController extends Controller
         ]);
 
         try {
-            $report = Report::with('reportable')->where('id', $id)->firstOrFail();
+            $report = Report::with(['reportable' => $this->reportableWithTrashedLoader()])
+                ->where('id', $id)
+                ->firstOrFail();
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'message' => 'Data laporan tidak ditemukan',
@@ -136,7 +142,10 @@ class AdminReportController extends Controller
             $request->user()?->id
         );
 
-        $report->load(['reporter:id,name,email', 'reportable']);
+        $report->load([
+            'reporter:id,name,email',
+            'reportable' => $this->reportableWithTrashedLoader(),
+        ]);
 
         return response()->json([
             'message' => 'Laporan berhasil diproses',
@@ -168,7 +177,9 @@ class AdminReportController extends Controller
         $targetAction = $validated['target_action'] ?? 'none';
 
         DB::transaction(function () use ($ids, $validated, $targetAction, $adminId) {
-            $reports = Report::with('reportable')->whereIn('id', $ids)->get();
+            $reports = Report::with(['reportable' => $this->reportableWithTrashedLoader()])
+                ->whereIn('id', $ids)
+                ->get();
             foreach ($reports as $report) {
                 $this->applyResolution($report, $validated['status'], $targetAction, $adminId);
             }
@@ -195,12 +206,22 @@ class AdminReportController extends Controller
         }
     }
 
+    private function reportableWithTrashedLoader(): \Closure
+    {
+        return static function (MorphTo $morphTo): void {
+            $morphTo->constrain([
+                MarketplaceListing::class => fn ($q) => $q->withTrashed(),
+                ServiceListing::class => fn ($q) => $q->withTrashed(),
+                LostFoundReport::class => fn ($q) => $q->withTrashed(),
+                Event::class => fn ($q) => $q->withTrashed(),
+            ]);
+        };
+    }
+
     private function applyTargetAction(object $target, string $action): void
     {
         // Canonical moderation verbs used by the admin portal.
-        if ($action === 'hide_content') {
-            $action = 'deactivate';
-        } elseif ($action === 'delete_content') {
+        if ($action === 'delete_content') {
             $action = 'delete';
         }
 
@@ -210,16 +231,26 @@ class AdminReportController extends Controller
             return;
         }
 
-        if ($action === 'deactivate') {
-            if ($target instanceof LostFoundReport) {
-                $target->update(['status' => 'closed']);
+        if ($action === 'hide_content' || $action === 'deactivate') {
+            if ($target instanceof User) {
+                $target->update(['status' => 'suspended']);
+                $target->tokens()->delete();
 
                 return;
             }
 
-            if ($target instanceof User) {
-                $target->update(['status' => 'suspended']);
-                $target->tokens()->delete();
+            if ($target instanceof Event) {
+                $target->update(['status' => 'archived']);
+
+                return;
+            }
+
+            if (
+                $target instanceof MarketplaceListing
+                || $target instanceof ServiceListing
+                || $target instanceof LostFoundReport
+            ) {
+                $target->update(['status' => 'hidden']);
 
                 return;
             }

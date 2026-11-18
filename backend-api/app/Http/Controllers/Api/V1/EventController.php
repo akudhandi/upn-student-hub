@@ -53,7 +53,7 @@ class EventController extends Controller
             ...$validated,
             'user_id' => $this->resolveStudentUserId($request),
             'slug' => Str::slug($request->title).'-'.Str::lower(Str::random(5)),
-            'status' => 'published',
+            'status' => 'pending',
         ]);
 
         $event->update([
@@ -71,7 +71,7 @@ class EventController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Event berhasil dibuat',
+            'message' => 'Pengajuan event berhasil dikirim dan menunggu kurasi admin',
             'data' => $event,
         ], 201);
     }
@@ -84,6 +84,7 @@ class EventController extends Controller
                 'category:id,name,slug',
                 'images',
             ])
+            ->where('status', 'published')
             ->orderBy('event_date', 'asc');
 
         if ($request->filled('category_id')) {
@@ -108,7 +109,7 @@ class EventController extends Controller
         ]);
     }
 
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
         try {
             $event = Event::query()
@@ -119,6 +120,13 @@ class EventController extends Controller
                 ])
                 ->where('id', $id)
                 ->firstOrFail();
+
+            if ($event->status !== 'published') {
+                $viewer = $this->resolveStudentUser($request);
+                if ($viewer === null || ! $this->isListingOwner($event, (int) $viewer->id)) {
+                    throw new ModelNotFoundException();
+                }
+            }
 
             return response()->json([
                 'message' => 'Detail event berhasil diambil',

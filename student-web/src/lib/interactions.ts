@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { getToken } from "@/lib/auth";
 
 // ---------------------------------------------------------------------------
 // Shared client for the polymorphic interaction endpoints
@@ -38,6 +39,13 @@ export type ReviewItem = {
   created_at: string;
   user?: { id: number; name: string } | null;
 };
+
+export async function checkFavorite(type: InteractableType, id: number | string): Promise<boolean> {
+  const res = await apiFetch<{ message: string; favorited: boolean }>(
+    `/v1/favorites/check?type=${encodeURIComponent(type)}&id=${encodeURIComponent(String(id))}`
+  );
+  return Boolean(res.favorited);
+}
 
 export async function toggleFavorite(type: InteractableType, id: number | string): Promise<boolean> {
   const res = await apiFetch<{ message: string; favorited: boolean }>("/v1/favorites/toggle", {
@@ -207,10 +215,25 @@ export async function deleteChatMessage(
   return res.data;
 }
 
-// Optimistic favorite toggle for detail pages. Reverts on API failure.
+// Hydrated optimistic favorite toggle for detail pages. Reverts on API failure.
 export function useFavorite(type: InteractableType, id: number | string | undefined) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
+
+  useEffect(() => {
+    if (id === undefined || !getToken()) return;
+    let cancelled = false;
+    checkFavorite(type, id)
+      .then((favorited) => {
+        if (!cancelled) setIsFavorite(favorited);
+      })
+      .catch(() => {
+        // Ignore transient or unauthenticated state checks
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [type, id]);
 
   const toggle = useCallback(async () => {
     if (isToggling || id === undefined) return;

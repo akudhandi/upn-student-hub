@@ -86,7 +86,7 @@ class MarketplaceController extends Controller
         ]);
     }
 
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
         try {
             $listing = MarketplaceListing::query()
@@ -97,6 +97,13 @@ class MarketplaceController extends Controller
                 ])
                 ->where('id', $id)
                 ->firstOrFail();
+
+            if ($listing->status === 'hidden') {
+                $viewer = $this->resolveStudentUser($request);
+                if ($viewer === null || ! $this->isListingOwner($listing, (int) $viewer->id)) {
+                    throw new ModelNotFoundException();
+                }
+            }
 
             return response()->json([
                 'message' => 'Detail marketplace berhasil diambil',
@@ -171,6 +178,13 @@ class MarketplaceController extends Controller
         if (! $this->isListingOwner($listing, $this->resolveStudentUserId($request))) {
             return response()->json([
                 'message' => 'Anda tidak berhak mengubah status listing ini.',
+                'data' => null,
+            ], 403);
+        }
+
+        if ($listing->status === 'hidden') {
+            return response()->json([
+                'message' => 'Listing ini sedang disembunyikan oleh moderator dan tidak dapat diubah statusnya.',
                 'data' => null,
             ], 403);
         }

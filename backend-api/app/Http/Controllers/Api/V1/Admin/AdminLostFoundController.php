@@ -61,7 +61,7 @@ class AdminLostFoundController extends Controller
     {
         return $request->validate([
             'tab' => 'nullable|in:all,lost,found,resolved',
-            'status' => 'nullable|in:open,hidden,closed,deleted',
+            'status' => 'nullable|in:open,active,resolved,hidden,closed,deleted',
             'search' => 'nullable|string|max:255',
             'category_id' => 'nullable|integer|exists:categories,id',
             'date_from' => 'nullable|date',
@@ -88,10 +88,13 @@ class AdminLostFoundController extends Controller
             $query->whereIn('status', ['resolved', 'closed']);
         }
 
-        if (($validated['status'] ?? null) === 'deleted') {
+        $statusFilter = $validated['status'] ?? null;
+        if ($statusFilter === 'deleted') {
             $query->onlyTrashed();
-        } elseif (! empty($validated['status'])) {
-            $query->where('status', $validated['status']);
+        } elseif ($statusFilter === 'open' || $statusFilter === 'active') {
+            $query->whereIn('status', ['open', 'active']);
+        } elseif (! empty($statusFilter)) {
+            $query->where('status', $statusFilter);
         } elseif ($tab === 'all') {
             $query->withTrashed();
         }

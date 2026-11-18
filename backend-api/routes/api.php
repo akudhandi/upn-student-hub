@@ -86,6 +86,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
         // Polymorphic Interactions
         Route::get('/favorites', [FavoriteController::class, 'index']);
+        Route::get('/favorites/check', [FavoriteController::class, 'check']);
         Route::post('/favorites/toggle', [FavoriteController::class, 'toggle']);
         Route::post('/reviews', [ReviewController::class, 'store']);
         Route::post('/reports', [ReportController::class, 'store']);

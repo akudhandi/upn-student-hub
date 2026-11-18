@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { CategoryItem, EventStatus } from "@/lib/admin-api";
+import { mediaUrl } from "@/lib/media";
 
 export interface EventFormValues {
   title: string;
@@ -14,6 +15,8 @@ export interface EventFormValues {
   registration_link: string;
   status: EventStatus;
   description: string;
+  existingPosterPath: string | null;
+  posterFile: File | null;
 }
 
 export const EMPTY_EVENT_FORM: EventFormValues = {
@@ -26,7 +29,12 @@ export const EMPTY_EVENT_FORM: EventFormValues = {
   registration_link: "",
   status: "published",
   description: "",
+  existingPosterPath: null,
+  posterFile: null,
 };
+
+const MAX_POSTER_BYTES = 5 * 1024 * 1024;
+const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export default function EventForm({
   initial,
@@ -46,11 +54,51 @@ export default function EventForm({
   const [values, setValues] = useState<EventFormValues>(initial);
   const [validationError, setValidationError] = useState<string | null>(null);
 
+  const localPreviewUrl = useMemo(
+    () => (values.posterFile ? URL.createObjectURL(values.posterFile) : null),
+    [values.posterFile],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
+    };
+  }, [localPreviewUrl]);
+
+  const activePosterPreview =
+    localPreviewUrl ?? mediaUrl(values.existingPosterPath);
+
   function setField<K extends keyof EventFormValues>(
     key: K,
     value: EventFormValues[K],
   ) {
     setValues((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handlePosterChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    e.target.value = "";
+    if (!file) return;
+
+    if (!ALLOWED_MIME.has(file.type)) {
+      setValidationError("Format poster harus JPG, PNG, atau WebP.");
+      return;
+    }
+    if (file.size > MAX_POSTER_BYTES) {
+      setValidationError("Ukuran poster maksimal 5 MB.");
+      return;
+    }
+
+    setValidationError(null);
+    setValues((prev) => ({ ...prev, posterFile: file }));
+  }
+
+  function handleRemovePoster() {
+    setValues((prev) => ({
+      ...prev,
+      posterFile: null,
+      existingPosterPath: null,
+    }));
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -243,6 +291,53 @@ export default function EventForm({
             placeholder="https://..."
             className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
           />
+        </div>
+      </div>
+
+      {/* Poster Event */}
+      <div>
+        <label
+          htmlFor="event-poster"
+          className="mb-1.5 block text-xs font-semibold text-slate-600"
+        >
+          Poster / Gambar Event (Opsional)
+        </label>
+        <div className="flex flex-col gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50/70 p-4 sm:flex-row sm:items-center">
+          {activePosterPreview ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={activePosterPreview}
+              alt="Preview poster event"
+              className="h-28 w-44 shrink-0 rounded-lg border border-slate-200 bg-white object-cover"
+            />
+          ) : (
+            <div className="flex h-28 w-44 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs text-slate-400">
+              Belum ada poster
+            </div>
+          )}
+          <div className="min-w-0 flex-1 space-y-2">
+            <input
+              id="event-poster"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              disabled={submitting}
+              onChange={handlePosterChange}
+              className="block w-full text-xs text-slate-600 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-slate-800"
+            />
+            <p className="text-xs text-slate-400">
+              Format JPG, PNG, atau WebP. Ukuran maksimal 5 MB.
+            </p>
+            {activePosterPreview && (
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleRemovePoster}
+                className="text-xs font-semibold text-rose-600 hover:underline disabled:opacity-50"
+              >
+                Hapus Poster
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

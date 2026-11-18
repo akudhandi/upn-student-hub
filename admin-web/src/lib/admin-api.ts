@@ -364,6 +364,24 @@ export interface AdminEventInput {
   registration_link?: string | null;
   description: string;
   status?: EventStatus;
+  image_paths?: string[];
+}
+
+export async function uploadAdminMedia(
+  file: File,
+  folder: 'events' | 'listings' | 'avatars' = 'events',
+): Promise<{ path: string; url: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('folder', folder);
+
+  const { data } = await api.post<{
+    message: string;
+    data: { path: string; url: string };
+  }>('/media/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data.data;
 }
 
 export async function getAdminEvents(params: {
@@ -431,7 +449,7 @@ export async function updateAdminEventStatus(
 // Categories (Master Data)
 // ---------------------------------------------------------------------------
 
-export type CategoryType = 'marketplace' | 'service' | 'event';
+export type CategoryType = 'marketplace' | 'service' | 'lost_found' | 'event';
 
 export interface CategoryItem {
   id: number;

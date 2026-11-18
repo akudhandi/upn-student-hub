@@ -16,7 +16,7 @@ class AdminCategoryController extends Controller
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'type' => 'nullable|in:marketplace,service,event',
+            'type' => 'nullable|in:marketplace,service,lost_found,event',
         ]);
 
         $query = Category::query()->orderBy('type')->orderBy('name');
@@ -35,7 +35,7 @@ class AdminCategoryController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:100',
-            'type' => 'required|in:marketplace,service,event',
+            'type' => 'required|in:marketplace,service,lost_found,event',
         ]);
 
         $category = Category::create([
@@ -64,7 +64,7 @@ class AdminCategoryController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:100',
-            'type' => 'sometimes|required|in:marketplace,service,event',
+            'type' => 'sometimes|required|in:marketplace,service,lost_found,event',
         ]);
 
         if (isset($validated['name']) && $validated['name'] !== $category->name) {
@@ -88,6 +88,18 @@ class AdminCategoryController extends Controller
                 'message' => 'Data kategori tidak ditemukan',
                 'data' => null,
             ], 404);
+        }
+
+        $usageCount = $category->marketplaceListings()->withTrashed()->count()
+            + $category->serviceListings()->withTrashed()->count()
+            + $category->lostFoundReports()->withTrashed()->count()
+            + $category->events()->withTrashed()->count();
+
+        if ($usageCount > 0) {
+            return response()->json([
+                'message' => "Kategori tidak dapat dihapus karena masih digunakan oleh {$usageCount} data. Nonaktifkan kategori alih-alih menghapusnya.",
+                'data' => ['usage_count' => $usageCount],
+            ], 422);
         }
 
         $category->delete();

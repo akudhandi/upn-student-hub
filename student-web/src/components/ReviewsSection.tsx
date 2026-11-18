@@ -9,6 +9,7 @@ import {
   type ReviewSummary,
 } from "@/lib/interactions";
 import { type ApiError } from "@/lib/api";
+import { getUser } from "@/lib/auth";
 
 function StarRow({ value, onSelect }: { value: number; onSelect?: (v: number) => void }) {
   return (
@@ -38,7 +39,16 @@ function StarRow({ value, onSelect }: { value: number; onSelect?: (v: number) =>
   );
 }
 
-export default function ReviewsSection({ type, id }: { type: InteractableType; id: number | string }) {
+export default function ReviewsSection({
+  type,
+  id,
+  ownerId,
+}: {
+  type: InteractableType;
+  id: number | string;
+  ownerId?: number | null;
+}) {
+  const [currentUserId] = useState<number | null>(() => getUser()?.id ?? null);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -136,38 +146,59 @@ export default function ReviewsSection({ type, id }: { type: InteractableType; i
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="mt-4 border-t border-slate-100 pt-4">
-            <p className="text-[12px] font-semibold text-slate-900">Tulis ulasanmu</p>
-            <div className="mt-1.5">
-              <StarRow value={rating} onSelect={setRating} />
+          {ownerId !== null &&
+          ownerId !== undefined &&
+          currentUserId !== null &&
+          Number(ownerId) === Number(currentUserId) ? (
+            <p className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+              Ini adalah iklan milik Anda. Ulasan hanya dapat ditulis oleh mahasiswa lain.
+            </p>
+          ) : currentUserId !== null &&
+            reviews.some((r) => r.user?.id === currentUserId) ? (
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              {notice && (
+                <p role="status" className="mb-2 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-700">
+                  {notice}
+                </p>
+              )}
+              <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                Anda sudah memberikan ulasan untuk iklan ini.
+              </p>
             </div>
-            <textarea
-              rows={2}
-              maxLength={1000}
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Ceritakan pengalamanmu (opsional)…"
-              aria-label="Komentar ulasan"
-              className="mt-2 w-full rounded-lg border border-slate-200 bg-[#F8F9FB] px-3 py-2 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-amber-400 focus:bg-white focus:outline-none"
-            />
-            {error && (
-              <p role="alert" className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
-                {error}
-              </p>
-            )}
-            {notice && (
-              <p role="status" className="mt-2 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-700">
-                {notice}
-              </p>
-            )}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="mt-2 rounded-lg bg-slate-900 px-4 py-2 text-[13px] font-semibold text-white hover:bg-slate-700 disabled:opacity-60"
-            >
-              {isSubmitting ? "Mengirim…" : "Kirim Ulasan"}
-            </button>
-          </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="mt-4 border-t border-slate-100 pt-4">
+              <p className="text-[12px] font-semibold text-slate-900">Tulis ulasanmu</p>
+              <div className="mt-1.5">
+                <StarRow value={rating} onSelect={setRating} />
+              </div>
+              <textarea
+                rows={2}
+                maxLength={1000}
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Ceritakan pengalamanmu (opsional)…"
+                aria-label="Komentar ulasan"
+                className="mt-2 w-full rounded-lg border border-slate-200 bg-[#F8F9FB] px-3 py-2 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-amber-400 focus:bg-white focus:outline-none"
+              />
+              {error && (
+                <p role="alert" className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                  {error}
+                </p>
+              )}
+              {notice && (
+                <p role="status" className="mt-2 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-700">
+                  {notice}
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="mt-2 rounded-lg bg-slate-900 px-4 py-2 text-[13px] font-semibold text-white hover:bg-slate-700 disabled:opacity-60"
+              >
+                {isSubmitting ? "Mengirim…" : "Kirim Ulasan"}
+              </button>
+            </form>
+          )}
 
           {reviews.length > 0 && (
             <ul className="mt-4 space-y-3 border-t border-slate-100 pt-4">

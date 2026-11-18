@@ -88,7 +88,7 @@ class ServiceController extends Controller
         ]);
     }
 
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
         try {
             $listing = ServiceListing::query()
@@ -99,6 +99,13 @@ class ServiceController extends Controller
                 ])
                 ->where('id', $id)
                 ->firstOrFail();
+
+            if ($listing->status === 'hidden') {
+                $viewer = $this->resolveStudentUser($request);
+                if ($viewer === null || ! $this->isListingOwner($listing, (int) $viewer->id)) {
+                    throw new ModelNotFoundException();
+                }
+            }
 
             return response()->json([
                 'message' => 'Detail jasa berhasil diambil',
@@ -146,6 +153,20 @@ class ServiceController extends Controller
             'image_paths.*' => 'string|max:500',
         ]);
 
+        $effectiveMin = array_key_exists('price_min', $validated)
+            ? (float) $validated['price_min']
+            : (float) $listing->price_min;
+        if (
+            array_key_exists('price_max', $validated)
+            && $validated['price_max'] !== null
+            && (float) $validated['price_max'] < $effectiveMin
+        ) {
+            return response()->json([
+                'message' => 'Harga maksimum tidak boleh lebih kecil dari harga minimum.',
+                'errors' => ['price_max' => ['Harga maksimum harus lebih besar atau sama dengan harga minimum.']],
+            ], 422);
+        }
+
         $hasImages = array_key_exists('image_paths', $validated);
         $imagePaths = $validated['image_paths'] ?? [];
         unset($validated['image_paths']);
@@ -179,6 +200,13 @@ class ServiceController extends Controller
         if (! $this->isListingOwner($listing, $this->resolveStudentUserId($request))) {
             return response()->json([
                 'message' => 'Anda tidak berhak mengubah status jasa ini.',
+                'data' => null,
+            ], 403);
+        }
+
+        if ($listing->status === 'hidden') {
+            return response()->json([
+                'message' => 'Listing jasa ini sedang disembunyikan oleh moderator dan tidak dapat diubah statusnya.',
                 'data' => null,
             ], 403);
         }

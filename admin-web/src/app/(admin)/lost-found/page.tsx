@@ -429,6 +429,7 @@ export default function LostFoundAdminPage() {
             >
               <option value="">Semua Status</option>
               <option value="open">Terbuka</option>
+              <option value="resolved">Selesai</option>
               <option value="hidden">Tersembunyi</option>
               <option value="closed">Ditutup</option>
               <option value="deleted">Dihapus</option>

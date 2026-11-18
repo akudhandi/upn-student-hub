@@ -496,7 +496,7 @@ export default function ServiceDetailPage() {
           </section>
 
           <div className="mt-5">
-            <ReviewsSection type="service" id={item.id} />
+            <ReviewsSection type="service" id={item.id} ownerId={item.user?.id} />
           </div>
         </div>
 
