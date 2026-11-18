@@ -26,47 +26,41 @@ type NavItem = {
 function IconDashboard() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <rect x="1.5" y="1.5" width="5" height="5" rx="0.5" stroke="currentColor" strokeWidth="1.2" />
-      <rect x="9.5" y="1.5" width="5" height="5" rx="0.5" stroke="currentColor" strokeWidth="1.2" />
-      <rect x="1.5" y="9.5" width="5" height="5" rx="0.5" stroke="currentColor" strokeWidth="1.2" />
-      <rect x="9.5" y="9.5" width="5" height="5" rx="0.5" fill="currentColor" />
+      <rect x="1.5" y="1.5" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3" />
+      <rect x="9.5" y="1.5" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3" />
+      <rect x="1.5" y="9.5" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3" />
+      <rect x="9.5" y="9.5" width="5" height="5" rx="1.2" fill="currentColor" />
     </svg>
   );
 }
 function IconMarketplace() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M2 5.5L8 2L14 5.5V13H2V5.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-      <path d="M6 13V7H10V13" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6 8h12l-1 11H7L6 8z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M9.5 8V6.5a2.5 2.5 0 015 0V8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
 function IconServices() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M8 3.5L2.5 6L8 8.5L13.5 6L8 3.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-      <path d="M2.5 8L8 10.5L13.5 8" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-      <path d="M2.5 10L8 12.5L13.5 10" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 3l2.2 5.3L19.5 10l-5.3 1.8L12 17l-2.2-5.2L4.5 10l5.3-1.7L12 3z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
     </svg>
   );
 }
 function IconLostFound() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <rect x="2.5" y="2.5" width="11" height="11" rx="1" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M5.5 7H10.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M5.5 10H9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <circle cx="11" cy="11" r="2.3" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M12.6 12.6L14 14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="11" cy="11" r="6" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M15.5 15.5L20 20" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
 function IconEvent() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M2 6.5H14M5.5 1.8V3.5M10.5 1.8V3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M5.5 9.5L7 11L10.5 7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="4" y="5.5" width="16" height="14.5" rx="3" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M8 3.5v3M16 3.5v3M4 10h16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -76,7 +70,7 @@ function IconMessages() {
       <path
         d="M2.5 3.5H13.5C13.78 3.5 14 3.72 14 4V10C14 10.28 13.78 10.5 13.5 10.5H8L5.5 13V10.7L2.7 10.6C2.42 10.6 2.2 10.38 2.2 10.1V4C2.2 3.72 2.42 3.5 2.7 3.5H2.5Z"
         stroke="currentColor"
-        strokeWidth="1.2"
+        strokeWidth="1.3"
         strokeLinejoin="round"
       />
     </svg>
@@ -88,7 +82,7 @@ function IconFavorites() {
       <path
         d="M4.5 2.5H11.5C11.78 2.5 12 2.72 12 3V13.5L8 11L4 13.5V3C4 2.72 4.22 2.5 4.5 2.5Z"
         stroke="currentColor"
-        strokeWidth="1.2"
+        strokeWidth="1.3"
         strokeLinejoin="round"
       />
     </svg>
@@ -97,15 +91,15 @@ function IconFavorites() {
 function IconProfile() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M3 13C3 10.6 5 9 8 9C11 9 13 10.6 13 13" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M3 13C3 10.6 5 9 8 9C11 9 13 10.6 13 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   );
 }
 function IconPlus() {
   return (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -137,19 +131,25 @@ function NavLink({
     <Link
       href={item.href}
       onClick={onNavigate}
-      className={`flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-medium transition-colors ${
+      className={`group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
         isActive
-          ? "bg-slate-100 text-slate-900"
-          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+          ? "border border-[#E5E0DA] bg-white text-[#141416] shadow-[0_4px_14px_-6px_rgba(20,20,22,0.12)]"
+          : "border border-transparent text-[#6E6A66] hover:bg-white/65 hover:text-[#141416]"
       }`}
       aria-current={isActive ? "page" : undefined}
     >
-      <span className={isActive ? "text-slate-900" : "text-slate-500"}>{item.icon}</span>
-      <span className="flex-1">{item.label}</span>
+      <span
+        className={`transition-colors ${
+          isActive ? "text-[#141416]" : "text-[#85817C] group-hover:text-[#141416]"
+        }`}
+      >
+        {item.icon}
+      </span>
+      <span className="flex-1 truncate">{item.label}</span>
       {item.badge && (
         <span
-          className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold ${
-            isActive ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"
+          className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
+            isActive ? "bg-[#141416] text-white" : "bg-[#E4DFDA] text-[#141416]"
           }`}
           aria-label={`${item.badge} pesan belum dibaca`}
         >
@@ -252,8 +252,8 @@ export default function AppLayout({
 
   if (!checked) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F8F9FB]">
-        <p className="text-sm text-slate-500">Memeriksa sesi…</p>
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F1EE]">
+        <p className="text-sm font-medium text-[#787470]">Memeriksa sesi…</p>
       </div>
     );
   }
@@ -280,38 +280,49 @@ export default function AppLayout({
     .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB]">
+    <div className="min-h-screen bg-[#F4F1EE] text-[#141416] selection:bg-[#141416] selection:text-white">
       {/* Mobile overlay */}
       {mobileOpen && (
         <button
           aria-label="Tutup navigasi"
-          className="fixed inset-0 z-30 bg-slate-900/20 lg:hidden"
+          className="fixed inset-0 z-30 bg-[#141416]/25 backdrop-blur-[1px] lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Warm Stone Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-[260px] flex-col border-r border-slate-200 bg-white transition-transform duration-200 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-[264px] flex-col border-r border-[#E6E1DC] bg-[#EFECE8] transition-transform duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Brand */}
-        <div className="flex h-[64px] items-center gap-3 border-b border-slate-200 px-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-sm font-bold text-white">
-            U
-          </div>
+        <Link
+          href="/dashboard"
+          onClick={() => setMobileOpen(false)}
+          className="group flex h-[72px] items-center gap-3 px-5"
+        >
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#141416] text-white transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M8 1.5L9.8 6.2L14.5 8L9.8 9.8L8 14.5L6.2 9.8L1.5 8L6.2 6.2L8 1.5Z"
+                fill="currentColor"
+              />
+            </svg>
+          </span>
           <div className="min-w-0">
-            <p className="text-[13px] font-semibold leading-none tracking-tight text-slate-900">
+            <p className="font-display text-sm font-semibold leading-none tracking-tight text-[#141416]">
               UPN Hub
             </p>
-            <p className="mt-0.5 text-[11px] font-medium tracking-wide text-slate-500">Portal Mahasiswa</p>
+            <p className="mt-1 text-[11px] font-medium text-[#787470]">
+              Portal Mahasiswa
+            </p>
           </div>
-        </div>
+        </Link>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Navigasi utama">
-          <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <nav className="flex-1 overflow-y-auto px-3.5 py-2" aria-label="Navigasi utama">
+          <p className="px-3.5 pb-2 text-[11px] font-medium text-[#8C8782]">
             Menu Utama
           </p>
           <ul className="space-y-1">
@@ -326,7 +337,7 @@ export default function AppLayout({
             ))}
           </ul>
 
-          <p className="px-3 pb-2 pt-6 text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <p className="px-3.5 pb-2 pt-6 text-[11px] font-medium text-[#8C8782]">
             Aktivitas Saya
           </p>
           <ul className="space-y-1">
@@ -349,56 +360,71 @@ export default function AppLayout({
         </nav>
 
         {/* Bottom CTA + user summary */}
-        <div className="border-t border-slate-200 px-4 py-4">
+        <div className="border-t border-[#E4DFDA] p-4">
           <button
             type="button"
             onClick={handleCreateClick}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
+            className="flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[#141416] px-4 text-xs font-medium text-white transition-all duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-[1px] hover:bg-[#242428] hover:shadow-[0_10px_22px_-10px_rgba(20,20,22,0.38)] active:translate-y-0 active:scale-[0.99]"
           >
             <IconPlus /> {pathname?.startsWith("/events") ? "Ajukan Event" : "Pasang Iklan"}
           </button>
-          <div className="mt-3 flex items-center gap-3 px-1">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
-              {avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
-              ) : (
-                initials
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-semibold text-slate-900">{displayName}</p>
-              <p className="truncate text-xs text-slate-500">{displayFaculty}</p>
-            </div>
+
+          <div className="mt-3.5 flex items-center gap-2.5 rounded-2xl border border-[#E5E0DA] bg-white p-2.5">
+            <Link
+              href="/profile"
+              onClick={() => setMobileOpen(false)}
+              className="flex min-w-0 flex-1 items-center gap-2.5"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-[11px] font-semibold text-white">
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  initials
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-semibold text-[#141416]">{displayName}</p>
+                <p className="truncate text-[11px] text-[#787470]">{displayFaculty}</p>
+              </div>
+            </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              title="Keluar dari akun"
+              aria-label="Keluar dari akun"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#787470] transition-colors hover:bg-[#F4F1EE] hover:text-[#C53939]"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M15 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3M10 17l5-5-5-5M15 12H3"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="mt-3 flex w-full items-center justify-center rounded border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Keluar
-          </button>
         </div>
       </aside>
 
-      {/* Main */}
-      <div className="lg:pl-[260px]">
-        {/* Top header */}
-        <header className="sticky top-0 z-20 flex h-[64px] items-center gap-3 border-b border-slate-200 bg-white px-4 lg:px-6">
+      {/* Main Content Area */}
+      <div className="lg:pl-[264px]">
+        {/* Top Header */}
+        <header className="sticky top-0 z-20 flex h-[72px] items-center gap-3 border-b border-[#E6E1DC]/80 bg-[#F4F1EE]/90 px-4 backdrop-blur-md lg:px-8">
           <button
             type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded border border-slate-200 text-slate-700 hover:bg-slate-50 lg:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E0DA] bg-white text-[#141416] transition-colors hover:bg-[#FAF8F6] lg:hidden"
             aria-label="Buka navigasi"
             onClick={() => setMobileOpen((v) => !v)}
           >
-            <span className="block h-3.5 w-3.5">
-              <span className="block h-0.5 w-full bg-current" />
-              <span className="mt-1 block h-0.5 w-full bg-current" />
-              <span className="mt-1 block h-0.5 w-full bg-current" />
-            </span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
           </button>
 
-          {/* Search */}
+          {/* Pill Search Bar */}
           <form
             className="flex flex-1 items-center"
             onSubmit={(e) => {
@@ -421,11 +447,11 @@ export default function AppLayout({
             <label htmlFor="dashboard-search" className="sr-only">
               Cari
             </label>
-            <div className="relative w-full max-w-[420px]">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.2" />
-                  <path d="M10.5 10.5L13 13" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+            <div className="relative w-full max-w-[440px]">
+              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#85817C]">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.3" />
+                  <path d="M10.5 10.5L13 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
                 </svg>
               </span>
               <input
@@ -433,47 +459,55 @@ export default function AppLayout({
                 type="search"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Cari barang, jasa, laporan, atau event..."
-                className="h-9 w-full rounded border border-slate-200 bg-[#F8F9FB] py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
+                placeholder="Cari barang, jasa, laporan, atau event…"
+                className="h-10 w-full rounded-full border border-[#E5E0DA] bg-white/90 py-2 pl-10 pr-4 text-xs text-[#141416] placeholder:text-[#9A958F] transition-all duration-200 focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none sm:text-[13px]"
               />
             </div>
           </form>
 
-          {/* Right actions */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Right Actions */}
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <DevUserSwitcher />
             <NotificationBell />
-            <div className="hidden items-center gap-3 sm:flex">
-              <div className="h-6 w-px bg-slate-200" aria-hidden="true" />
-              <div className="flex items-center gap-2">
-                <div className="hidden text-right sm:block">
-                  <p className="text-xs font-semibold leading-none text-slate-900">{displayName}</p>
-                  <p className="mt-0.5 text-[11px] leading-none text-slate-500">{displayEmail || displayFaculty}</p>
-                </div>
-                <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
-                  {avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    initials
-                  )}
-                </div>
+            <Link
+              href="/profile"
+              className="hidden items-center gap-2.5 rounded-full border border-[#E5E0DA] bg-white py-1 pl-1.5 pr-3.5 transition-all duration-200 hover:-translate-y-[1px] hover:border-[#D5CEC6] hover:shadow-xs sm:inline-flex"
+            >
+              <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-[11px] font-semibold text-white">
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  initials
+                )}
               </div>
-            </div>
-            {/* Mobile user */}
-            <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-900 text-xs font-semibold text-white sm:hidden">
+              <div className="text-left">
+                <p className="max-w-[130px] truncate text-xs font-semibold leading-tight text-[#141416]">
+                  {displayName}
+                </p>
+                <p className="max-w-[130px] truncate text-[10px] leading-tight text-[#787470]">
+                  {displayFaculty || displayEmail}
+                </p>
+              </div>
+            </Link>
+            {/* Mobile user avatar */}
+            <Link
+              href="/profile"
+              aria-label="Profil saya"
+              className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-xs font-semibold text-white sm:hidden"
+            >
               {avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
               ) : (
                 initials
               )}
-            </div>
+            </Link>
           </div>
         </header>
 
-        {/* Content */}
-        <main className="px-4 py-6 lg:px-6">{children}</main>
+        {/* Page Content */}
+        <main className="px-4 py-6 lg:px-8 lg:py-7">{children}</main>
       </div>
     </div>
   );
