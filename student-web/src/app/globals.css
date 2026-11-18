@@ -1,8 +1,8 @@
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
-@theme {
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --color-brand-navy: #08172c;
   --color-brand-navysidebar: #0b192e;
   --color-brand-navyitemhover: #132845;
@@ -14,7 +14,15 @@
 
 body {
   font-family: var(--font-sans);
-  background-color: #f8fafc;
+  background-color: #f4f1ee;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-display {
+  font-family: var(--font-display);
 }
 
 @keyframes fade-in {
