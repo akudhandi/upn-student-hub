@@ -127,4 +127,20 @@ class StudentPriorityOneTest extends TestCase
         $this->assertCount(1, $response->json('data'));
         $this->assertSame('Buku Kuliah', $response->json('data.0.name'));
     }
+
+    public function test_marketplace_index_filters_by_price_range_and_updates_total(): void
+    {
+        $category = Category::create(['name' => 'Buku Kuliah', 'slug' => 'buku-kuliah-price', 'type' => 'marketplace', 'is_active' => true]);
+        MarketplaceListing::factory()->create(['category_id' => $category->id, 'price' => 150000, 'status' => 'active']);
+        MarketplaceListing::factory()->create(['category_id' => $category->id, 'price' => 750000, 'status' => 'active']);
+        MarketplaceListing::factory()->create(['category_id' => $category->id, 'price' => 1500000, 'status' => 'active']);
+
+        $mid = $this->getJson('/api/v1/marketplace?min_price=500000&max_price=1000000')->assertOk();
+        $this->assertSame(1, $mid->json('data.total'));
+        $this->assertEquals(750000, (float) $mid->json('data.data.0.price'));
+
+        $low = $this->getJson('/api/v1/marketplace?max_price=499999')->assertOk();
+        $this->assertSame(1, $low->json('data.total'));
+        $this->assertEquals(150000, (float) $low->json('data.data.0.price'));
+    }
 }

@@ -25,6 +25,28 @@ h4,
   font-family: var(--font-display);
 }
 
+@layer base {
+  a[href],
+  button:not(:disabled),
+  summary,
+  select:not(:disabled),
+  label[for],
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  [role="option"] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled,
+  input:disabled,
+  textarea:disabled {
+    cursor: not-allowed;
+  }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -181,6 +203,7 @@ h4,
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .animate-pulse,
   .auth-shell-enter,
   .auth-panel-slide-right,
   .auth-panel-slide-left,

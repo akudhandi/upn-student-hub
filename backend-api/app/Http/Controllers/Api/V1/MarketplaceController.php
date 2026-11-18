@@ -72,6 +72,14 @@ class MarketplaceController extends Controller
             $query->where('condition', $request->query('condition'));
         }
 
+        if ($request->filled('min_price') && is_numeric($request->query('min_price'))) {
+            $query->where('price', '>=', (float) $request->query('min_price'));
+        }
+
+        if ($request->filled('max_price') && is_numeric($request->query('max_price'))) {
+            $query->where('price', '<=', (float) $request->query('max_price'));
+        }
+
         if ($request->filled('q')) {
             $keyword = (string) $request->query('q');
             $query->where(function ($q) use ($keyword) {

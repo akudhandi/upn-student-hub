@@ -21,10 +21,12 @@ type ListingImageProps = {
   /** Direct image URL override. */
   src?: string | null;
   eager?: boolean;
+  width?: number;
+  height?: number;
 };
 
-// Image with a two-level fallback chain: resolved source → picsum safety
-// net → styled placeholder block. Remote URLs are dynamic per listing, so a
+// Image with a two-level fallback chain: resolved source -> picsum safety
+// net -> styled placeholder block. Remote URLs are dynamic per listing, so a
 // plain <img> is used instead of next/image (no remotePatterns config).
 export default function ListingImage({
   module,
@@ -35,11 +37,11 @@ export default function ListingImage({
   images,
   src,
   eager = false,
+  width = 800,
+  height = 600,
 }: ListingImageProps) {
   const primary = resolveListingImage({ module, seed, hint, images, src });
   const picsumKey = `${module}-${seed}`;
-  // Failed URLs are keyed by value, so a new listing (new primary) never
-  // inherits a previous error state — no reset effect needed.
   const [failedPrimary, setFailedPrimary] = useState<string | null>(null);
   const [failedPicsumKey, setFailedPicsumKey] = useState<string | null>(null);
 
@@ -56,11 +58,21 @@ export default function ListingImage({
 
   if (exhausted) {
     return (
-      <div className={`flex items-center justify-center bg-[#EEF2F7] ${className ?? ""}`} role="img" aria-label={alt}>
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-slate-400">
-          <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.3" />
-          <circle cx="9" cy="9" r="2" stroke="currentColor" strokeWidth="1.3" />
-          <path d="M3 16L8.5 11L13 15.5L16 13L21 18" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round" />
+      <div
+        className={`flex items-center justify-center bg-[#EFECE8] text-[#5F5B57] ${className ?? ""}`}
+        role="img"
+        aria-label={alt}
+      >
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.4" />
+          <circle cx="9" cy="9" r="2" stroke="currentColor" strokeWidth="1.4" />
+          <path
+            d="M3 16L8.5 11L13 15.5L16 13L21 18"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
         </svg>
       </div>
     );
@@ -71,6 +83,9 @@ export default function ListingImage({
     <img
       src={usePicsum ? picsumFallback(module, seed) : primary}
       alt={alt}
+      width={width}
+      height={height}
+      fetchPriority={eager ? "high" : undefined}
       className={className}
       loading={eager ? "eager" : "lazy"}
       onError={handleError}

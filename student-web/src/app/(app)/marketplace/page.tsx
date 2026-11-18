@@ -14,10 +14,6 @@ import ListingImage from "@/components/ListingImage";
 import { getUser } from "@/lib/auth";
 import type { ApiImage } from "@/lib/images";
 
-// ---------------------------------------------------------------------------
-// API types — shape of GET /api/v1/marketplace (Laravel paginator wrapped in
-// a standard { message, data } JSON envelope).
-// ---------------------------------------------------------------------------
 type ApiMarketplaceItem = {
   id: number;
   title: string;
@@ -52,20 +48,6 @@ const CONDITION_OPTIONS = [
   { value: "good", label: "Layak pakai" },
   { value: "fair", label: "Perlu perbaikan" },
 ] as const;
-
-const CATEGORY_SUGGESTIONS = [
-  "Buku & Catatan",
-  "Elektronik & Gadget",
-  "Perlengkapan Kuliah",
-  "Pakaian & Aksesori",
-  "Hobi & Olahraga",
-  "Peralatan Kamar/Kost",
-  "Lainnya",
-] as const;
-
-function normalizeName(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9&]/g, "");
-}
 
 const EMPTY_FORM = {
   title: "",
@@ -108,6 +90,22 @@ function formatTimeAgo(isoDate: string): string {
   });
 }
 
+function priceRangeParams(priceFilter: string): {
+  minPrice?: string;
+  maxPrice?: string;
+} {
+  switch (priceFilter) {
+    case "under500":
+      return { maxPrice: "499999" };
+    case "500-1000":
+      return { minPrice: "500000", maxPrice: "1000000" };
+    case "over1000":
+      return { minPrice: "1000001" };
+    default:
+      return {};
+  }
+}
+
 function SellerAvatar({ name }: { name: string }) {
   const initials =
     name
@@ -124,33 +122,12 @@ function SellerAvatar({ name }: { name: string }) {
   );
 }
 
-function ArrowGlyph() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-      className="shrink-0 text-[#787470] transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] group-hover:translate-x-[3px] group-hover:text-[#141416]"
-    >
-      <path
-        d="M3.5 8h9M8.5 4l4 4-4 4"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 function ItemCardSkeleton() {
   return (
     <div className="flex flex-col overflow-hidden rounded-[20px] border border-[#E5E0DA] bg-white">
       <div className="aspect-[4/3] animate-pulse bg-[#EFECE8]" />
       <div className="flex flex-1 flex-col gap-3 p-5">
-        <div className="h-5 w-24 animate-pulse rounded-full bg-[#F4F1EE]" />
+        <div className="h-5 w-24 animate-pulse rounded-md bg-[#F4F1EE]" />
         <div className="h-5 w-4/5 animate-pulse rounded-lg bg-[#F4F1EE]" />
         <div className="h-6 w-2/5 animate-pulse rounded-lg bg-[#EFECE8]" />
         <div className="h-4 w-full animate-pulse rounded-lg bg-[#F4F1EE]" />
@@ -191,6 +168,7 @@ function MarketplaceContent() {
       pageNum: number,
       categoryId: number | null,
       condition: string,
+      priceRange: string,
       searchQuery: string,
       signal?: AbortSignal
     ) => {
@@ -201,6 +179,9 @@ function MarketplaceContent() {
         params.set("page", String(pageNum));
         if (categoryId !== null) params.set("category_id", String(categoryId));
         if (condition !== "any") params.set("condition", condition);
+        const { minPrice, maxPrice } = priceRangeParams(priceRange);
+        if (minPrice) params.set("min_price", minPrice);
+        if (maxPrice) params.set("max_price", maxPrice);
         if (searchQuery !== "") params.set("q", searchQuery);
         const res = await apiFetch<MarketplaceListResponse>(
           `/v1/marketplace?${params.toString()}`
@@ -237,11 +218,18 @@ function MarketplaceContent() {
   useEffect(() => {
     const controller = new AbortController();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch must populate state when filters/page change
-    void loadItems(page, activeCategoryId, conditionFilter, urlSearchQuery, controller.signal);
+    void loadItems(
+      page,
+      activeCategoryId,
+      conditionFilter,
+      priceFilter,
+      urlSearchQuery,
+      controller.signal
+    );
     return () => {
       controller.abort();
     };
-  }, [page, activeCategoryId, conditionFilter, urlSearchQuery, loadItems]);
+  }, [page, activeCategoryId, conditionFilter, priceFilter, urlSearchQuery, loadItems]);
 
   const clearCreateParam = useCallback(() => {
     if (searchParams.get("action") === "create") {
@@ -272,7 +260,7 @@ function MarketplaceContent() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isModalOpen, closeModal]);
 
-  const filterCategories = useMemo(() => {
+  const categoryOptions = useMemo(() => {
     if (backendCategories.length > 0) {
       return backendCategories.map((c) => ({ id: c.id, name: c.name }));
     }
@@ -283,26 +271,6 @@ function MarketplaceContent() {
       }
     }
     return [...byId.entries()].map(([id, name]) => ({ id, name }));
-  }, [backendCategories, items]);
-
-  const categoryOptions = useMemo(() => {
-    const byId = new Map<number, string>();
-    for (const cat of backendCategories) {
-      byId.set(cat.id, cat.name);
-    }
-    for (const item of items) {
-      if (item.category?.id && item.category?.name) {
-        byId.set(item.category.id, item.category.name);
-      }
-    }
-    const merged = [...byId.entries()].map(([id, name]) => ({ id, name }));
-    const known = new Set(merged.map((c) => normalizeName(c.name)));
-    CATEGORY_SUGGESTIONS.forEach((name, i) => {
-      if (!known.has(normalizeName(name))) {
-        merged.push({ id: -(i + 1), name });
-      }
-    });
-    return merged;
   }, [backendCategories, items]);
 
   function updateForm<K extends keyof typeof EMPTY_FORM>(key: K, value: string) {
@@ -338,7 +306,7 @@ function MarketplaceContent() {
     e.preventDefault();
     const categoryId = Number(formData.category_id);
     if (!Number.isInteger(categoryId) || categoryId <= 0) {
-      setSubmitError("Kategori tersebut belum tersedia di backend. Pilih kategori lain yang aktif.");
+      setSubmitError("Pilih kategori barang yang tersedia terlebih dahulu.");
       return;
     }
     setIsSubmitting(true);
@@ -367,7 +335,7 @@ function MarketplaceContent() {
       });
       clearCreateParam();
       setPage(1);
-      await loadItems(1, activeCategoryId, conditionFilter, urlSearchQuery);
+      await loadItems(1, activeCategoryId, conditionFilter, priceFilter, urlSearchQuery);
     } catch (err) {
       const apiError = err as ApiError;
       const fieldErrors = apiError.errors
@@ -378,14 +346,6 @@ function MarketplaceContent() {
       setIsSubmitting(false);
     }
   }
-
-  const filtered = items.filter((item) => {
-    const price = Number(item.price);
-    if (priceFilter === "under500" && price >= 500000) return false;
-    if (priceFilter === "500-1000" && (price < 500000 || price > 1000000)) return false;
-    if (priceFilter === "over1000" && price <= 1000000) return false;
-    return true;
-  });
 
   const hasActiveFilter =
     activeCategoryId !== null ||
@@ -407,6 +367,9 @@ function MarketplaceContent() {
     categoryOptions.find((c) => String(c.id) === formData.category_id)?.name ?? "Kategori";
   const previewSellerName = currentUser?.profile?.name || currentUser?.name || "Mahasiswa UPN";
   const previewSellerFaculty = currentUser?.profile?.faculty || "UPN Veteran Jatim";
+  const parsedPreviewPrice = Number(formData.price);
+  const hasValidPreviewPrice =
+    formData.price.trim() !== "" && !Number.isNaN(parsedPreviewPrice) && parsedPreviewPrice >= 0;
 
   return (
     <div className="auth-shell-enter mx-auto max-w-[1200px] space-y-7">
@@ -459,7 +422,6 @@ function MarketplaceContent() {
         aria-label="Filter katalog marketplace"
         className="rounded-[20px] border border-[#E5E0DA] bg-white p-5 sm:p-6"
       >
-        {/* Category Pills */}
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter berdasarkan kategori">
           <button
             type="button"
@@ -468,7 +430,7 @@ function MarketplaceContent() {
               setPage(1);
             }}
             aria-pressed={activeCategoryId === null}
-            className={`min-h-[38px] rounded-full px-4 py-1.5 text-[13px] font-medium transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
+            className={`min-h-[44px] rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
               activeCategoryId === null
                 ? "bg-[#141416] text-white"
                 : "bg-[#F4F1EE] text-[#57534E] hover:bg-[#EAE6E2] hover:text-[#141416]"
@@ -476,7 +438,7 @@ function MarketplaceContent() {
           >
             Semua kategori
           </button>
-          {filterCategories.map((cat) => {
+          {categoryOptions.map((cat) => {
             const isActive = activeCategoryId === cat.id;
             return (
               <button
@@ -487,7 +449,7 @@ function MarketplaceContent() {
                   setPage(1);
                 }}
                 aria-pressed={isActive}
-                className={`min-h-[38px] rounded-full px-4 py-1.5 text-[13px] font-medium transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
+                className={`min-h-[44px] rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
                   isActive
                     ? "bg-[#141416] text-white"
                     : "bg-[#F4F1EE] text-[#57534E] hover:bg-[#EAE6E2] hover:text-[#141416]"
@@ -499,7 +461,6 @@ function MarketplaceContent() {
           })}
         </div>
 
-        {/* Select Controls Row */}
         <div className="mt-5 grid grid-cols-1 gap-4 border-t border-[#F1EDE8] pt-5 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
           <div>
             <label htmlFor="price-range" className="block text-[13px] font-medium text-[#57534E]">
@@ -509,7 +470,10 @@ function MarketplaceContent() {
               <select
                 id="price-range"
                 value={priceFilter}
-                onChange={(e) => setPriceFilter(e.target.value)}
+                onChange={(e) => {
+                  setPriceFilter(e.target.value);
+                  setPage(1);
+                }}
                 className="h-11 w-full appearance-none rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-3.5 pr-9 text-[14px] text-[#141416] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
               >
                 <option value="any">Semua harga</option>
@@ -567,7 +531,7 @@ function MarketplaceContent() {
             <button
               type="button"
               onClick={resetFilters}
-              className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-5 text-[14px] font-medium text-[#141416] transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:border-[#141416] hover:bg-[#FAF8F6] active:translate-y-[1px] active:scale-[0.985]"
+              className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-5 text-[14px] font-medium text-[#141416] transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:border-[#141416] hover:bg-[#FAF8F6] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
             >
               Atur ulang filter
             </button>
@@ -600,26 +564,30 @@ function MarketplaceContent() {
             <p className="mx-auto mt-1.5 max-w-md text-[14px] text-[#6E6A66]">{error}</p>
             <button
               type="button"
-              onClick={() => void loadItems(page, activeCategoryId, conditionFilter, urlSearchQuery)}
-              className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985]"
+              onClick={() =>
+                void loadItems(page, activeCategoryId, conditionFilter, priceFilter, urlSearchQuery)
+              }
+              className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
             >
               Muat ulang daftar
             </button>
           </div>
-        ) : filtered.length === 0 ? (
+        ) : items.length === 0 ? (
           <div className="rounded-[20px] border border-[#E5E0DA] bg-white px-6 py-14 text-center">
             <h2 className="font-display text-lg font-semibold text-[#141416]">
-              Belum ada barang yang cocok
+              {hasActiveFilter ? "Tidak ada barang sesuai filter" : "Belum ada barang dipublikasikan"}
             </h2>
             <p className="mx-auto mt-1.5 max-w-md text-[14px] text-[#6E6A66]">
-              Coba ubah kategori, rentang harga, atau kata kunci pencarian Anda.
+              {hasActiveFilter
+                ? "Ubah kategori, rentang harga, kondisi, atau kata kunci untuk melihat barang lain."
+                : "Pasang iklan pertama untuk menawarkan buku kuliah atau perlengkapan ke mahasiswa UPN."}
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               {hasActiveFilter && (
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-6 text-[14px] font-medium text-[#141416] transition-all duration-150 hover:-translate-y-[1px] hover:border-[#141416]"
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-6 text-[14px] font-medium text-[#141416] transition-all duration-150 hover:-translate-y-[1px] hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
                 >
                   Atur ulang filter
                 </button>
@@ -630,7 +598,7 @@ function MarketplaceContent() {
                   setSubmitError(null);
                   setIsModalOpen(true);
                 }}
-                className="inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428]"
+                className="inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
               >
                 Pasang iklan barang
               </button>
@@ -638,7 +606,7 @@ function MarketplaceContent() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((item) => {
+            {items.map((item, idx) => {
               const categoryName = item.category?.name ?? "Lainnya";
               const sellerName = item.user?.name ?? "Mahasiswa UPN";
               const conditionLabel = CONDITION_LABELS[item.condition] ?? item.condition;
@@ -655,6 +623,7 @@ function MarketplaceContent() {
                     <ListingImage
                       module="marketplace"
                       seed={item.id}
+                      eager={idx < 3}
                       hint={`${categoryName} ${item.title}`}
                       images={item.images}
                       alt={`Foto ${item.title}`}
@@ -664,7 +633,7 @@ function MarketplaceContent() {
 
                   <div className="flex flex-1 flex-col p-5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="rounded-full bg-[#F4F1EE] px-3 py-1 text-[13px] font-medium text-[#57534E]">
+                      <span className="rounded-md bg-[#F4F1EE] px-2.5 py-1 text-[13px] font-medium text-[#57534E]">
                         {categoryName}
                       </span>
                       {conditionLabel && (
@@ -698,9 +667,8 @@ function MarketplaceContent() {
                           {sellerName}
                         </span>
                       </span>
-                      <span className="flex shrink-0 items-center gap-2 text-[13px] text-[#6E6A66]">
-                        <span>{formatTimeAgo(item.created_at)}</span>
-                        <ArrowGlyph />
+                      <span className="shrink-0 text-[13px] text-[#6E6A66]">
+                        {formatTimeAgo(item.created_at)}
                       </span>
                     </div>
                   </div>
@@ -724,7 +692,7 @@ function MarketplaceContent() {
                 type="button"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="inline-flex h-11 items-center justify-center rounded-full border border-[#E5E0DA] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] disabled:pointer-events-none disabled:opacity-40"
+                className="inline-flex h-11 items-center justify-center rounded-full border border-[#E5E0DA] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-40"
               >
                 ← Sebelumnya
               </button>
@@ -732,7 +700,7 @@ function MarketplaceContent() {
                 type="button"
                 disabled={page >= lastPage}
                 onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
-                className="inline-flex h-11 items-center justify-center rounded-full border border-[#E5E0DA] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] disabled:pointer-events-none disabled:opacity-40"
+                className="inline-flex h-11 items-center justify-center rounded-full border border-[#E5E0DA] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-40"
               >
                 Berikutnya →
               </button>
@@ -741,10 +709,10 @@ function MarketplaceContent() {
         )}
       </section>
 
-      {/* Warm-Alabaster Modal Pasang Iklan */}
+      {/* Matte Warm-Alabaster Modal Pasang Iklan */}
       {isModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#141416]/45 p-4 backdrop-blur-[2px]"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#141416]/50 p-4"
           onClick={closeModal}
         >
           <div
@@ -752,7 +720,7 @@ function MarketplaceContent() {
             aria-modal="true"
             aria-labelledby="pasang-iklan-title"
             onClick={(e) => e.stopPropagation()}
-            className="auth-shell-enter max-h-[92vh] w-full max-w-[940px] overflow-y-auto rounded-[28px] border border-[#E5E0DA] bg-[#F4F1EE] p-5 shadow-[0_28px_70px_-24px_rgba(20,20,22,0.28)] sm:p-7"
+            className="auth-shell-enter max-h-[92vh] w-full max-w-[940px] overflow-y-auto rounded-[28px] border border-[#E5E0DA] bg-[#F4F1EE] p-5 shadow-[0_20px_48px_-20px_rgba(20,20,22,0.20)] sm:p-7"
           >
             <div className="flex items-start justify-between gap-4 border-b border-[#E5E0DA] pb-4">
               <div>
@@ -774,7 +742,7 @@ function MarketplaceContent() {
                 onClick={closeModal}
                 disabled={isSubmitting}
                 aria-label="Tutup form pasang iklan"
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#E5E0DA] bg-white text-lg text-[#57534E] transition-colors hover:border-[#141416] hover:text-[#141416] disabled:opacity-50"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#E5E0DA] bg-white text-lg text-[#57534E] transition-colors hover:border-[#141416] hover:text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-50"
               >
                 ×
               </button>
@@ -798,8 +766,8 @@ function MarketplaceContent() {
                       maxLength={255}
                       value={formData.title}
                       onChange={(e) => updateForm("title", e.target.value)}
-                      placeholder="Mis. Buku Kalkulus Purcell Edisi 9 (Lengkap Catatan)"
-                      className="mt-1.5 h-11 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-3.5 text-[14px] text-[#141416] placeholder:text-[#787470] transition-all focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
+                      placeholder="Nama barang yang ditawarkan"
+                      className="mt-1.5 h-11 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-3.5 text-[14px] text-[#141416] placeholder:text-[#66625E] transition-all focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
                     />
                   </div>
 
@@ -850,8 +818,8 @@ function MarketplaceContent() {
                           step="any"
                           value={formData.price}
                           onChange={(e) => updateForm("price", e.target.value)}
-                          placeholder="85000"
-                          className="w-full bg-transparent text-[14px] font-semibold text-[#141416] placeholder:font-normal placeholder:text-[#787470] focus:outline-none"
+                          placeholder="Masukkan nominal harga"
+                          className="w-full bg-transparent text-[14px] font-semibold text-[#141416] placeholder:font-normal placeholder:text-[#66625E] focus:outline-none"
                         />
                       </div>
                     </div>
@@ -871,7 +839,7 @@ function MarketplaceContent() {
                         return (
                           <label
                             key={opt.value}
-                            className={`flex min-h-[40px] cursor-pointer items-center justify-center rounded-xl border px-3 py-2 text-center text-[13px] font-medium transition-all ${
+                            className={`flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border px-3 py-2 text-center text-[13px] font-medium transition-all ${
                               checked
                                 ? "border-[#141416] bg-[#141416] text-white"
                                 : "border-[#E5E0DA] bg-[#F6F4F1] text-[#57534E] hover:border-[#CFC8BF]"
@@ -906,8 +874,8 @@ function MarketplaceContent() {
                       rows={4}
                       value={formData.description}
                       onChange={(e) => updateForm("description", e.target.value)}
-                      placeholder="Jelaskan kondisi barang, kelengkapan, dan titik temu COD di area kampus (mis. Gazebo FIK atau Perpustakaan Pusat)."
-                      className="mt-1.5 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] p-3.5 text-[14px] leading-relaxed text-[#141416] placeholder:text-[#787470] transition-all focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
+                      placeholder="Jelaskan kondisi barang, kelengkapan, dan titik temu COD di area kampus"
+                      className="mt-1.5 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] p-3.5 text-[14px] leading-relaxed text-[#141416] placeholder:text-[#66625E] transition-all focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
                     />
                   </div>
 
@@ -915,22 +883,26 @@ function MarketplaceContent() {
                     <span id="iklan-photos-label" className="block text-[14px] font-medium text-[#141416]">
                       Foto barang (maksimal 6)
                     </span>
-                    <div className="mt-2 flex flex-wrap gap-2.5" role="group" aria-labelledby="iklan-photos-label">
+                    <div className="mt-2 flex flex-wrap gap-3" role="group" aria-labelledby="iklan-photos-label">
                       {photos.map((photo, i) => (
                         <span key={photo.id} className="relative h-20 w-20">
                           {/* eslint-disable-next-line @next/next/no-img-element -- local object URLs for instant upload preview only */}
                           <img
                             src={photo.url}
                             alt={`Foto barang ${i + 1}`}
+                            width={80}
+                            height={80}
                             className="h-20 w-20 rounded-xl border border-[#E5E0DA] object-cover"
                           />
                           <button
                             type="button"
                             onClick={() => removePhoto(photo.id)}
                             aria-label={`Hapus foto barang ${i + 1}`}
-                            className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#141416] text-[13px] font-bold leading-none text-white hover:bg-[#C53939]"
+                            className="group absolute -right-3 -top-3 flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
                           >
-                            ×
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#141416] text-[13px] font-bold leading-none text-white transition-colors group-hover:bg-[#C53939]">
+                              ×
+                            </span>
                           </button>
                         </span>
                       ))}
@@ -968,21 +940,21 @@ function MarketplaceContent() {
                       type="button"
                       onClick={closeModal}
                       disabled={isSubmitting}
-                      className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] disabled:opacity-50"
+                      className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-50"
                     >
                       Batal
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] disabled:opacity-60"
+                      className="inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-60"
                     >
                       {isSubmitting ? "Menyimpan iklan…" : "Terbitkan iklan barang"}
                     </button>
                   </div>
                 </div>
 
-                {/* Live Preview Card matching exact catalog card style */}
+                {/* Live Preview Card */}
                 <aside
                   aria-label="Pratinjau kartu iklan"
                   className="rounded-[20px] border border-[#E5E0DA] bg-white p-5 lg:sticky lg:top-0"
@@ -991,38 +963,25 @@ function MarketplaceContent() {
                     Pratinjau tampilan katalog
                   </p>
                   <div className="mt-3 overflow-hidden rounded-2xl border border-[#EAE5DF] bg-white">
-                    <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-[#F4F1EE]">
+                    <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-[#EFECE8] text-[#5F5B57]">
                       {photos.length > 0 ? (
                         // eslint-disable-next-line @next/next/no-img-element -- local preview before upload
                         <img
                           src={photos[0].url}
                           alt="Pratinjau foto barang"
+                          width={640}
+                          height={480}
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <svg
-                          width="36"
-                          height="36"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          aria-hidden="true"
-                          className="text-[#85817C]"
-                        >
-                          <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.4" />
-                          <circle cx="9" cy="9" r="2" stroke="currentColor" strokeWidth="1.4" />
-                          <path
-                            d="M3 16L8.5 11L13 15.5L16 13L21 18"
-                            stroke="currentColor"
-                            strokeWidth="1.4"
-                            strokeLinejoin="round"
-                            strokeLinecap="round"
-                          />
-                        </svg>
+                        <span className="text-[13px] font-medium">
+                          Belum ada foto dipilih
+                        </span>
                       )}
                     </div>
                     <div className="p-4">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="rounded-full bg-[#F4F1EE] px-2.5 py-0.5 text-[13px] font-medium text-[#57534E]">
+                        <span className="rounded-md bg-[#F4F1EE] px-2.5 py-0.5 text-[13px] font-medium text-[#57534E]">
                           {previewCategoryName}
                         </span>
                         <span className="text-[13px] font-medium text-[#6E6A66]">
@@ -1030,10 +989,16 @@ function MarketplaceContent() {
                         </span>
                       </div>
                       <p className="mt-2.5 line-clamp-2 font-display text-[15px] font-semibold text-[#141416]">
-                        {formData.title || "Judul barang tampil di sini"}
+                        {formData.title.trim() || "Judul barang belum diisi"}
                       </p>
-                      <p className="mt-1 font-display text-[18px] font-bold text-[#141416]">
-                        {formData.price ? formatRupiah(Number(formData.price) || 0) : "Rp 85.000"}
+                      <p
+                        className={`mt-1 font-display text-[17px] font-bold ${
+                          hasValidPreviewPrice ? "text-[#141416]" : "font-medium text-[#6E6A66]"
+                        }`}
+                      >
+                        {hasValidPreviewPrice
+                          ? formatRupiah(parsedPreviewPrice)
+                          : "Harga belum diisi"}
                       </p>
                       <div className="mt-3 flex items-center gap-2 border-t border-[#F1EDE8] pt-3">
                         <SellerAvatar name={previewSellerName} />
