@@ -164,6 +164,7 @@ function CustomSelectField({
   displayLabel,
   isOpen,
   disabled,
+  placement = "bottom",
   onToggle,
   onSelect,
   options,
@@ -176,6 +177,7 @@ function CustomSelectField({
   displayLabel: string;
   isOpen: boolean;
   disabled?: boolean;
+  placement?: "bottom" | "top";
   onToggle: () => void;
   onSelect: (value: string) => void;
   options: { value: string; label: string }[];
@@ -208,7 +210,9 @@ function CustomSelectField({
           <div
             role="listbox"
             aria-label={label}
-            className="absolute left-0 top-[calc(100%+8px)] z-30 w-full min-w-[210px] rounded-2xl border border-[#E5E0DA] bg-white p-1.5 shadow-[0_18px_36px_-18px_rgba(20,20,22,0.18)]"
+            className={`absolute left-0 z-30 w-full min-w-[210px] rounded-2xl border border-[#E5E0DA] bg-white p-1.5 shadow-[0_18px_36px_-18px_rgba(20,20,22,0.18)] ${
+              placement === "top" ? "bottom-[calc(100%+8px)]" : "top-[calc(100%+8px)]"
+            }`}
           >
             <div className="max-h-64 space-y-1 overflow-y-auto">
               {options.map((opt) => {
@@ -514,6 +518,15 @@ export function LostAndFoundContent() {
       titleInputRef.current?.focus();
     });
 
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isModalOpen]);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         if (openMenu === "modal-category" || openMenu === "modal-contact-channel") {
@@ -526,8 +539,6 @@ export function LostAndFoundContent() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
-      window.cancelAnimationFrame(rafId);
-      document.body.style.overflow = prevOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isModalOpen, openMenu, closeModal]);
@@ -1501,32 +1512,49 @@ export function LostAndFoundContent() {
             onClick={(e) => e.stopPropagation()}
             className="auth-shell-enter max-h-[92vh] w-full max-w-[940px] overflow-y-auto rounded-[28px] border border-[#E5E0DA] bg-[#F4F1EE] p-5 shadow-[0_20px_48px_-20px_rgba(20,20,22,0.20)] sm:p-7"
           >
-            <div className="flex items-start justify-between gap-4 border-b border-[#E5E0DA] pb-4">
-              <div>
-                <p className="text-[13px] font-medium text-[#6E6A66]">
-                  Portal Mahasiswa · Buat Laporan Barang
-                </p>
-                <h2
-                  id="lapor-barang-title"
-                  className="mt-1 font-display text-2xl font-semibold tracking-tight text-[#141416]"
+            <div className="border-b border-[#E5E0DA] pb-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  disabled={isSubmitting}
+                  className="inline-flex h-11 items-center gap-2 rounded-full border border-[#E5E0DA] bg-white px-4 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-50"
                 >
-                  {reportType === "lost" ? "Lapor barang hilang." : "Lapor barang temuan."}{" "}
-                  <span className="font-normal text-[#6E6A66]">
-                    {reportType === "lost"
-                      ? "Bantu rekan kampus mengenali barang Anda."
-                      : "Bantu pemilik menemukan kembali barangnya."}
-                  </span>
-                </h2>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path
+                      d="M10 3.5L5.5 8L10 12.5"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span>Kembali</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  disabled={isSubmitting}
+                  aria-label="Tutup form laporan barang"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#E5E0DA] bg-white text-lg text-[#57534E] transition-colors hover:border-[#141416] hover:text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-50"
+                >
+                  ×
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={closeModal}
-                disabled={isSubmitting}
-                aria-label="Tutup form laporan barang"
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#E5E0DA] bg-white text-lg text-[#57534E] transition-colors hover:border-[#141416] hover:text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-50"
+              <p className="text-[13px] font-medium text-[#6E6A66]">
+                Portal Mahasiswa · Buat Laporan Barang
+              </p>
+              <h2
+                id="lapor-barang-title"
+                className="mt-1 font-display text-2xl font-semibold tracking-tight text-[#141416]"
               >
-                ×
-              </button>
+                {reportType === "lost" ? "Lapor barang hilang." : "Lapor barang temuan."}{" "}
+                <span className="font-normal text-[#6E6A66]">
+                  {reportType === "lost"
+                    ? "Bantu rekan kampus mengenali barang Anda."
+                    : "Bantu pemilik menemukan kembali barangnya."}
+                </span>
+              </h2>
             </div>
 
             <form onSubmit={handleSubmit} className="mt-5">
@@ -1801,6 +1829,7 @@ export function LostAndFoundContent() {
                       <CustomSelectField
                         id="laporan-contact-channel"
                         label="Preferensi kontak"
+                        placement="top"
                         value={contactChannel}
                         displayLabel={
                           CONTACT_CHANNEL_OPTIONS.find((opt) => opt.value === contactChannel)
