@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\MarketplaceListing;
+use App\Models\ServiceListing;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -180,5 +181,61 @@ class StudentPriorityOneTest extends TestCase
             'contact_info' => 'Instagram: @info.kampus.upn',
         ])->assertCreated();
         $this->assertSame('Instagram: @info.kampus.upn', $social->json('data.contact_info'));
+    }
+
+    public function test_services_index_filters_by_pricing_type_price_range_and_sorts(): void
+    {
+        $student = User::factory()->create();
+        $category = Category::create([
+            'name' => 'Jasa Desain & Media',
+            'slug' => 'jasa-desain-media-p1',
+            'type' => 'service',
+            'is_active' => true,
+        ]);
+
+        ServiceListing::create([
+            'user_id' => $student->id,
+            'category_id' => $category->id,
+            'title' => 'Tutor Kalkulus Privat',
+            'description' => 'Bimbingan tatap muka di perpustakaan',
+            'price_min' => 25000,
+            'price_max' => null,
+            'pricing_type' => 'per_hour',
+            'status' => 'active',
+        ]);
+        ServiceListing::create([
+            'user_id' => $student->id,
+            'category_id' => $category->id,
+            'title' => 'Desain Poster Acara',
+            'description' => 'Paket desain cepat siap cetak',
+            'price_min' => 80000,
+            'price_max' => 120000,
+            'pricing_type' => 'fixed',
+            'status' => 'active',
+        ]);
+        ServiceListing::create([
+            'user_id' => $student->id,
+            'category_id' => $category->id,
+            'title' => 'Dokumentasi Wisuda',
+            'description' => 'Sesi foto kampus dan editing',
+            'price_min' => 200000,
+            'price_max' => 350000,
+            'pricing_type' => 'starting_from',
+            'status' => 'active',
+        ]);
+
+        $byPricing = $this->getJson('/api/v1/services?pricing_type=per_hour')->assertOk();
+        $this->assertSame(1, $byPricing->json('data.total'));
+        $this->assertSame('per_hour', $byPricing->json('data.data.0.pricing_type'));
+
+        $byPriceRange = $this->getJson('/api/v1/services?min_price=50000&max_price=150000')->assertOk();
+        $this->assertSame(1, $byPriceRange->json('data.total'));
+        $this->assertEquals(80000, (float) $byPriceRange->json('data.data.0.price_min'));
+
+        $asc = $this->getJson('/api/v1/services?sort=price_asc')->assertOk();
+        $this->assertEquals([25000, 80000, 200000], array_map('floatval', array_column($asc->json('data.data'), 'price_min')));
+
+        $desc = $this->getJson('/api/v1/services?sort=price_desc')->assertOk();
+        $this->assertEquals([200000, 80000, 25000], array_map('floatval', array_column($desc->json('data.data'), 'price_min')));
     }
 }

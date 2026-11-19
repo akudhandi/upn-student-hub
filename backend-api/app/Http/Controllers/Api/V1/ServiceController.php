@@ -67,11 +67,31 @@ class ServiceController extends Controller
                 'category:id,name,slug',
                 'images',
             ])
-            ->where('status', 'active')
-            ->latest();
+            ->where('status', 'active');
+
+        match ($request->query('sort')) {
+            'price_asc' => $query->orderBy('price_min', 'asc')->latest(),
+            'price_desc' => $query->orderBy('price_min', 'desc')->latest(),
+            default => $query->latest(),
+        };
 
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->query('category_id'));
+        }
+
+        if ($request->filled('pricing_type')) {
+            $pricingType = $request->query('pricing_type');
+            if (in_array($pricingType, ['fixed', 'per_hour', 'starting_from', 'negotiable'], true)) {
+                $query->where('pricing_type', $pricingType);
+            }
+        }
+
+        if ($request->filled('min_price') && is_numeric($request->query('min_price'))) {
+            $query->where('price_min', '>=', (float) $request->query('min_price'));
+        }
+
+        if ($request->filled('max_price') && is_numeric($request->query('max_price'))) {
+            $query->where('price_min', '<=', (float) $request->query('max_price'));
         }
 
         if ($request->filled('q')) {
