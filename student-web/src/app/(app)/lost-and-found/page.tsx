@@ -11,11 +11,11 @@ import {
   type PublicCategory,
 } from "@/lib/api";
 import ListingImage from "@/components/ListingImage";
-import { getUser, USER_UPDATED_EVENT, type AuthUser } from "@/lib/auth";
+import VerifiedBadge from "@/components/VerifiedBadge";
+import { getToken, getUser, USER_UPDATED_EVENT, type AuthUser } from "@/lib/auth";
 import type { ApiImage } from "@/lib/images";
+import { fetchFavorites, toggleFavorite } from "@/lib/interactions";
 
-// API types: shape of GET /api/v1/lost-found (Laravel paginator wrapped in
-// a standard { message, data } JSON envelope).
 type ApiLostFoundItem = {
   id: number;
   type: "lost" | "found";
@@ -27,7 +27,11 @@ type ApiLostFoundItem = {
   reward: string | null;
   status: string;
   created_at: string;
-  user?: { id: number; name: string } | null;
+  user?: {
+    id: number;
+    name: string;
+    is_official_account?: boolean;
+  } | null;
   images?: ApiImage[] | null;
   category?: { id: number; name: string; slug: string } | null;
 };
@@ -37,6 +41,8 @@ type LostFoundListResponse = {
   data: {
     current_page: number;
     last_page: number;
+    from?: number | null;
+    to?: number | null;
     total: number;
     data: ApiLostFoundItem[];
   };
@@ -48,6 +54,8 @@ type LostFoundCreateResponse = {
 };
 
 type ReportType = "lost" | "found";
+type TypeFilter = "all" | "lost" | "found";
+type OpenMenuKey = "type" | "category-mobile" | "category-overflow" | "modal-category";
 
 const EMPTY_FORM = {
   title: "",
@@ -59,19 +67,18 @@ const EMPTY_FORM = {
   contact_info: "",
 };
 
-type TypeFilter = "all" | "lost" | "found";
-
-const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
-  { value: "all", label: "Semua" },
-  { value: "lost", label: "Barang Hilang" },
-  { value: "found", label: "Barang Ditemukan" },
+const TYPE_OPTIONS: { value: TypeFilter; label: string }[] = [
+  { value: "all", label: "Semua laporan" },
+  { value: "lost", label: "Barang hilang" },
+  { value: "found", label: "Barang ditemukan" },
 ];
+
+const MAX_PHOTOS = 3;
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
 function formatEventDate(isoDate: string | null): string | null {
   if (!isoDate) return null;
-  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(isoDate)
-    ? `${isoDate}T00:00:00`
-    : isoDate;
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(isoDate) ? `${isoDate}T00:00:00` : isoDate;
   const date = new Date(normalized);
   if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleDateString("id-ID", {
@@ -107,6 +114,114 @@ function initialsOf(name: string): string {
       .slice(0, 2)
       .join("")
       .toUpperCase() || "UP"
+  );
+}
+
+function ChevronDownIcon({ rotated }: { rotated: boolean }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+      className={`shrink-0 text-[#6E6A66] transition-transform duration-150 ${
+        rotated ? "rotate-180" : ""
+      }`}
+    >
+      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
+      <path d="M3.5 8.5L6.5 11.5L12.5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CustomSelectField({
+  id,
+  label,
+  requiredMarker,
+  value,
+  displayLabel,
+  isOpen,
+  disabled,
+  onToggle,
+  onSelect,
+  options,
+  className,
+}: {
+  id: string;
+  label: string;
+  requiredMarker?: boolean;
+  value: string;
+  displayLabel: string;
+  isOpen: boolean;
+  disabled?: boolean;
+  onToggle: () => void;
+  onSelect: (value: string) => void;
+  options: { value: string; label: string }[];
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <label htmlFor={id} className="block text-[13px] font-medium text-[#57534E]">
+        {label} {requiredMarker && <span className="text-[#B83232]">*</span>}
+      </label>
+      <div className="relative mt-1.5">
+        <button
+          id={id}
+          type="button"
+          disabled={disabled}
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          onClick={onToggle}
+          className={`flex h-11 w-full items-center justify-between gap-2 rounded-xl border px-3.5 text-left text-[14px] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-60 ${
+            isOpen
+              ? "border-[#141416] bg-white text-[#141416] shadow-[0_0_0_3px_rgba(20,20,22,0.06)]"
+              : "border-[#E5E0DA] bg-[#F6F4F1] text-[#141416] hover:border-[#CFC8BF]"
+          }`}
+        >
+          <span className="truncate font-medium">{displayLabel}</span>
+          <ChevronDownIcon rotated={isOpen} />
+        </button>
+
+        {isOpen && (
+          <div
+            role="listbox"
+            aria-label={label}
+            className="absolute left-0 top-[calc(100%+8px)] z-30 w-full min-w-[210px] rounded-2xl border border-[#E5E0DA] bg-white p-1.5 shadow-[0_18px_36px_-18px_rgba(20,20,22,0.18)]"
+          >
+            <div className="max-h-64 space-y-1 overflow-y-auto">
+              {options.map((opt) => {
+                const selected = value === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    onClick={() => onSelect(opt.value)}
+                    className={`flex min-h-[44px] w-full items-center justify-between gap-3 rounded-xl px-3.5 text-left text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
+                      selected
+                        ? "bg-[#141416] font-semibold text-white"
+                        : "font-medium text-[#141416] hover:bg-[#F4F1EE]"
+                    }`}
+                  >
+                    <span className="truncate">{opt.label}</span>
+                    {selected && <CheckIcon />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -175,7 +290,7 @@ function ReportCardSkeleton() {
         <div className="h-4 w-full animate-pulse rounded-lg bg-[#F4F1EE]" />
         <div className="mt-auto flex items-center justify-between border-t border-[#F1EDE8] pt-4">
           <div className="h-7 w-28 animate-pulse rounded-full bg-[#F4F1EE]" />
-          <div className="h-9 w-20 animate-pulse rounded-full bg-[#F4F1EE]" />
+          <div className="h-4 w-16 animate-pulse rounded-lg bg-[#F4F1EE]" />
         </div>
       </div>
     </div>
@@ -192,88 +307,64 @@ export function LostAndFoundContent() {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [rangeStart, setRangeStart] = useState<number | null>(null);
+  const [rangeEnd, setRangeEnd] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
-  const [query, setQuery] = useState(urlQuery);
-  const [debouncedQuery, setDebouncedQuery] = useState(urlQuery);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<OpenMenuKey | null>(null);
+  const [searchDraft, setSearchDraft] = useState({ base: urlQuery, value: urlQuery });
+  const searchInput = searchDraft.base === urlQuery ? searchDraft.value : urlQuery;
+  const [reloadNonce, setReloadNonce] = useState(0);
+
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+  const [togglingFavoriteIds, setTogglingFavoriteIds] = useState<Set<number>>(new Set());
+  const [feedbackNotice, setFeedbackNotice] = useState<{
+    tone: "success" | "error" | "info";
+    text: string;
+    href?: string;
+    hrefLabel?: string;
+  } | null>(null);
+
+  const [isModalManuallyOpen, setIsModalManuallyOpen] = useState(false);
+  const isModalOpen = isModalManuallyOpen || createRequested;
   const [reportType, setReportType] = useState<ReportType>("lost");
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [photos, setPhotos] = useState<{ id: number; url: string; file: File }[]>([]);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [backendCategories, setBackendCategories] = useState<PublicCategory[]>([]);
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
-  const photoIdRef = useRef(0);
-  const prevUrlQueryRef = useRef(urlQuery);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => getUser());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const photoIdRef = useRef(0);
+  const photosRef = useRef(photos);
+  const filterBarRef = useRef<HTMLElement | null>(null);
+  const modalCategoryDropdownRef = useRef<HTMLDivElement | null>(null);
+  const catalogSectionRef = useRef<HTMLElement | null>(null);
+  const lastTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const wasModalOpenRef = useRef(false);
+
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate user from localStorage on mount
-    setCurrentUser(getUser());
+    photosRef.current = photos;
+  }, [photos]);
+
+  useEffect(() => {
+    return () => {
+      photosRef.current.forEach((p) => URL.revokeObjectURL(p.url));
+    };
+  }, []);
+
+  useEffect(() => {
     function syncUser() {
       setCurrentUser(getUser());
     }
     window.addEventListener(USER_UPDATED_EVENT, syncUser);
     return () => window.removeEventListener(USER_UPDATED_EVENT, syncUser);
   }, []);
-
-  useEffect(() => {
-    const trimmed = query.trim();
-    const t = window.setTimeout(() => {
-      setDebouncedQuery((prev) => {
-        if (prev !== trimmed) {
-          setPage(1);
-        }
-        return trimmed;
-      });
-    }, 350);
-    return () => window.clearTimeout(t);
-  }, [query]);
-
-  useEffect(() => {
-    if (urlQuery !== prevUrlQueryRef.current) {
-      prevUrlQueryRef.current = urlQuery;
-      setQuery(urlQuery);
-      setDebouncedQuery(urlQuery);
-      setPage(1);
-    }
-  }, [urlQuery]);
-
-  const loadReports = useCallback(
-    async (
-      type: TypeFilter,
-      pageNum: number,
-      categoryId: number | null,
-      searchQuery: string,
-      signal?: AbortSignal
-    ) => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const params = new URLSearchParams();
-        params.set("page", String(pageNum));
-        if (type !== "all") params.set("type", type);
-        if (categoryId !== null) params.set("category_id", String(categoryId));
-        if (searchQuery !== "") params.set("q", searchQuery);
-        const res = await apiFetch<LostFoundListResponse>(`/v1/lost-found?${params.toString()}`);
-        if (signal?.aborted) return;
-        setItems(res.data.data);
-        setPage(res.data.current_page);
-        setLastPage(res.data.last_page);
-        setTotal(res.data.total);
-      } catch {
-        if (signal?.aborted) return;
-        setItems([]);
-        setError("Gagal memuat data laporan. Periksa koneksi ke backend lalu coba lagi.");
-      } finally {
-        if (signal?.aborted) return;
-        setIsLoading(false);
-      }
-    },
-    []
-  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -288,74 +379,102 @@ export function LostAndFoundContent() {
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch must populate state when filters/page change
-    void loadReports(typeFilter, page, activeCategoryId, debouncedQuery, controller.signal);
+    if (!getToken()) return;
+    let active = true;
+    fetchFavorites()
+      .then((entries) => {
+        if (!active) return;
+        const ids = new Set<number>();
+        for (const entry of entries) {
+          if (entry.type === "lostfound" && typeof entry.item?.id === "number") {
+            ids.add(entry.item.id);
+          }
+        }
+        setFavoriteIds(ids);
+      })
+      .catch(() => {});
     return () => {
-      controller.abort();
+      active = false;
     };
-  }, [typeFilter, page, activeCategoryId, debouncedQuery, loadReports]);
+  }, []);
 
-  const filterCategories = useMemo(() => {
-    if (backendCategories.length > 0) {
-      return backendCategories.map((c) => ({ id: c.id, name: c.name }));
-    }
-    const byId = new Map<number, string>();
-    for (const item of items) {
-      if (item.category?.id && item.category?.name) {
-        byId.set(item.category.id, item.category.name);
-      }
-    }
-    return [...byId.entries()].map(([id, name]) => ({ id, name }));
-  }, [backendCategories, items]);
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    if (typeFilter !== "all") params.set("type", typeFilter);
+    if (activeCategoryId !== null) params.set("category_id", String(activeCategoryId));
+    if (urlQuery !== "") params.set("q", urlQuery);
 
-  const categoryOptions = useMemo(() => {
-    const byId = new Map<number, string>();
-    for (const cat of backendCategories) {
-      byId.set(cat.id, cat.name);
-    }
-    for (const item of items) {
-      if (item.category?.id && item.category?.name) {
-        byId.set(item.category.id, item.category.name);
-      }
-    }
-    return [...byId.entries()].map(([id, name]) => ({ id, name }));
-  }, [backendCategories, items]);
+    apiFetch<LostFoundListResponse>(`/v1/lost-found?${params.toString()}`)
+      .then((res) => {
+        if (cancelled) return;
+        setItems(res.data.data);
+        setPage(res.data.current_page);
+        setLastPage(res.data.last_page);
+        setTotal(res.data.total);
+        setRangeStart(res.data.from ?? (res.data.data.length > 0 ? 1 : null));
+        setRangeEnd(res.data.to ?? (res.data.data.length > 0 ? res.data.data.length : null));
+        setError(null);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setItems([]);
+        setRangeStart(null);
+        setRangeEnd(null);
+        setError("Gagal memuat data laporan. Periksa koneksi backend lalu muat ulang.");
+        setIsLoading(false);
+      });
 
-  function updateForm<K extends keyof typeof EMPTY_FORM>(key: K, value: string) {
-    setFormData((prev) => ({ ...prev, [key]: value }));
-  }
+    return () => {
+      cancelled = true;
+    };
+  }, [typeFilter, page, activeCategoryId, urlQuery, reloadNonce]);
 
-  function addPhotos(files: FileList | null) {
-    if (!files) return;
-    const next = Array.from(files).map((file) => {
-      photoIdRef.current += 1;
-      return { id: photoIdRef.current, url: URL.createObjectURL(file), file };
-    });
-    setPhotos((prev) => [...prev, ...next].slice(0, 3));
-  }
+  const applySearchToUrl = useCallback(
+    (rawValue: string) => {
+      const trimmed = rawValue.trim();
+      if (trimmed === urlQuery) return;
+      setIsLoading(true);
+      setPage(1);
+      const next = trimmed ? `/lost-found?q=${encodeURIComponent(trimmed)}` : "/lost-found";
+      router.replace(next, { scroll: false });
+    },
+    [router, urlQuery]
+  );
 
-  function removePhoto(id: number) {
-    setPhotos((prev) => {
-      const target = prev.find((p) => p.id === id);
-      if (target) URL.revokeObjectURL(target.url);
-      return prev.filter((p) => p.id !== id);
-    });
-  }
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      applySearchToUrl(searchInput);
+    }, 320);
+    return () => window.clearTimeout(timer);
+  }, [searchInput, applySearchToUrl]);
 
   const clearCreateParam = useCallback(() => {
     if (searchParams.get("action") === "create") {
       const next = urlQuery
         ? `/lost-found?q=${encodeURIComponent(urlQuery)}`
         : "/lost-found";
-      router.replace(next);
+      router.replace(next, { scroll: false });
     }
   }, [router, searchParams, urlQuery]);
 
+  const openModal = useCallback((type: ReportType, triggerEl?: HTMLButtonElement | null) => {
+    if (triggerEl) lastTriggerRef.current = triggerEl;
+    setReportType(type);
+    setSubmitError(null);
+    setPhotoError(null);
+    setOpenMenu(null);
+    setIsModalManuallyOpen(true);
+  }, []);
+
   const closeModal = useCallback(() => {
     if (isSubmitting) return;
-    setIsModalOpen(false);
+    setIsModalManuallyOpen(false);
+    setOpenMenu(null);
     setSubmitError(null);
+    setPhotoError(null);
     setPhotos((prev) => {
       prev.forEach((p) => URL.revokeObjectURL(p.url));
       return [];
@@ -363,30 +482,217 @@ export function LostAndFoundContent() {
     clearCreateParam();
   }, [isSubmitting, clearCreateParam]);
 
-  function openModal(type: ReportType) {
-    setReportType(type);
-    setSubmitError(null);
-    setIsModalOpen(true);
+  useEffect(() => {
+    if (!isModalOpen) {
+      if (wasModalOpenRef.current) {
+        wasModalOpenRef.current = false;
+        lastTriggerRef.current?.focus();
+      }
+      return;
+    }
+
+    wasModalOpenRef.current = true;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const rafId = window.requestAnimationFrame(() => {
+      titleInputRef.current?.focus();
+    });
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        if (openMenu === "modal-category") {
+          setOpenMenu(null);
+          return;
+        }
+        closeModal();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isModalOpen, openMenu, closeModal]);
+
+  useEffect(() => {
+    if (!openMenu) return;
+
+    function handleMouseDown(e: MouseEvent) {
+      const target = e.target as Node;
+      if (openMenu === "modal-category") {
+        if (modalCategoryDropdownRef.current && !modalCategoryDropdownRef.current.contains(target)) {
+          setOpenMenu(null);
+        }
+        return;
+      }
+      if (filterBarRef.current && !filterBarRef.current.contains(target)) {
+        setOpenMenu(null);
+      }
+    }
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && openMenu !== "modal-category") {
+        setOpenMenu(null);
+      }
+    }
+
+    document.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [openMenu]);
+
+  const categoryOptions = useMemo(() => {
+    const raw =
+      backendCategories.length > 0
+        ? backendCategories.map((c) => ({ id: c.id, name: c.name }))
+        : (() => {
+            const byId = new Map<number, string>();
+            for (const item of items) {
+              if (item.category?.id && item.category?.name) {
+                byId.set(item.category.id, item.category.name);
+              }
+            }
+            return [...byId.entries()].map(([id, name]) => ({ id, name }));
+          })();
+
+    return [...raw].sort((a, b) => {
+      const aOther = a.name.trim().toLowerCase() === "lainnya";
+      const bOther = b.name.trim().toLowerCase() === "lainnya";
+      if (aOther !== bOther) return aOther ? 1 : -1;
+      return a.name.localeCompare(b.name, "id-ID");
+    });
+  }, [backendCategories, items]);
+
+  const primaryCategories = useMemo(() => categoryOptions.slice(0, 4), [categoryOptions]);
+  const overflowCategories = useMemo(() => categoryOptions.slice(4), [categoryOptions]);
+  const activeOverflowCategory = useMemo(
+    () => overflowCategories.find((c) => c.id === activeCategoryId) ?? null,
+    [overflowCategories, activeCategoryId]
+  );
+
+  function toggleMenu(key: OpenMenuKey) {
+    setOpenMenu((prev) => (prev === key ? null : key));
   }
 
-  // Close modal on Escape for keyboard users.
-  useEffect(() => {
-    if (!isModalOpen) return;
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") closeModal();
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isModalOpen, closeModal]);
+  function updateForm<K extends keyof typeof EMPTY_FORM>(key: K, value: string) {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+  }
 
-  // Open the modal when navigated via sidebar CTA (?action=create).
-  useEffect(() => {
-    if (createRequested) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- URL-driven modal must sync state when the search param appears
-      setSubmitError(null);
-      setIsModalOpen(true);
+  function addPhotos(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setPhotoError(null);
+
+    const remaining = MAX_PHOTOS - photos.length;
+    if (remaining <= 0) {
+      setPhotoError(`Maksimal ${MAX_PHOTOS} foto per laporan.`);
+      return;
     }
-  }, [createRequested]);
+
+    const accepted: { id: number; url: string; file: File }[] = [];
+    let skippedType = 0;
+    let skippedSize = 0;
+
+    for (const file of Array.from(files)) {
+      if (accepted.length >= remaining) break;
+      if (!file.type.startsWith("image/")) {
+        skippedType += 1;
+        continue;
+      }
+      if (file.size > MAX_PHOTO_BYTES) {
+        skippedSize += 1;
+        continue;
+      }
+      photoIdRef.current += 1;
+      accepted.push({
+        id: photoIdRef.current,
+        url: URL.createObjectURL(file),
+        file,
+      });
+    }
+
+    if (skippedType > 0 || skippedSize > 0) {
+      const reasons: string[] = [];
+      if (skippedType > 0) reasons.push("format harus berupa gambar");
+      if (skippedSize > 0) reasons.push("ukuran maksimal 5 MB per foto");
+      setPhotoError(`Sebagian file dilewati (${reasons.join(", ")}).`);
+    }
+
+    if (accepted.length > 0) {
+      setPhotos((prev) => [...prev, ...accepted].slice(0, MAX_PHOTOS));
+    }
+  }
+
+  function removePhoto(id: number) {
+    setPhotoError(null);
+    setPhotos((prev) => {
+      const target = prev.find((p) => p.id === id);
+      if (target) URL.revokeObjectURL(target.url);
+      return prev.filter((p) => p.id !== id);
+    });
+  }
+
+  async function handleToggleFavorite(item: ApiLostFoundItem) {
+    if (!getToken()) {
+      setFeedbackNotice({
+        tone: "info",
+        text: "Masuk dengan akun mahasiswa UPN untuk menyimpan laporan ke daftar favorit.",
+        href: "/login",
+        hrefLabel: "Masuk sekarang",
+      });
+      return;
+    }
+
+    if (togglingFavoriteIds.has(item.id)) return;
+    const wasFavorited = favoriteIds.has(item.id);
+
+    setTogglingFavoriteIds((prev) => new Set(prev).add(item.id));
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (wasFavorited) next.delete(item.id);
+      else next.add(item.id);
+      return next;
+    });
+
+    try {
+      const favorited = await toggleFavorite("lostfound", item.id);
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (favorited) next.add(item.id);
+        else next.delete(item.id);
+        return next;
+      });
+      setFeedbackNotice({
+        tone: "success",
+        text: favorited
+          ? `"${item.title}" disimpan ke daftar favorit.`
+          : `"${item.title}" dihapus dari daftar favorit.`,
+        href: favorited ? "/favorites" : undefined,
+        hrefLabel: favorited ? "Lihat favorit" : undefined,
+      });
+    } catch {
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (wasFavorited) next.add(item.id);
+        else next.delete(item.id);
+        return next;
+      });
+      setFeedbackNotice({
+        tone: "error",
+        text: "Gagal memperbarui daftar favorit. Periksa koneksi lalu coba lagi.",
+      });
+    } finally {
+      setTogglingFavoriteIds((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -405,7 +711,7 @@ export function LostAndFoundContent() {
         contactDigits.startsWith("8") && contactDigits.length >= 9
           ? `0${contactDigits}`
           : rawContact;
-      await apiFetch<LostFoundCreateResponse>("/v1/lost-found", {
+      const created = await apiFetch<LostFoundCreateResponse>("/v1/lost-found", {
         method: "POST",
         body: JSON.stringify({
           type: reportType,
@@ -414,27 +720,35 @@ export function LostAndFoundContent() {
           location: formData.location.trim(),
           date_event: formData.date_event === "" ? null : formData.date_event,
           reward:
-            rewardRaw === "" || Number.isNaN(rewardNumeric)
-              ? null
-              : `Rp ${rewardNumeric.toLocaleString("id-ID")}`,
+            reportType === "lost" && rewardRaw !== "" && !Number.isNaN(rewardNumeric) && rewardNumeric >= 0
+              ? `Rp ${rewardNumeric.toLocaleString("id-ID")}`
+              : null,
           description: formData.description.trim(),
           contact_info: normalizedContact,
           image_paths: uploaded.map((u) => u.path),
         }),
       });
       const createdType = reportType;
-      setIsModalOpen(false);
+      setIsModalManuallyOpen(false);
+      setOpenMenu(null);
       setFormData(EMPTY_FORM);
+      setPhotoError(null);
       setPhotos((prev) => {
         prev.forEach((p) => URL.revokeObjectURL(p.url));
         return [];
       });
       clearCreateParam();
-      // Switch the list filter to the new report's type so it appears immediately.
+      setIsLoading(true);
       setTypeFilter(createdType);
       setActiveCategoryId(null);
       setPage(1);
-      await loadReports(createdType, 1, null, debouncedQuery);
+      setReloadNonce((n) => n + 1);
+      setFeedbackNotice({
+        tone: "success",
+        text: `Laporan "${created.data.title}" berhasil dipublikasikan.`,
+        href: `/lost-found/${created.data.id}`,
+        hrefLabel: "Buka halaman laporan",
+      });
     } catch (err) {
       const apiError = err as ApiError;
       const fieldErrors = apiError.errors
@@ -443,6 +757,39 @@ export function LostAndFoundContent() {
       setSubmitError(fieldErrors || apiError.message || "Gagal mempublikasikan laporan. Coba lagi.");
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  function handlePageChange(nextPage: number) {
+    setIsLoading(true);
+    setPage(nextPage);
+    if (typeof window !== "undefined") {
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      catalogSectionRef.current?.scrollIntoView({
+        behavior: reducedMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    }
+  }
+
+  const activeTypeLabel = TYPE_OPTIONS.find((t) => t.value === typeFilter)?.label ?? "Semua laporan";
+  const activeCategoryName =
+    activeCategoryId !== null
+      ? (categoryOptions.find((c) => c.id === activeCategoryId)?.name ?? null)
+      : null;
+
+  const hasActiveFilter =
+    typeFilter !== "all" || activeCategoryId !== null || urlQuery !== "";
+
+  function clearFilters() {
+    setIsLoading(true);
+    setOpenMenu(null);
+    setTypeFilter("all");
+    setActiveCategoryId(null);
+    setSearchDraft({ base: "", value: "" });
+    setPage(1);
+    if (urlQuery !== "") {
+      router.replace("/lost-found", { scroll: false });
     }
   }
 
@@ -459,71 +806,51 @@ export function LostAndFoundContent() {
     !Number.isNaN(parsedPreviewReward) &&
     parsedPreviewReward >= 0;
 
-  const filtered = items;
-  const activeCategoryName =
-    filterCategories.find((c) => c.id === activeCategoryId)?.name ?? null;
-  const hasActiveFilter =
-    typeFilter !== "all" ||
-    activeCategoryId !== null ||
-    query.trim() !== "" ||
-    debouncedQuery !== "" ||
-    urlQuery !== "";
-
-  function clearFilters() {
-    setTypeFilter("all");
-    setActiveCategoryId(null);
-    setQuery("");
-    setDebouncedQuery("");
-    setPage(1);
-    if (urlQuery !== "") {
-      prevUrlQueryRef.current = "";
-      router.replace("/lost-found");
-    }
-  }
-
   return (
-    <div className="auth-shell-enter mx-auto max-w-[1200px] space-y-7">
+    <div className="auth-shell-enter mx-auto max-w-[1200px] space-y-6">
       {/* Header Band */}
       <section className="flex flex-col justify-between gap-5 border-b border-[#E5E0DA] pb-6 lg:flex-row lg:items-end">
         <div className="min-w-0 space-y-2">
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] font-medium text-[#6E6A66]">
-            <span>Portal Mahasiswa / Lost &amp; Found</span>
+          <nav
+            aria-label="Breadcrumb"
+            className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-medium text-[#6E6A66]"
+          >
+            <Link
+              href="/dashboard"
+              className="rounded transition-colors hover:text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+            >
+              Portal Mahasiswa
+            </Link>
+            <span aria-hidden="true" className="text-[#CFC8BF]">
+              /
+            </span>
+            <span className="text-[#141416]">Lost &amp; Found</span>
             <span aria-hidden="true" className="text-[#CFC8BF]">
               ·
             </span>
             <span>{isLoading ? "Memuat laporan..." : `${total} laporan tercatat`}</span>
-            {debouncedQuery !== "" && (
-              <>
-                <span aria-hidden="true" className="text-[#CFC8BF]">
-                  ·
-                </span>
-                <span className="text-[#141416]">
-                  Pencarian: &ldquo;{debouncedQuery}&rdquo;
-                </span>
-              </>
-            )}
-          </div>
+          </nav>
 
           <h1 className="font-display text-2xl font-semibold tracking-[-0.02em] text-[#141416] sm:text-[32px] sm:leading-[1.18]">
-            Barang Hilang &amp; Temuan
+            Barang Hilang &amp; Temuan.{" "}
+            <span className="font-normal text-[#6E6A66]">
+              Laporkan barang tertinggal atau bantu kembalikan temuan di kampus.
+            </span>
           </h1>
-          <p className="max-w-2xl text-[14px] leading-relaxed text-[#57534E]">
-            Laporkan barang yang tertinggal atau bantu kembalikan barang temuan di area kampus UPN.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={() => openModal("lost")}
-            className="inline-flex h-11 shrink-0 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-5 text-[14px] font-medium text-[#141416] transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:border-[#141416] hover:bg-[#FAF8F6] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:transition-none"
+            onClick={(e) => openModal("lost", e.currentTarget)}
+            className="inline-flex h-11 shrink-0 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-5 text-[14px] font-medium text-[#141416] transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:border-[#141416] hover:bg-[#FAF8F6] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2"
           >
             Lapor hilang
           </button>
           <button
             type="button"
-            onClick={() => openModal("found")}
-            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:transition-none"
+            onClick={(e) => openModal("found", e.currentTarget)}
+            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2"
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
@@ -533,111 +860,326 @@ export function LostAndFoundContent() {
         </div>
       </section>
 
-      {/* Unified Type, Search & Category Filters */}
+      {/* Inline Action Feedback Banner */}
+      {feedbackNotice && (
+        <div
+          role={feedbackNotice.tone === "error" ? "alert" : "status"}
+          className={`flex flex-wrap items-center justify-between gap-3 rounded-[20px] border px-5 py-3.5 text-[14px] font-medium ${
+            feedbackNotice.tone === "success"
+              ? "border-[#CBE5D5] bg-[#E4F2EA] text-[#1E603E]"
+              : feedbackNotice.tone === "error"
+                ? "border-[#F1C9C9] bg-[#FDF2F2] text-[#B83232]"
+                : "border-[#E5E0DA] bg-white text-[#141416]"
+          }`}
+        >
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>{feedbackNotice.text}</span>
+            {feedbackNotice.href && feedbackNotice.hrefLabel && (
+              <Link
+                href={feedbackNotice.href}
+                className="rounded underline underline-offset-4 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+              >
+                {feedbackNotice.hrefLabel}
+              </Link>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setFeedbackNotice(null)}
+            aria-label="Tutup pemberitahuan"
+            className="inline-flex h-11 min-w-[44px] items-center justify-center rounded-full px-3 text-[13px] font-semibold transition-opacity hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+          >
+            Tutup
+          </button>
+        </div>
+      )}
+
+      {/* Search, Type & Editorial Category Filters */}
       <section
-        aria-label="Filter laporan barang hilang dan temuan"
+        ref={filterBarRef}
+        aria-label="Pencarian dan filter laporan lost and found"
         className="rounded-[20px] border border-[#E5E0DA] bg-white p-5 sm:p-6"
       >
-        <div
-          className="flex flex-wrap items-center gap-2"
-          role="group"
-          aria-label="Filter jenis laporan"
-        >
-          {TYPE_FILTERS.map((opt) => {
-            const isActive = typeFilter === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => {
-                  setTypeFilter(opt.value);
-                  setPage(1);
-                }}
-                aria-pressed={isActive}
-                className={`min-h-[44px] rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] motion-reduce:transition-none ${
-                  isActive
-                    ? "bg-[#141416] text-white"
-                    : "bg-[#F4F1EE] text-[#57534E] hover:bg-[#EAE6E2] hover:text-[#141416]"
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mt-5 grid grid-cols-1 gap-4 border-t border-[#F1EDE8] pt-5 sm:grid-cols-2 lg:grid-cols-[1.35fr_1fr_auto] lg:items-end">
-          <div className="min-w-0">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[1.65fr_1fr]">
+          {/* Inline Search */}
+          <form
+            role="search"
+            className="sm:col-span-2 lg:col-span-1"
+            onSubmit={(e) => {
+              e.preventDefault();
+              applySearchToUrl(searchInput);
+            }}
+          >
             <label htmlFor="lost-found-search" className="block text-[13px] font-medium text-[#57534E]">
-              Cari judul atau lokasi kampus
+              Cari nama barang atau lokasi kampus
             </label>
             <div className="relative mt-1.5">
-              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]">
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.4" />
-                  <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                </svg>
-              </span>
-              <input
-                id="lost-found-search"
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Cari nama barang, lokasi kampus, atau ciri khusus"
-                className="h-11 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-10 pr-3.5 text-[14px] text-[#141416] placeholder:text-[#66625E] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="min-w-0">
-            <label htmlFor="lost-found-category" className="block text-[13px] font-medium text-[#57534E]">
-              Kategori barang
-            </label>
-            <div className="relative mt-1.5">
-              <select
-                id="lost-found-category"
-                value={activeCategoryId === null ? "" : String(activeCategoryId)}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setActiveCategoryId(val === "" ? null : Number(val));
-                  setPage(1);
-                }}
-                className="h-11 w-full appearance-none rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-3.5 pr-9 text-[14px] text-[#141416] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
-              >
-                <option value="">Semua kategori</option>
-                {filterCategories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
               <svg
-                width="14"
-                height="14"
+                width="16"
+                height="16"
                 viewBox="0 0 16 16"
                 fill="none"
                 aria-hidden="true"
-                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
               >
-                <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="7.25" cy="7.25" r="4.75" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
+              <input
+                id="lost-found-search"
+                type="search"
+                value={searchInput}
+                onChange={(e) => setSearchDraft({ base: urlQuery, value: e.target.value })}
+                placeholder="Cari nama barang, lokasi kampus, atau ciri khusus"
+                className="h-11 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-10 pr-11 text-[14px] text-[#141416] placeholder:text-[#66625E] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
+              />
+              {searchInput !== "" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchDraft({ base: "", value: "" });
+                    applySearchToUrl("");
+                  }}
+                  aria-label="Hapus kata kunci pencarian"
+                  className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl text-[#57534E] transition-colors hover:text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                >
+                  ×
+                </button>
+              )}
             </div>
-          </div>
+          </form>
 
-          {hasActiveFilter && (
+          {/* Custom Type Dropdown */}
+          <CustomSelectField
+            id="lost-found-type"
+            label="Jenis laporan"
+            value={typeFilter}
+            displayLabel={activeTypeLabel}
+            isOpen={openMenu === "type"}
+            onToggle={() => toggleMenu("type")}
+            onSelect={(nextVal) => {
+              setIsLoading(true);
+              setTypeFilter(nextVal as TypeFilter);
+              setOpenMenu(null);
+              setPage(1);
+            }}
+            options={TYPE_OPTIONS}
+          />
+
+          {/* Mobile / Tablet Custom Category Dropdown */}
+          <CustomSelectField
+            id="lost-found-category-mobile"
+            label="Kategori barang"
+            className="lg:hidden"
+            value={activeCategoryId === null ? "" : String(activeCategoryId)}
+            displayLabel={activeCategoryName ?? "Semua kategori"}
+            isOpen={openMenu === "category-mobile"}
+            onToggle={() => toggleMenu("category-mobile")}
+            onSelect={(nextVal) => {
+              setIsLoading(true);
+              setActiveCategoryId(nextVal === "" ? null : Number(nextVal));
+              setOpenMenu(null);
+              setPage(1);
+            }}
+            options={[
+              { value: "", label: "Semua kategori" },
+              ...categoryOptions.map((cat) => ({ value: String(cat.id), label: cat.name })),
+            ]}
+          />
+        </div>
+
+        {/* Editorial Single-Row Category Tabs (Desktop) */}
+        <div
+          className="mt-5 hidden items-center border-t border-[#F1EDE8] pt-2 lg:flex"
+          role="group"
+          aria-label="Filter berdasarkan kategori"
+        >
+          <div className="flex flex-1 items-center gap-6 border-b border-[#F1EDE8]">
             <button
               type="button"
-              onClick={clearFilters}
-              className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-5 text-[14px] font-medium text-[#141416] transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:border-[#141416] hover:bg-[#FAF8F6] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] motion-reduce:transform-none motion-reduce:transition-none"
+              onClick={() => {
+                setIsLoading(true);
+                setActiveCategoryId(null);
+                setOpenMenu(null);
+                setPage(1);
+              }}
+              aria-pressed={activeCategoryId === null}
+              className={`-mb-px inline-flex min-h-[44px] items-center whitespace-nowrap rounded-t border-b-2 px-0.5 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2 ${
+                activeCategoryId === null
+                  ? "border-[#141416] font-semibold text-[#141416]"
+                  : "border-transparent font-medium text-[#57534E] hover:border-[#CFC8BF] hover:text-[#141416]"
+              }`}
             >
-              Atur ulang filter
+              Semua kategori
             </button>
-          )}
+
+            {primaryCategories.map((cat) => {
+              const isActive = activeCategoryId === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => {
+                    setIsLoading(true);
+                    setActiveCategoryId(cat.id);
+                    setOpenMenu(null);
+                    setPage(1);
+                  }}
+                  aria-pressed={isActive}
+                  className={`-mb-px inline-flex min-h-[44px] items-center whitespace-nowrap rounded-t border-b-2 px-0.5 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2 ${
+                    isActive
+                      ? "border-[#141416] font-semibold text-[#141416]"
+                      : "border-transparent font-medium text-[#57534E] hover:border-[#CFC8BF] hover:text-[#141416]"
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              );
+            })}
+
+            {overflowCategories.length > 0 && (
+              <div className="relative -mb-px">
+                <button
+                  type="button"
+                  onClick={() => toggleMenu("category-overflow")}
+                  aria-expanded={openMenu === "category-overflow"}
+                  aria-haspopup="menu"
+                  className={`inline-flex min-h-[44px] items-center gap-1.5 whitespace-nowrap rounded-t border-b-2 px-0.5 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2 ${
+                    activeOverflowCategory !== null || openMenu === "category-overflow"
+                      ? "border-[#141416] font-semibold text-[#141416]"
+                      : "border-transparent font-medium text-[#57534E] hover:border-[#CFC8BF] hover:text-[#141416]"
+                  }`}
+                >
+                  <span>
+                    {activeOverflowCategory
+                      ? activeOverflowCategory.name
+                      : `Kategori lain (${overflowCategories.length})`}
+                  </span>
+                  <ChevronDownIcon rotated={openMenu === "category-overflow"} />
+                </button>
+
+                {openMenu === "category-overflow" && (
+                  <div
+                    role="menu"
+                    aria-label="Kategori lost and found lainnya"
+                    className="absolute left-0 top-[calc(100%+8px)] z-30 w-72 rounded-2xl border border-[#E5E0DA] bg-white p-2 shadow-[0_18px_36px_-18px_rgba(20,20,22,0.18)]"
+                  >
+                    <div className="max-h-72 space-y-1 overflow-y-auto">
+                      {overflowCategories.map((cat) => {
+                        const isActive = activeCategoryId === cat.id;
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={isActive}
+                            onClick={() => {
+                              setIsLoading(true);
+                              setActiveCategoryId(cat.id);
+                              setOpenMenu(null);
+                              setPage(1);
+                            }}
+                            className={`flex min-h-[44px] w-full items-center justify-between gap-3 rounded-xl px-3.5 text-left text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
+                              isActive
+                                ? "bg-[#141416] font-semibold text-white"
+                                : "font-medium text-[#141416] hover:bg-[#F4F1EE]"
+                            }`}
+                          >
+                            <span className="truncate">{cat.name}</span>
+                            {isActive && <CheckIcon />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
-      {/* Catalog Grid */}
-      <section aria-label="Daftar laporan barang hilang dan temuan">
+      {/* Catalog Summary, Active Filter Chips & Grid */}
+      <section
+        ref={catalogSectionRef}
+        aria-label="Daftar laporan barang hilang dan temuan"
+        className="space-y-4"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-[14px] text-[#57534E]" aria-live="polite" role="status">
+            {isLoading ? (
+              "Memuat data laporan..."
+            ) : total === 0 ? (
+              "0 laporan ditemukan"
+            ) : rangeStart !== null && rangeEnd !== null ? (
+              <>
+                Menampilkan{" "}
+                <strong className="font-semibold text-[#141416]">
+                  {rangeStart}-{rangeEnd}
+                </strong>{" "}
+                dari <strong className="font-semibold text-[#141416]">{total}</strong> laporan
+              </>
+            ) : (
+              <>
+                <strong className="font-semibold text-[#141416]">{total}</strong> laporan tercatat
+              </>
+            )}
+          </p>
+
+          {hasActiveFilter && (
+            <div className="flex flex-wrap items-center gap-2">
+              {urlQuery !== "" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchDraft({ base: "", value: "" });
+                    applySearchToUrl("");
+                  }}
+                  className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-[#D9D2C9] bg-white px-3.5 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                >
+                  <span>Cari: &ldquo;{urlQuery}&rdquo;</span>
+                  <span aria-hidden="true">×</span>
+                </button>
+              )}
+              {typeFilter !== "all" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLoading(true);
+                    setTypeFilter("all");
+                    setPage(1);
+                  }}
+                  className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-[#D9D2C9] bg-white px-3.5 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                >
+                  <span>Jenis: {activeTypeLabel}</span>
+                  <span aria-hidden="true">×</span>
+                </button>
+              )}
+              {activeCategoryName && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLoading(true);
+                    setActiveCategoryId(null);
+                    setPage(1);
+                  }}
+                  className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-[#D9D2C9] bg-white px-3.5 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                >
+                  <span>Kategori: {activeCategoryName}</span>
+                  <span aria-hidden="true">×</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 text-[13px] font-semibold text-[#57534E] underline underline-offset-4 transition-colors hover:text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+              >
+                Atur ulang semua
+              </button>
+            </div>
+          )}
+        </div>
+
         {isLoading ? (
           <div
             className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
@@ -661,208 +1203,232 @@ export function LostAndFoundContent() {
             <p className="mx-auto mt-1.5 max-w-md text-[14px] text-[#6E6A66]">{error}</p>
             <button
               type="button"
-              onClick={() => void loadReports(typeFilter, page, activeCategoryId, debouncedQuery)}
-              className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] motion-reduce:transform-none motion-reduce:transition-none"
+              onClick={() => {
+                setIsLoading(true);
+                setError(null);
+                setReloadNonce((n) => n + 1);
+              }}
+              className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
             >
               Muat ulang daftar
             </button>
           </div>
-        ) : (
-          <>
-            <p className="mb-4 text-[13px] font-medium text-[#57534E]" aria-live="polite" role="status">
-              Menampilkan {filtered.length} dari {total} laporan
-              {activeCategoryName ? ` pada kategori ${activeCategoryName}` : ""}
+        ) : items.length === 0 ? (
+          <div className="rounded-[20px] border border-[#E5E0DA] bg-white px-6 py-14 text-center">
+            <h2 className="font-display text-lg font-semibold text-[#141416]">
+              {hasActiveFilter ? "Tidak ada laporan sesuai filter" : "Belum ada laporan tercatat"}
+            </h2>
+            <p className="mx-auto mt-1.5 max-w-md text-[14px] text-[#6E6A66]">
+              {hasActiveFilter
+                ? "Ubah jenis laporan, kategori, atau kata kunci pencarian untuk melihat laporan lain."
+                : "Buat laporan pertama jika Anda kehilangan atau menemukan barang di lingkungan kampus UPN."}
             </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              {hasActiveFilter ? (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-6 text-[14px] font-medium text-[#141416] transition-all duration-150 hover:-translate-y-[1px] hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                >
+                  Atur ulang filter
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => openModal("lost", e.currentTarget)}
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-6 text-[14px] font-medium text-[#141416] transition-all duration-150 hover:-translate-y-[1px] hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                >
+                  Lapor hilang
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={(e) => openModal("found", e.currentTarget)}
+                className="inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+              >
+                Lapor temuan
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((item, idx) => {
+              const categoryName = item.category?.name ?? "Lainnya";
+              const reporterName = item.user?.name ?? "Mahasiswa UPN";
+              const eventDateText =
+                formatEventDate(item.date_event) ?? formatTimeAgo(item.created_at);
+              const isFavorited = favoriteIds.has(item.id);
+              const isTogglingFavorite = togglingFavoriteIds.has(item.id);
+              const photoCount = item.images?.length ?? 0;
 
-            {filtered.length === 0 ? (
-              <div className="rounded-[20px] border border-[#E5E0DA] bg-white px-6 py-14 text-center">
-                <h2 className="font-display text-lg font-semibold text-[#141416]">
-                  {hasActiveFilter ? "Tidak ada laporan sesuai filter" : "Belum ada laporan tercatat"}
-                </h2>
-                <p className="mx-auto mt-1.5 max-w-md text-[14px] text-[#6E6A66]">
-                  {hasActiveFilter
-                    ? "Ubah jenis laporan, kategori, atau kata kunci pencarian untuk melihat laporan lain."
-                    : "Buat laporan pertama jika Anda kehilangan atau menemukan barang di lingkungan kampus UPN."}
-                </p>
-                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                  {hasActiveFilter ? (
+              return (
+                <article
+                  key={item.id}
+                  className="group relative flex flex-col overflow-hidden rounded-[20px] border border-[#E5E0DA] bg-white transition-all duration-180 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[2px] hover:border-[#CFC8BF] hover:shadow-[0_14px_28px_-14px_rgba(20,20,22,0.10)] focus-within:ring-2 focus-within:ring-[#141416]"
+                >
+                  {/* Media Frame */}
+                  <div className="relative overflow-hidden bg-[#EFECE8]">
+                    <ListingImage
+                      module="lostfound"
+                      seed={item.id}
+                      eager={idx < 3}
+                      width={800}
+                      height={600}
+                      hint={`${categoryName} ${item.title}`}
+                      images={item.images}
+                      alt={`Foto ${item.title}`}
+                      className="aspect-[4/3] w-full object-cover transition-transform duration-500 ease-[cubic-bezier(.2,.8,.2,1)] group-hover:scale-[1.03]"
+                    />
+
                     <button
                       type="button"
-                      onClick={clearFilters}
-                      className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-6 text-[14px] font-medium text-[#141416] transition-all duration-150 hover:-translate-y-[1px] hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] motion-reduce:transform-none motion-reduce:transition-none"
+                      onClick={() => void handleToggleFavorite(item)}
+                      disabled={isTogglingFavorite}
+                      aria-pressed={isFavorited}
+                      aria-label={
+                        isFavorited
+                          ? `Hapus ${item.title} dari favorit`
+                          : `Simpan ${item.title} ke favorit`
+                      }
+                      className={`absolute right-2.5 top-2.5 z-10 flex h-11 w-11 items-center justify-center rounded-full border transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2 disabled:opacity-60 ${
+                        isFavorited
+                          ? "border-[#141416] bg-[#141416] text-white"
+                          : "border-[#E5E0DA] bg-white text-[#141416] hover:border-[#141416]"
+                      }`}
                     >
-                      Atur ulang filter
+                      <svg
+                        width="17"
+                        height="17"
+                        viewBox="0 0 20 20"
+                        fill={isFavorited ? "currentColor" : "none"}
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M10 17.2l-1.15-1.05C4.7 12.4 2 9.95 2 6.95 2 4.5 3.92 2.6 6.35 2.6c1.38 0 2.7.65 3.65 1.66A4.9 4.9 0 0 1 13.65 2.6C16.08 2.6 18 4.5 18 6.95c0 3-2.7 5.45-6.85 9.2L10 17.2Z"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => openModal("lost")}
-                      className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-6 text-[14px] font-medium text-[#141416] transition-all duration-150 hover:-translate-y-[1px] hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] motion-reduce:transform-none motion-reduce:transition-none"
-                    >
-                      Lapor hilang
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => openModal("found")}
-                    className="inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] motion-reduce:transform-none motion-reduce:transition-none"
-                  >
-                    Lapor temuan
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <h2 className="sr-only">Daftar laporan barang hilang dan temuan</h2>
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {filtered.map((item, idx) => {
-                  const categoryName = item.category?.name ?? "Lainnya";
-                  const reporterName = item.user?.name ?? "Mahasiswa UPN";
-                  const eventDateText =
-                    formatEventDate(item.date_event) ?? formatTimeAgo(item.created_at);
-                  return (
-                    <article
-                      key={item.id}
-                      className="group flex flex-col overflow-hidden rounded-[20px] border border-[#E5E0DA] bg-white transition-all duration-180 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[2px] hover:border-[#CFC8BF] hover:shadow-[0_14px_28px_-14px_rgba(20,20,22,0.10)] focus-within:ring-2 focus-within:ring-[#141416] motion-reduce:transform-none motion-reduce:transition-none"
-                    >
+
+                    {photoCount > 1 && (
+                      <span className="pointer-events-none absolute bottom-2.5 right-2.5 rounded-md bg-[#141416]/85 px-2.5 py-1 text-[13px] font-medium text-white">
+                        {photoCount} foto
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Card Body */}
+                  <div className="flex min-w-0 flex-1 flex-col p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="rounded-md bg-[#F4F1EE] px-2.5 py-1 text-[13px] font-medium text-[#57534E]">
+                        {categoryName}
+                      </span>
+                      <StatusBadge type={item.type} status={item.status} />
+                    </div>
+
+                    <h2 className="mt-3 line-clamp-2 break-words font-display text-[16px] font-semibold leading-snug text-[#141416]">
                       <Link
                         href={`/lost-found/${item.id}`}
-                        aria-label={`Lihat detail ${item.title}`}
-                        className="block overflow-hidden bg-[#EFECE8] focus:outline-none"
+                        className="after:absolute after:inset-0 hover:underline focus:outline-none"
                       >
-                        <ListingImage
-                          module="lostfound"
-                          seed={item.id}
-                          eager={idx < 3}
-                          width={800}
-                          height={600}
-                          hint={`${categoryName} ${item.title}`}
-                          images={item.images}
-                          alt={`Foto ${item.title}`}
-                          className="aspect-[4/3] w-full object-cover transition-transform duration-600 ease-[cubic-bezier(.2,.8,.2,1)] group-hover:scale-[1.03] motion-reduce:transform-none motion-reduce:transition-none"
-                        />
+                        {item.title}
                       </Link>
+                    </h2>
 
-                      <div className="flex min-w-0 flex-1 flex-col p-5">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="rounded-md bg-[#F4F1EE] px-2.5 py-1 text-[13px] font-medium text-[#57534E]">
-                            {categoryName}
-                          </span>
-                          <StatusBadge type={item.type} status={item.status} />
-                        </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-[#57534E]">
+                      <span className="inline-flex min-w-0 items-center gap-1.5">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          aria-hidden="true"
+                          className="shrink-0 text-[#6E6A66]"
+                        >
+                          <path
+                            d="M8 14C8 14 3.5 9.3 3.5 6C3.5 3.5 5.5 1.5 8 1.5C10.5 1.5 12.5 3.5 12.5 6C12.5 9.3 8 14 8 14Z"
+                            stroke="currentColor"
+                            strokeWidth="1.3"
+                            strokeLinejoin="round"
+                          />
+                          <circle cx="8" cy="6" r="1.8" stroke="currentColor" strokeWidth="1.3" />
+                        </svg>
+                        <span className="truncate">{item.location}</span>
+                      </span>
+                      {eventDateText && (
+                        <span className="shrink-0 text-[#6E6A66]">{eventDateText}</span>
+                      )}
+                    </div>
 
-                        <h3 className="mt-3 line-clamp-2 break-words font-display text-[17px] font-semibold leading-snug text-[#141416]">
-                          <Link
-                            href={`/lost-found/${item.id}`}
-                            className="hover:underline focus:outline-none"
-                          >
-                            {item.title}
-                          </Link>
-                        </h3>
+                    {item.reward && (
+                      <p className="mt-2.5 w-fit rounded-md bg-[#FAF4E8] px-2.5 py-1 text-[13px] font-semibold text-[#78440E]">
+                        Imbalan: {item.reward}
+                      </p>
+                    )}
 
-                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-[#57534E]">
-                          <span className="inline-flex min-w-0 items-center gap-1.5">
-                            <svg
-                              width="14"
-                              height="14"
-                              viewBox="0 0 16 16"
-                              fill="none"
-                              aria-hidden="true"
-                              className="shrink-0 text-[#6E6A66]"
-                            >
-                              <path
-                                d="M8 14C8 14 3.5 9.3 3.5 6C3.5 3.5 5.5 1.5 8 1.5C10.5 1.5 12.5 3.5 12.5 6C12.5 9.3 8 14 8 14Z"
-                                stroke="currentColor"
-                                strokeWidth="1.3"
-                                strokeLinejoin="round"
-                              />
-                              <circle cx="8" cy="6" r="1.8" stroke="currentColor" strokeWidth="1.3" />
-                            </svg>
-                            <span className="truncate">{item.location}</span>
-                          </span>
-                          {eventDateText && (
-                            <span className="shrink-0 text-[#6E6A66]">{eventDateText}</span>
-                          )}
-                        </div>
+                    <p className="mt-2.5 line-clamp-2 flex-1 break-words text-[14px] leading-relaxed text-[#57534E]">
+                      {item.description ?? "Tidak ada deskripsi tambahan."}
+                    </p>
 
-                        {item.reward && (
-                          <p className="mt-2.5 w-fit rounded-md bg-[#FAF4E8] px-2.5 py-1 text-[13px] font-semibold text-[#78440E]">
-                            Imbalan: {item.reward}
-                          </p>
+                    <div className="mt-4 flex items-center justify-between gap-2 border-t border-[#F1EDE8] pt-4">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#141416] text-[13px] font-semibold text-white"
+                          aria-hidden="true"
+                        >
+                          {initialsOf(reporterName)}
+                        </span>
+                        <span className="truncate text-[13px] font-medium text-[#141416]">
+                          {reporterName}
+                        </span>
+                        {item.user?.is_official_account && (
+                          <VerifiedBadge size="xs" title="Akun resmi terverifikasi UPN" />
                         )}
+                      </span>
+                      <span className="shrink-0 text-[13px] text-[#6E6A66]">
+                        {formatTimeAgo(item.created_at)}
+                      </span>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
 
-                        <p className="mt-2.5 line-clamp-2 flex-1 break-words text-[14px] leading-relaxed text-[#57534E]">
-                          {item.description ?? "Tidak ada deskripsi tambahan."}
-                        </p>
-
-                        <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#F1EDE8] pt-4">
-                          <span className="flex min-w-0 items-center gap-2.5">
-                            <span
-                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#141416] text-[13px] font-semibold text-white"
-                              aria-hidden="true"
-                            >
-                              {initialsOf(reporterName)}
-                            </span>
-                            <span className="min-w-0">
-                              <span className="block truncate text-[13px] font-medium text-[#141416]">
-                                {reporterName}
-                              </span>
-                              {item.contact_info && (
-                                <span className="block truncate text-[13px] text-[#6E6A66]">
-                                  {item.contact_info}
-                                </span>
-                              )}
-                            </span>
-                          </span>
-
-                          <Link
-                            href={`/lost-found/${item.id}`}
-                            aria-label={`Lihat detail ${item.title}`}
-                            className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-full border border-[#E5E0DA] bg-[#FAF8F6] px-4 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
-                          >
-                            Lihat detail
-                          </Link>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-                </div>
-              </>
-            )}
-
-            {lastPage > 1 && (
-              <nav
-                aria-label="Navigasi halaman lost and found"
-                className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-[#E5E0DA] bg-white px-5 py-4 text-[14px] text-[#57534E]"
+        {/* Pagination */}
+        {!isLoading && !error && lastPage > 1 && (
+          <nav
+            aria-label="Navigasi halaman lost and found"
+            className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-[#E5E0DA] bg-white px-5 py-4 text-[14px] text-[#57534E]"
+          >
+            <span>
+              Halaman <strong className="font-semibold text-[#141416]">{page}</strong> dari{" "}
+              <strong className="font-semibold text-[#141416]">{lastPage}</strong> ({total} laporan)
+            </span>
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => handlePageChange(Math.max(1, page - 1))}
+                aria-label="Halaman sebelumnya"
+                className="inline-flex h-11 items-center justify-center rounded-full border border-[#E5E0DA] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-40"
               >
-                <span>
-                  Halaman <strong className="font-semibold text-[#141416]">{page}</strong> dari{" "}
-                  <strong className="font-semibold text-[#141416]">{lastPage}</strong> ({total} laporan)
-                </span>
-                <div className="flex items-center gap-2.5">
-                  <button
-                    type="button"
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    aria-label="Halaman sebelumnya"
-                    className="inline-flex h-11 items-center justify-center rounded-full border border-[#E5E0DA] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-40"
-                  >
-                    Sebelumnya
-                  </button>
-                  <button
-                    type="button"
-                    disabled={page >= lastPage}
-                    onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
-                    aria-label="Halaman berikutnya"
-                    className="inline-flex h-11 items-center justify-center rounded-full border border-[#E5E0DA] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-40"
-                  >
-                    Berikutnya
-                  </button>
-                </div>
-              </nav>
-            )}
-          </>
+                Sebelumnya
+              </button>
+              <button
+                type="button"
+                disabled={page >= lastPage}
+                onClick={() => handlePageChange(Math.min(lastPage, page + 1))}
+                aria-label="Halaman berikutnya"
+                className="inline-flex h-11 items-center justify-center rounded-full border border-[#E5E0DA] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-40"
+              >
+                Berikutnya
+              </button>
+            </div>
+          </nav>
         )}
       </section>
 
@@ -930,7 +1496,7 @@ export function LostAndFoundContent() {
                         return (
                           <label
                             key={opt.value}
-                            className={`flex min-h-[44px] cursor-pointer items-center justify-center rounded-full border px-4 py-2 text-center text-[13px] font-medium transition-all focus-within:ring-2 focus-within:ring-[#141416] focus-within:ring-offset-1 ${
+                            className={`flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-center text-[13px] font-medium transition-all focus-within:ring-2 focus-within:ring-[#141416] focus-within:ring-offset-1 ${
                               checked
                                 ? "border-[#141416] bg-[#141416] text-white"
                                 : "border-[#E5E0DA] bg-[#F6F4F1] text-[#57534E] hover:border-[#CFC8BF] hover:text-[#141416]"
@@ -957,10 +1523,16 @@ export function LostAndFoundContent() {
                     </h3>
 
                     <div>
-                      <label htmlFor="laporan-title" className="block text-[14px] font-medium text-[#141416]">
-                        Nama barang <span className="text-[#B83232]">*</span>
-                      </label>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <label htmlFor="laporan-title" className="block text-[14px] font-medium text-[#141416]">
+                          Nama barang <span className="text-[#B83232]">*</span>
+                        </label>
+                        <span className="text-[13px] text-[#6E6A66]">
+                          {formData.title.length}/255
+                        </span>
+                      </div>
                       <input
+                        ref={titleInputRef}
                         id="laporan-title"
                         type="text"
                         required
@@ -972,41 +1544,35 @@ export function LostAndFoundContent() {
                       />
                     </div>
 
-                    <div>
-                      <label htmlFor="laporan-category" className="block text-[14px] font-medium text-[#141416]">
-                        Kategori{" "}
-                        {categoryOptions.length > 0 && <span className="text-[#B83232]">*</span>}
-                      </label>
-                      <div className="relative mt-1.5">
-                        <select
-                          id="laporan-category"
-                          required={categoryOptions.length > 0}
-                          value={formData.category_id}
-                          onChange={(e) => updateForm("category_id", e.target.value)}
-                          disabled={categoryOptions.length === 0}
-                          className="h-11 w-full appearance-none rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-3.5 pr-9 text-[14px] text-[#141416] transition-all focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none disabled:opacity-60"
-                        >
-                          <option value="">Pilih kategori</option>
-                          {categoryOptions.map((cat) => (
-                            <option key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </option>
-                          ))}
-                        </select>
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 16 16"
-                          fill="none"
-                          aria-hidden="true"
-                          className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
-                        >
-                          <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </div>
+                    <div ref={modalCategoryDropdownRef}>
+                      <CustomSelectField
+                        id="laporan-category"
+                        label="Kategori"
+                        value={formData.category_id}
+                        displayLabel={
+                          formData.category_id === ""
+                            ? "Pilih kategori (opsional)"
+                            : (categoryOptions.find((c) => String(c.id) === formData.category_id)?.name ??
+                              "Pilih kategori (opsional)")
+                        }
+                        isOpen={openMenu === "modal-category"}
+                        disabled={categoryOptions.length === 0}
+                        onToggle={() => toggleMenu("modal-category")}
+                        onSelect={(nextVal) => {
+                          updateForm("category_id", nextVal);
+                          setOpenMenu(null);
+                        }}
+                        options={[
+                          { value: "", label: "Tanpa kategori" },
+                          ...categoryOptions.map((cat) => ({
+                            value: String(cat.id),
+                            label: cat.name,
+                          })),
+                        ]}
+                      />
                       {categoryOptions.length === 0 && (
                         <p className="mt-1.5 text-[13px] text-[#6E6A66]">
-                          Kategori belum tersedia. Tunggu data laporan dimuat atau lanjutkan tanpa kategori.
+                          Kategori belum tersedia. Anda tetap dapat melanjutkan tanpa kategori.
                         </p>
                       )}
                     </div>
@@ -1017,7 +1583,7 @@ export function LostAndFoundContent() {
                           Deskripsi dan ciri khusus <span className="text-[#B83232]">*</span>
                         </label>
                         <span className="text-[13px] text-[#6E6A66]">
-                          {formData.description.length} / 2000
+                          {formData.description.length}/2000
                         </span>
                       </div>
                       <textarea
@@ -1033,9 +1599,14 @@ export function LostAndFoundContent() {
                     </div>
 
                     <div>
-                      <span id="laporan-photos-label" className="block text-[14px] font-medium text-[#141416]">
-                        {reportType === "lost" ? "Foto referensi barang" : "Dokumentasi foto"} (maksimal 3)
-                      </span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span id="laporan-photos-label" className="block text-[14px] font-medium text-[#141416]">
+                          {reportType === "lost" ? "Foto referensi barang" : "Dokumentasi foto"} ({photos.length}/{MAX_PHOTOS})
+                        </span>
+                        <span className="text-[13px] text-[#6E6A66]">
+                          Foto pertama menjadi sampul
+                        </span>
+                      </div>
                       <div className="mt-2 flex flex-wrap gap-3" role="group" aria-labelledby="laporan-photos-label">
                         {photos.map((photo, i) => (
                           <span key={photo.id} className="relative h-20 w-20">
@@ -1047,6 +1618,11 @@ export function LostAndFoundContent() {
                               height={80}
                               className="h-20 w-20 rounded-xl border border-[#E5E0DA] object-cover"
                             />
+                            {i === 0 && (
+                              <span className="pointer-events-none absolute bottom-1 left-1 rounded bg-[#141416]/85 px-1.5 py-0.5 text-[11px] font-medium text-white">
+                                Utama
+                              </span>
+                            )}
                             <button
                               type="button"
                               onClick={() => removePhoto(photo.id)}
@@ -1059,7 +1635,7 @@ export function LostAndFoundContent() {
                             </button>
                           </span>
                         ))}
-                        {photos.length < 3 && (
+                        {photos.length < MAX_PHOTOS && (
                           <label className="flex h-20 w-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[#CFC8BF] bg-[#F6F4F1] text-[#57534E] transition-colors hover:border-[#141416] hover:bg-white focus-within:ring-2 focus-within:ring-[#141416]">
                             <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                               <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -1079,6 +1655,11 @@ export function LostAndFoundContent() {
                           </label>
                         )}
                       </div>
+                      {photoError && (
+                        <p role="alert" className="mt-2 text-[13px] font-medium text-[#B83232]">
+                          {photoError}
+                        </p>
+                      )}
                     </div>
                   </section>
 
@@ -1203,7 +1784,7 @@ export function LostAndFoundContent() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-60 motion-reduce:transform-none motion-reduce:transition-none"
+                      className="inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-60"
                     >
                       {isSubmitting ? "Menyimpan laporan..." : "Publikasikan laporan"}
                     </button>
@@ -1220,7 +1801,7 @@ export function LostAndFoundContent() {
                       Pratinjau tampilan laporan
                     </p>
                     <div className="mt-3 overflow-hidden rounded-2xl border border-[#EAE5DF] bg-white">
-                      <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-[#EFECE8] text-[#5F5B57]">
+                      <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-[#EFECE8] text-[#5F5B57]">
                         {photos.length > 0 ? (
                           // eslint-disable-next-line @next/next/no-img-element -- local preview before upload
                           <img
@@ -1233,6 +1814,11 @@ export function LostAndFoundContent() {
                         ) : (
                           <span className="text-[13px] font-medium">
                             Belum ada foto dipilih
+                          </span>
+                        )}
+                        {photos.length > 1 && (
+                          <span className="pointer-events-none absolute bottom-2 right-2 rounded-md bg-[#141416]/85 px-2 py-0.5 text-[13px] font-medium text-white">
+                            {photos.length} foto
                           </span>
                         )}
                       </div>
