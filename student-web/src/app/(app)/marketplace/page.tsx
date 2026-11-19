@@ -201,6 +201,7 @@ function MarketplaceContent() {
   const [error, setError] = useState<string | null>(null);
 
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
+  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [priceFilter, setPriceFilter] = useState("any");
   const [conditionFilter, setConditionFilter] = useState("any");
   const [sortBy, setSortBy] = useState<SortOption>("latest");
@@ -230,6 +231,8 @@ function MarketplaceContent() {
   const photoIdRef = useRef(0);
   const photosRef = useRef(photos);
   const catalogSectionRef = useRef<HTMLElement | null>(null);
+  const categoryMenuRef = useRef<HTMLDivElement | null>(null);
+  const categoryMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const createTriggerRef = useRef<HTMLButtonElement | null>(null);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const wasModalOpenRef = useRef(false);
@@ -388,18 +391,58 @@ function MarketplaceContent() {
     };
   }, [isModalOpen, closeModal]);
 
-  const categoryOptions = useMemo(() => {
-    if (backendCategories.length > 0) {
-      return backendCategories.map((c) => ({ id: c.id, name: c.name }));
-    }
-    const byId = new Map<number, string>();
-    for (const item of items) {
-      if (item.category?.id && item.category?.name) {
-        byId.set(item.category.id, item.category.name);
+  useEffect(() => {
+    if (!isCategoryMenuOpen) return;
+
+    function handleMouseDown(e: MouseEvent) {
+      if (categoryMenuRef.current && !categoryMenuRef.current.contains(e.target as Node)) {
+        setIsCategoryMenuOpen(false);
       }
     }
-    return [...byId.entries()].map(([id, name]) => ({ id, name }));
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setIsCategoryMenuOpen(false);
+        categoryMenuButtonRef.current?.focus();
+      }
+    }
+
+    document.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isCategoryMenuOpen]);
+
+  const categoryOptions = useMemo(() => {
+    const raw =
+      backendCategories.length > 0
+        ? backendCategories.map((c) => ({ id: c.id, name: c.name }))
+        : (() => {
+            const byId = new Map<number, string>();
+            for (const item of items) {
+              if (item.category?.id && item.category?.name) {
+                byId.set(item.category.id, item.category.name);
+              }
+            }
+            return [...byId.entries()].map(([id, name]) => ({ id, name }));
+          })();
+
+    return [...raw].sort((a, b) => {
+      const aOther = a.name.trim().toLowerCase() === "lainnya";
+      const bOther = b.name.trim().toLowerCase() === "lainnya";
+      if (aOther !== bOther) return aOther ? 1 : -1;
+      return a.name.localeCompare(b.name, "id-ID");
+    });
   }, [backendCategories, items]);
+
+  const primaryCategories = useMemo(() => categoryOptions.slice(0, 4), [categoryOptions]);
+  const overflowCategories = useMemo(() => categoryOptions.slice(4), [categoryOptions]);
+  const activeOverflowCategory = useMemo(
+    () => overflowCategories.find((c) => c.id === activeCategoryId) ?? null,
+    [overflowCategories, activeCategoryId]
+  );
 
   function updateForm<K extends keyof typeof EMPTY_FORM>(key: K, value: string) {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -608,6 +651,7 @@ function MarketplaceContent() {
 
   function resetFilters() {
     setIsLoading(true);
+    setIsCategoryMenuOpen(false);
     setActiveCategoryId(null);
     setPriceFilter("any");
     setConditionFilter("any");
@@ -713,10 +757,11 @@ function MarketplaceContent() {
         aria-label="Pencarian dan filter katalog marketplace"
         className="rounded-[20px] border border-[#E5E0DA] bg-white p-5 sm:p-6"
       >
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
           {/* Inline Search */}
           <form
             role="search"
+            className="sm:col-span-2 lg:col-span-1"
             onSubmit={(e) => {
               e.preventDefault();
               applySearchToUrl(searchInput);
@@ -863,50 +908,165 @@ function MarketplaceContent() {
               </svg>
             </div>
           </div>
+
+          {/* Mobile / Tablet Category Select (keeps 1-line ergonomics without pill wrapping) */}
+          <div className="lg:hidden">
+            <label htmlFor="marketplace-category-mobile" className="block text-[13px] font-medium text-[#57534E]">
+              Kategori barang
+            </label>
+            <div className="relative mt-1.5">
+              <select
+                id="marketplace-category-mobile"
+                value={activeCategoryId === null ? "" : String(activeCategoryId)}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setActiveCategoryId(raw === "" ? null : Number(raw));
+                  setPage(1);
+                }}
+                className="h-11 w-full appearance-none rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-3.5 pr-9 text-[14px] text-[#141416] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
+              >
+                <option value="">Semua kategori</option>
+                {categoryOptions.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden="true"
+                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
+              >
+                <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          </div>
         </div>
 
-        {/* Category Pills */}
+        {/* Editorial Single-Row Category Tabs (Desktop) */}
         <div
-          className="mt-5 flex flex-wrap items-center gap-2 border-t border-[#F1EDE8] pt-5"
+          className="mt-5 hidden items-center border-t border-[#F1EDE8] pt-2 lg:flex"
           role="group"
           aria-label="Filter berdasarkan kategori"
         >
-          <button
-            type="button"
-            onClick={() => {
-              setActiveCategoryId(null);
-              setPage(1);
-            }}
-            aria-pressed={activeCategoryId === null}
-            className={`min-h-[44px] rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
-              activeCategoryId === null
-                ? "bg-[#141416] text-white"
-                : "bg-[#F4F1EE] text-[#57534E] hover:bg-[#EAE6E2] hover:text-[#141416]"
-            }`}
-          >
-            Semua kategori
-          </button>
-          {categoryOptions.map((cat) => {
-            const isActive = activeCategoryId === cat.id;
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => {
-                  setActiveCategoryId(cat.id);
-                  setPage(1);
-                }}
-                aria-pressed={isActive}
-                className={`min-h-[44px] rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
-                  isActive
-                    ? "bg-[#141416] text-white"
-                    : "bg-[#F4F1EE] text-[#57534E] hover:bg-[#EAE6E2] hover:text-[#141416]"
-                }`}
-              >
-                {cat.name}
-              </button>
-            );
-          })}
+          <div className="flex flex-1 items-center gap-6 border-b border-[#F1EDE8]">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveCategoryId(null);
+                setIsCategoryMenuOpen(false);
+                setPage(1);
+              }}
+              aria-pressed={activeCategoryId === null}
+              className={`-mb-px inline-flex min-h-[44px] items-center whitespace-nowrap border-b-2 px-0.5 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2 rounded-t ${
+                activeCategoryId === null
+                  ? "border-[#141416] font-semibold text-[#141416]"
+                  : "border-transparent font-medium text-[#57534E] hover:border-[#CFC8BF] hover:text-[#141416]"
+              }`}
+            >
+              Semua kategori
+            </button>
+
+            {primaryCategories.map((cat) => {
+              const isActive = activeCategoryId === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveCategoryId(cat.id);
+                    setIsCategoryMenuOpen(false);
+                    setPage(1);
+                  }}
+                  aria-pressed={isActive}
+                  className={`-mb-px inline-flex min-h-[44px] items-center whitespace-nowrap border-b-2 px-0.5 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2 rounded-t ${
+                    isActive
+                      ? "border-[#141416] font-semibold text-[#141416]"
+                      : "border-transparent font-medium text-[#57534E] hover:border-[#CFC8BF] hover:text-[#141416]"
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              );
+            })}
+
+            {overflowCategories.length > 0 && (
+              <div ref={categoryMenuRef} className="relative -mb-px">
+                <button
+                  ref={categoryMenuButtonRef}
+                  type="button"
+                  onClick={() => setIsCategoryMenuOpen((open) => !open)}
+                  aria-expanded={isCategoryMenuOpen}
+                  aria-haspopup="menu"
+                  className={`inline-flex min-h-[44px] items-center gap-1.5 whitespace-nowrap border-b-2 px-0.5 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2 rounded-t ${
+                    activeOverflowCategory !== null || isCategoryMenuOpen
+                      ? "border-[#141416] font-semibold text-[#141416]"
+                      : "border-transparent font-medium text-[#57534E] hover:border-[#CFC8BF] hover:text-[#141416]"
+                  }`}
+                >
+                  <span>
+                    {activeOverflowCategory
+                      ? activeOverflowCategory.name
+                      : `Kategori lain (${overflowCategories.length})`}
+                  </span>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    aria-hidden="true"
+                    className={`transition-transform duration-150 ${
+                      isCategoryMenuOpen ? "rotate-180" : ""
+                    }`}
+                  >
+                    <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+
+                {isCategoryMenuOpen && (
+                  <div
+                    role="menu"
+                    aria-label="Kategori marketplace lainnya"
+                    className="absolute left-0 top-[calc(100%+8px)] z-30 w-72 rounded-2xl border border-[#E5E0DA] bg-white p-2 shadow-[0_18px_36px_-18px_rgba(20,20,22,0.18)]"
+                  >
+                    <div className="max-h-72 space-y-1 overflow-y-auto">
+                      {overflowCategories.map((cat) => {
+                        const isActive = activeCategoryId === cat.id;
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={isActive}
+                            onClick={() => {
+                              setActiveCategoryId(cat.id);
+                              setIsCategoryMenuOpen(false);
+                              setPage(1);
+                            }}
+                            className={`flex min-h-[44px] w-full items-center justify-between gap-3 rounded-xl px-3.5 text-left text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
+                              isActive
+                                ? "bg-[#141416] font-semibold text-white"
+                                : "font-medium text-[#141416] hover:bg-[#F4F1EE]"
+                            }`}
+                          >
+                            <span className="truncate">{cat.name}</span>
+                            {isActive && (
+                              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
+                                <path d="M3.5 8.5L6.5 11.5L12.5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
