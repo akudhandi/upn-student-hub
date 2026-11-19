@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\Event;
 use App\Models\MarketplaceListing;
 use App\Models\ServiceListing;
 use App\Models\User;
@@ -237,5 +238,102 @@ class StudentPriorityOneTest extends TestCase
 
         $desc = $this->getJson('/api/v1/services?sort=price_desc')->assertOk();
         $this->assertEquals([200000, 80000, 25000], array_map('floatval', array_column($desc->json('data.data'), 'price_min')));
+    }
+
+    public function test_events_index_filters_by_schedule_verified_and_sorts(): void
+    {
+        $student = User::factory()->create(['account_type' => 'student']);
+        $hima = User::factory()->create(['account_type' => 'hima']);
+        $category = Category::create([
+            'name' => 'Seminar',
+            'slug' => 'seminar-events-p1',
+            'type' => 'event',
+            'is_active' => true,
+        ]);
+
+        $pastEvent = Event::create([
+            'user_id' => $student->id,
+            'category_id' => $category->id,
+            'title' => 'Workshop Lama',
+            'slug' => 'workshop-lama-p1',
+            'event_code' => 'EVT-PAST-01',
+            'organizer_name' => 'Komunitas Mahasiswa',
+            'event_date' => now()->subDays(5),
+            'location' => 'Aula FIK',
+            'description' => 'Kegiatan pekan lalu',
+            'status' => 'published',
+            'is_verified' => false,
+        ]);
+        $pastEvent->created_at = now()->subDays(10);
+        $pastEvent->save();
+
+        $upcomingOfficial = Event::create([
+            'user_id' => $hima->id,
+            'category_id' => $category->id,
+            'title' => 'Seminar Nasional HIMA',
+            'slug' => 'seminar-nasional-hima-p1',
+            'event_code' => 'EVT-UP-01',
+            'organizer_name' => 'HIMA Informatika',
+            'event_date' => now()->addDays(3),
+            'location' => 'Auditorium UPN',
+            'description' => 'Seminar teknologi resmi',
+            'status' => 'published',
+            'is_verified' => false,
+        ]);
+        $upcomingOfficial->created_at = now()->subDays(2);
+        $upcomingOfficial->save();
+
+        $upcomingVerified = Event::create([
+            'user_id' => $student->id,
+            'category_id' => $category->id,
+            'title' => 'Festival Kampus UPN',
+            'slug' => 'festival-kampus-upn-p1',
+            'event_code' => 'EVT-UP-02',
+            'organizer_name' => 'Panitia Festival UPN',
+            'event_date' => now()->addDays(14),
+            'location' => 'Lapangan UPN',
+            'description' => 'Festival tahunan mahasiswa',
+            'status' => 'published',
+            'is_verified' => true,
+        ]);
+        $upcomingVerified->created_at = now();
+        $upcomingVerified->save();
+
+        $upcoming = $this->getJson('/api/v1/events?schedule=upcoming')->assertOk();
+        $this->assertSame(2, $upcoming->json('data.total'));
+        $this->assertSame(
+            ['Seminar Nasional HIMA', 'Festival Kampus UPN'],
+            array_column($upcoming->json('data.data'), 'title')
+        );
+
+        $legacyUpcoming = $this->getJson('/api/v1/events?upcoming=1')->assertOk();
+        $this->assertSame(2, $legacyUpcoming->json('data.total'));
+        $this->assertSame(
+            ['Seminar Nasional HIMA', 'Festival Kampus UPN'],
+            array_column($legacyUpcoming->json('data.data'), 'title')
+        );
+
+        $past = $this->getJson('/api/v1/events?schedule=past')->assertOk();
+        $this->assertSame(1, $past->json('data.total'));
+        $this->assertSame(['Workshop Lama'], array_column($past->json('data.data'), 'title'));
+
+        $verified = $this->getJson('/api/v1/events?verified=1')->assertOk();
+        $this->assertSame(2, $verified->json('data.total'));
+        $verifiedTitles = array_column($verified->json('data.data'), 'title');
+        $this->assertContains('Seminar Nasional HIMA', $verifiedTitles);
+        $this->assertContains('Festival Kampus UPN', $verifiedTitles);
+        $this->assertNotContains('Workshop Lama', $verifiedTitles);
+
+        $eventDesc = $this->getJson('/api/v1/events?sort=event_desc')->assertOk();
+        $this->assertSame(
+            ['Festival Kampus UPN', 'Seminar Nasional HIMA', 'Workshop Lama'],
+            array_column($eventDesc->json('data.data'), 'title')
+        );
+
+        $latest = $this->getJson('/api/v1/events?sort=latest')->assertOk();
+        $this->assertSame(
+            ['Festival Kampus UPN', 'Seminar Nasional HIMA', 'Workshop Lama'],
+            array_column($latest->json('data.data'), 'title')
+        );
     }
 }

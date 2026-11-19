@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Concerns\ResolvesStudentUser;
 use App\Http\Controllers\Api\V1\Concerns\SyncsListingImages;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -92,15 +93,26 @@ class EventController extends Controller
                 'category:id,name,slug',
                 'images',
             ])
-            ->where('status', 'published')
-            ->orderBy('event_date', 'asc');
+            ->where('status', 'published');
 
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->query('category_id'));
         }
 
-        if ($request->boolean('upcoming')) {
+        $schedule = (string) $request->query('schedule', '');
+        if ($schedule === 'upcoming' || $request->boolean('upcoming')) {
             $query->where('event_date', '>=', now()->startOfDay());
+        } elseif ($schedule === 'past') {
+            $query->where('event_date', '<', now()->startOfDay());
+        }
+
+        if ($request->boolean('verified')) {
+            $query->where(function ($q) {
+                $q->where('is_verified', true)
+                    ->orWhereHas('user', function ($userQuery) {
+                        $userQuery->whereIn('account_type', User::OFFICIAL_ACCOUNT_TYPES);
+                    });
+            });
         }
 
         if ($request->filled('q')) {
@@ -111,6 +123,15 @@ class EventController extends Controller
                     ->orWhere('location', 'like', "%{$keyword}%")
                     ->orWhere('organizer_name', 'like', "%{$keyword}%");
             });
+        }
+
+        $sort = (string) $request->query('sort', 'soonest');
+        if ($sort === 'latest') {
+            $query->orderByDesc('created_at')->orderByDesc('id');
+        } elseif ($sort === 'event_desc') {
+            $query->orderByDesc('event_date')->orderByDesc('id');
+        } else {
+            $query->orderBy('event_date', 'asc')->orderByDesc('id');
         }
 
         $events = $query->paginate(12);
