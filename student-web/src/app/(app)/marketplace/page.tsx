@@ -11,8 +11,10 @@ import {
   type PublicCategory,
 } from "@/lib/api";
 import ListingImage from "@/components/ListingImage";
-import { getUser } from "@/lib/auth";
+import VerifiedBadge from "@/components/VerifiedBadge";
+import { getToken, getUser } from "@/lib/auth";
 import type { ApiImage } from "@/lib/images";
+import { fetchFavorites, toggleFavorite } from "@/lib/interactions";
 
 type ApiMarketplaceItem = {
   id: number;
@@ -22,7 +24,11 @@ type ApiMarketplaceItem = {
   condition: string;
   status: string;
   created_at: string;
-  user?: { id: number; name: string } | null;
+  user?: {
+    id: number;
+    name: string;
+    is_official_account?: boolean;
+  } | null;
   category?: { id: number; name: string; slug: string } | null;
   images?: ApiImage[] | null;
 };
@@ -32,6 +38,9 @@ type MarketplaceListResponse = {
   data: {
     current_page: number;
     last_page: number;
+    per_page?: number;
+    from?: number | null;
+    to?: number | null;
     total: number;
     data: ApiMarketplaceItem[];
   };
@@ -42,12 +51,27 @@ type MarketplaceCreateResponse = {
   data: ApiMarketplaceItem;
 };
 
+type SortOption = "latest" | "price_asc" | "price_desc";
+
 const CONDITION_OPTIONS = [
   { value: "new", label: "Baru" },
-  { value: "like-new", label: "Bekas seperti baru" },
+  { value: "like-new", label: "Seperti baru" },
   { value: "good", label: "Layak pakai" },
   { value: "fair", label: "Perlu perbaikan" },
 ] as const;
+
+const PRICE_RANGE_OPTIONS = [
+  { value: "any", label: "Semua harga" },
+  { value: "under500", label: "Di bawah Rp 500.000" },
+  { value: "500-1000", label: "Rp 500.000 - Rp 1.000.000" },
+  { value: "over1000", label: "Di atas Rp 1.000.000" },
+] as const;
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "latest", label: "Terbaru" },
+  { value: "price_asc", label: "Harga termurah" },
+  { value: "price_desc", label: "Harga termahal" },
+];
 
 const EMPTY_FORM = {
   title: "",
@@ -57,12 +81,27 @@ const EMPTY_FORM = {
   description: "",
 };
 
-const CONDITION_LABELS: Record<string, string> = {
-  new: "Baru",
-  "like-new": "Seperti baru",
-  good: "Layak pakai",
-  fair: "Perlu perbaikan",
+const CONDITION_META: Record<string, { label: string; badgeClass: string }> = {
+  new: {
+    label: "Baru",
+    badgeClass: "bg-[#E4F2EA] text-[#1E603E]",
+  },
+  "like-new": {
+    label: "Seperti baru",
+    badgeClass: "bg-[#E4F2EA] text-[#1E603E]",
+  },
+  good: {
+    label: "Layak pakai",
+    badgeClass: "bg-[#F4F1EE] text-[#57534E]",
+  },
+  fair: {
+    label: "Perlu perbaikan",
+    badgeClass: "bg-[#FDF6EB] text-[#7C4A12]",
+  },
 };
+
+const MAX_PHOTOS = 6;
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
 function formatRupiah(value: number | string): string {
   return new Intl.NumberFormat("id-ID", {
@@ -116,7 +155,10 @@ function SellerAvatar({ name }: { name: string }) {
       .join("")
       .toUpperCase() || "UP";
   return (
-    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#141416] text-[13px] font-semibold text-white">
+    <span
+      aria-hidden="true"
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#141416] text-[13px] font-semibold text-white"
+    >
       {initials}
     </span>
   );
@@ -127,7 +169,10 @@ function ItemCardSkeleton() {
     <div className="flex flex-col overflow-hidden rounded-[20px] border border-[#E5E0DA] bg-white">
       <div className="aspect-[4/3] animate-pulse bg-[#EFECE8]" />
       <div className="flex flex-1 flex-col gap-3 p-5">
-        <div className="h-5 w-24 animate-pulse rounded-md bg-[#F4F1EE]" />
+        <div className="flex items-center justify-between gap-2">
+          <div className="h-6 w-24 animate-pulse rounded-md bg-[#F4F1EE]" />
+          <div className="h-6 w-20 animate-pulse rounded-md bg-[#F4F1EE]" />
+        </div>
         <div className="h-5 w-4/5 animate-pulse rounded-lg bg-[#F4F1EE]" />
         <div className="h-6 w-2/5 animate-pulse rounded-lg bg-[#EFECE8]" />
         <div className="h-4 w-full animate-pulse rounded-lg bg-[#F4F1EE]" />
@@ -141,67 +186,63 @@ function ItemCardSkeleton() {
 }
 
 function MarketplaceContent() {
-  const [items, setItems] = useState<ApiMarketplaceItem[]>([]);
-  const [page, setPage] = useState(1);
-  const [lastPage, setLastPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
-  const [priceFilter, setPriceFilter] = useState("any");
-  const [conditionFilter, setConditionFilter] = useState("any");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState(EMPTY_FORM);
-  const [photos, setPhotos] = useState<{ id: number; url: string; file: File }[]>([]);
-  const [backendCategories, setBackendCategories] = useState<PublicCategory[]>([]);
-  const [currentUser] = useState(() => getUser());
-  const photoIdRef = useRef(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const createRequested = searchParams.get("action") === "create";
   const urlSearchQuery = (searchParams.get("q") ?? "").trim();
 
-  const loadItems = useCallback(
-    async (
-      pageNum: number,
-      categoryId: number | null,
-      condition: string,
-      priceRange: string,
-      searchQuery: string,
-      signal?: AbortSignal
-    ) => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const params = new URLSearchParams();
-        params.set("page", String(pageNum));
-        if (categoryId !== null) params.set("category_id", String(categoryId));
-        if (condition !== "any") params.set("condition", condition);
-        const { minPrice, maxPrice } = priceRangeParams(priceRange);
-        if (minPrice) params.set("min_price", minPrice);
-        if (maxPrice) params.set("max_price", maxPrice);
-        if (searchQuery !== "") params.set("q", searchQuery);
-        const res = await apiFetch<MarketplaceListResponse>(
-          `/v1/marketplace?${params.toString()}`
-        );
-        if (signal?.aborted) return;
-        setItems(res.data.data);
-        setPage(res.data.current_page);
-        setLastPage(res.data.last_page);
-        setTotal(res.data.total);
-      } catch {
-        if (signal?.aborted) return;
-        setItems([]);
-        setError("Gagal memuat daftar barang. Periksa koneksi backend lalu coba lagi.");
-      } finally {
-        if (signal?.aborted) return;
-        setIsLoading(false);
-      }
-    },
-    []
-  );
+  const [items, setItems] = useState<ApiMarketplaceItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [rangeStart, setRangeStart] = useState<number | null>(null);
+  const [rangeEnd, setRangeEnd] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
+  const [priceFilter, setPriceFilter] = useState("any");
+  const [conditionFilter, setConditionFilter] = useState("any");
+  const [sortBy, setSortBy] = useState<SortOption>("latest");
+  const [searchDraft, setSearchDraft] = useState({ base: urlSearchQuery, value: urlSearchQuery });
+  const searchInput = searchDraft.base === urlSearchQuery ? searchDraft.value : urlSearchQuery;
+  const [reloadNonce, setReloadNonce] = useState(0);
+
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+  const [togglingFavoriteIds, setTogglingFavoriteIds] = useState<Set<number>>(new Set());
+  const [feedbackNotice, setFeedbackNotice] = useState<{
+    tone: "success" | "error" | "info";
+    text: string;
+    href?: string;
+    hrefLabel?: string;
+  } | null>(null);
+
+  const [isModalManuallyOpen, setIsModalManuallyOpen] = useState(false);
+  const isModalOpen = isModalManuallyOpen || createRequested;
+  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [photos, setPhotos] = useState<{ id: number; url: string; file: File }[]>([]);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [backendCategories, setBackendCategories] = useState<PublicCategory[]>([]);
+  const [currentUser] = useState(() => getUser());
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const photoIdRef = useRef(0);
+  const photosRef = useRef(photos);
+  const catalogSectionRef = useRef<HTMLElement | null>(null);
+  const createTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const wasModalOpenRef = useRef(false);
+
+  useEffect(() => {
+    photosRef.current = photos;
+  }, [photos]);
+
+  useEffect(() => {
+    return () => {
+      photosRef.current.forEach((p) => URL.revokeObjectURL(p.url));
+    };
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -216,34 +257,102 @@ function MarketplaceContent() {
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch must populate state when filters/page change
-    void loadItems(
-      page,
-      activeCategoryId,
-      conditionFilter,
-      priceFilter,
-      urlSearchQuery,
-      controller.signal
-    );
+    if (!getToken()) return;
+    let active = true;
+    fetchFavorites()
+      .then((entries) => {
+        if (!active) return;
+        const ids = new Set<number>();
+        for (const entry of entries) {
+          if (entry.type === "marketplace" && typeof entry.item?.id === "number") {
+            ids.add(entry.item.id);
+          }
+        }
+        setFavoriteIds(ids);
+      })
+      .catch(() => {});
     return () => {
-      controller.abort();
+      active = false;
     };
-  }, [page, activeCategoryId, conditionFilter, priceFilter, urlSearchQuery, loadItems]);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    if (activeCategoryId !== null) params.set("category_id", String(activeCategoryId));
+    if (conditionFilter !== "any") params.set("condition", conditionFilter);
+    const { minPrice, maxPrice } = priceRangeParams(priceFilter);
+    if (minPrice) params.set("min_price", minPrice);
+    if (maxPrice) params.set("max_price", maxPrice);
+    if (sortBy !== "latest") params.set("sort", sortBy);
+    if (urlSearchQuery !== "") params.set("q", urlSearchQuery);
+
+    apiFetch<MarketplaceListResponse>(`/v1/marketplace?${params.toString()}`)
+      .then((res) => {
+        if (cancelled) return;
+        setItems(res.data.data);
+        setPage(res.data.current_page);
+        setLastPage(res.data.last_page);
+        setTotal(res.data.total);
+        setRangeStart(res.data.from ?? (res.data.data.length > 0 ? 1 : null));
+        setRangeEnd(res.data.to ?? (res.data.data.length > 0 ? res.data.data.length : null));
+        setError(null);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setItems([]);
+        setRangeStart(null);
+        setRangeEnd(null);
+        setError("Gagal memuat daftar barang. Periksa koneksi backend lalu muat ulang.");
+        setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [page, activeCategoryId, conditionFilter, priceFilter, sortBy, urlSearchQuery, reloadNonce]);
+
+  const applySearchToUrl = useCallback(
+    (rawValue: string) => {
+      const trimmed = rawValue.trim();
+      if (trimmed === urlSearchQuery) return;
+      setIsLoading(true);
+      setPage(1);
+      const next = trimmed ? `/marketplace?q=${encodeURIComponent(trimmed)}` : "/marketplace";
+      router.replace(next, { scroll: false });
+    },
+    [router, urlSearchQuery]
+  );
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      applySearchToUrl(searchInput);
+    }, 320);
+    return () => window.clearTimeout(timer);
+  }, [searchInput, applySearchToUrl]);
 
   const clearCreateParam = useCallback(() => {
     if (searchParams.get("action") === "create") {
       const next = urlSearchQuery
         ? `/marketplace?q=${encodeURIComponent(urlSearchQuery)}`
         : "/marketplace";
-      router.replace(next);
+      router.replace(next, { scroll: false });
     }
   }, [router, searchParams, urlSearchQuery]);
 
+  const openModal = useCallback(() => {
+    setSubmitError(null);
+    setPhotoError(null);
+    setIsModalManuallyOpen(true);
+  }, []);
+
   const closeModal = useCallback(() => {
     if (isSubmitting) return;
-    setIsModalOpen(false);
+    setIsModalManuallyOpen(false);
     setSubmitError(null);
+    setPhotoError(null);
     setPhotos((prev) => {
       prev.forEach((p) => URL.revokeObjectURL(p.url));
       return [];
@@ -252,12 +361,31 @@ function MarketplaceContent() {
   }, [isSubmitting, clearCreateParam]);
 
   useEffect(() => {
-    if (!isModalOpen) return;
+    if (!isModalOpen) {
+      if (wasModalOpenRef.current) {
+        wasModalOpenRef.current = false;
+        createTriggerRef.current?.focus();
+      }
+      return;
+    }
+
+    wasModalOpenRef.current = true;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const rafId = window.requestAnimationFrame(() => {
+      titleInputRef.current?.focus();
+    });
+
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") closeModal();
     }
+
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [isModalOpen, closeModal]);
 
   const categoryOptions = useMemo(() => {
@@ -278,15 +406,51 @@ function MarketplaceContent() {
   }
 
   function addPhotos(files: FileList | null) {
-    if (!files) return;
-    const next = Array.from(files).map((file) => {
+    if (!files || files.length === 0) return;
+    setPhotoError(null);
+
+    const remaining = MAX_PHOTOS - photos.length;
+    if (remaining <= 0) {
+      setPhotoError(`Maksimal ${MAX_PHOTOS} foto per iklan.`);
+      return;
+    }
+
+    const accepted: { id: number; url: string; file: File }[] = [];
+    let skippedType = 0;
+    let skippedSize = 0;
+
+    for (const file of Array.from(files)) {
+      if (accepted.length >= remaining) break;
+      if (!file.type.startsWith("image/")) {
+        skippedType += 1;
+        continue;
+      }
+      if (file.size > MAX_PHOTO_BYTES) {
+        skippedSize += 1;
+        continue;
+      }
       photoIdRef.current += 1;
-      return { id: photoIdRef.current, url: URL.createObjectURL(file), file };
-    });
-    setPhotos((prev) => [...prev, ...next].slice(0, 6));
+      accepted.push({
+        id: photoIdRef.current,
+        url: URL.createObjectURL(file),
+        file,
+      });
+    }
+
+    if (skippedType > 0 || skippedSize > 0) {
+      const reasons: string[] = [];
+      if (skippedType > 0) reasons.push("format harus berupa gambar");
+      if (skippedSize > 0) reasons.push("ukuran maksimal 5 MB per foto");
+      setPhotoError(`Sebagian file dilewati (${reasons.join(", ")}).`);
+    }
+
+    if (accepted.length > 0) {
+      setPhotos((prev) => [...prev, ...accepted].slice(0, MAX_PHOTOS));
+    }
   }
 
   function removePhoto(id: number) {
+    setPhotoError(null);
     setPhotos((prev) => {
       const target = prev.find((p) => p.id === id);
       if (target) URL.revokeObjectURL(target.url);
@@ -294,13 +458,63 @@ function MarketplaceContent() {
     });
   }
 
-  useEffect(() => {
-    if (createRequested) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- URL-driven modal must sync state when the search param appears
-      setSubmitError(null);
-      setIsModalOpen(true);
+  async function handleToggleFavorite(item: ApiMarketplaceItem) {
+    if (!getToken()) {
+      setFeedbackNotice({
+        tone: "info",
+        text: "Masuk dengan akun mahasiswa UPN untuk menyimpan barang ke daftar favorit.",
+        href: "/login",
+        hrefLabel: "Masuk sekarang",
+      });
+      return;
     }
-  }, [createRequested]);
+
+    if (togglingFavoriteIds.has(item.id)) return;
+    const wasFavorited = favoriteIds.has(item.id);
+
+    setTogglingFavoriteIds((prev) => new Set(prev).add(item.id));
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (wasFavorited) next.delete(item.id);
+      else next.add(item.id);
+      return next;
+    });
+
+    try {
+      const favorited = await toggleFavorite("marketplace", item.id);
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (favorited) next.add(item.id);
+        else next.delete(item.id);
+        return next;
+      });
+      setFeedbackNotice({
+        tone: "success",
+        text: favorited
+          ? `"${item.title}" disimpan ke daftar favorit.`
+          : `"${item.title}" dihapus dari daftar favorit.`,
+        href: favorited ? "/favorites" : undefined,
+        hrefLabel: favorited ? "Lihat favorit" : undefined,
+      });
+    } catch {
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (wasFavorited) next.add(item.id);
+        else next.delete(item.id);
+        return next;
+      });
+      setFeedbackNotice({
+        tone: "error",
+        text: "Gagal memperbarui daftar favorit. Periksa koneksi lalu coba lagi.",
+      });
+    } finally {
+      setTogglingFavoriteIds((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -309,6 +523,12 @@ function MarketplaceContent() {
       setSubmitError("Pilih kategori barang yang tersedia terlebih dahulu.");
       return;
     }
+    const parsedPrice = Number(formData.price);
+    if (formData.price.trim() === "" || Number.isNaN(parsedPrice) || parsedPrice < 0) {
+      setSubmitError("Masukkan nominal harga yang valid (minimal Rp 0).");
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
     try {
@@ -316,26 +536,34 @@ function MarketplaceContent() {
         photos.length > 0
           ? await Promise.all(photos.map((p) => uploadMedia(p.file, "marketplace")))
           : [];
-      await apiFetch<MarketplaceCreateResponse>("/v1/marketplace", {
+      const created = await apiFetch<MarketplaceCreateResponse>("/v1/marketplace", {
         method: "POST",
         body: JSON.stringify({
           title: formData.title.trim(),
           category_id: categoryId,
           condition: formData.condition,
-          price: Number(formData.price),
+          price: parsedPrice,
           description: formData.description.trim(),
           image_paths: uploaded.map((u) => u.path),
         }),
       });
-      setIsModalOpen(false);
+      setIsModalManuallyOpen(false);
       setFormData(EMPTY_FORM);
+      setPhotoError(null);
       setPhotos((prev) => {
         prev.forEach((p) => URL.revokeObjectURL(p.url));
         return [];
       });
       clearCreateParam();
+      setIsLoading(true);
       setPage(1);
-      await loadItems(1, activeCategoryId, conditionFilter, priceFilter, urlSearchQuery);
+      setReloadNonce((n) => n + 1);
+      setFeedbackNotice({
+        tone: "success",
+        text: `Iklan "${created.data.title}" berhasil diterbitkan di Marketplace.`,
+        href: `/marketplace/${created.data.id}`,
+        hrefLabel: "Buka halaman iklan",
+      });
     } catch (err) {
       const apiError = err as ApiError;
       const fieldErrors = apiError.errors
@@ -347,6 +575,31 @@ function MarketplaceContent() {
     }
   }
 
+  function handlePageChange(nextPage: number) {
+    setIsLoading(true);
+    setPage(nextPage);
+    if (typeof window !== "undefined") {
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      catalogSectionRef.current?.scrollIntoView({
+        behavior: reducedMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    }
+  }
+
+  const activeCategoryName =
+    activeCategoryId !== null
+      ? (categoryOptions.find((c) => c.id === activeCategoryId)?.name ?? null)
+      : null;
+  const activePriceLabel =
+    priceFilter !== "any"
+      ? (PRICE_RANGE_OPTIONS.find((p) => p.value === priceFilter)?.label ?? null)
+      : null;
+  const activeConditionLabel =
+    conditionFilter !== "any"
+      ? (CONDITION_META[conditionFilter]?.label ?? conditionFilter)
+      : null;
+
   const hasActiveFilter =
     activeCategoryId !== null ||
     priceFilter !== "any" ||
@@ -354,12 +607,15 @@ function MarketplaceContent() {
     urlSearchQuery !== "";
 
   function resetFilters() {
+    setIsLoading(true);
     setActiveCategoryId(null);
     setPriceFilter("any");
     setConditionFilter("any");
+    setSortBy("latest");
+    setSearchDraft({ base: "", value: "" });
     setPage(1);
     if (urlSearchQuery !== "") {
-      router.replace("/marketplace");
+      router.replace("/marketplace", { scroll: false });
     }
   }
 
@@ -370,44 +626,45 @@ function MarketplaceContent() {
   const parsedPreviewPrice = Number(formData.price);
   const hasValidPreviewPrice =
     formData.price.trim() !== "" && !Number.isNaN(parsedPreviewPrice) && parsedPreviewPrice >= 0;
+  const previewCondition = CONDITION_META[formData.condition] ?? CONDITION_META.good;
 
   return (
-    <div className="auth-shell-enter mx-auto max-w-[1200px] space-y-7">
+    <div className="auth-shell-enter mx-auto max-w-[1200px] space-y-6">
       {/* Header Band */}
       <section className="flex flex-col justify-between gap-5 border-b border-[#E5E0DA] pb-6 lg:flex-row lg:items-end">
         <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] font-medium text-[#6E6A66]">
-            <span>Katalog Mahasiswa UPN</span>
+          <nav
+            aria-label="Breadcrumb"
+            className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-medium text-[#6E6A66]"
+          >
+            <Link
+              href="/dashboard"
+              className="transition-colors hover:text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] rounded"
+            >
+              Portal Mahasiswa
+            </Link>
+            <span aria-hidden="true" className="text-[#CFC8BF]">
+              /
+            </span>
+            <span className="text-[#141416]">Marketplace</span>
             <span aria-hidden="true" className="text-[#CFC8BF]">
               ·
             </span>
-            <span>{isLoading ? "Memuat katalog…" : `${total} barang aktif`}</span>
-            {urlSearchQuery !== "" && (
-              <>
-                <span aria-hidden="true" className="text-[#CFC8BF]">
-                  ·
-                </span>
-                <span className="text-[#141416]">
-                  Pencarian: &ldquo;{urlSearchQuery}&rdquo;
-                </span>
-              </>
-            )}
-          </div>
+            <span>{isLoading ? "Memuat katalog..." : `${total} barang aktif`}</span>
+          </nav>
 
           <h1 className="font-display text-2xl font-semibold tracking-[-0.02em] text-[#141416] sm:text-[32px] sm:leading-[1.18]">
             Marketplace kampus.{" "}
             <span className="font-normal text-[#6E6A66]">
-              Jual beli buku kuliah dan kebutuhan mahasiswa.
+              Jual beli buku kuliah, alat praktikum, dan kebutuhan mahasiswa.
             </span>
           </h1>
         </div>
 
         <button
+          ref={createTriggerRef}
           type="button"
-          onClick={() => {
-            setSubmitError(null);
-            setIsModalOpen(true);
-          }}
+          onClick={openModal}
           className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2"
         >
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -417,12 +674,203 @@ function MarketplaceContent() {
         </button>
       </section>
 
-      {/* Unified Category + Quick Filters Bar */}
+      {/* Inline Action Feedback Banner */}
+      {feedbackNotice && (
+        <div
+          role={feedbackNotice.tone === "error" ? "alert" : "status"}
+          className={`flex flex-wrap items-center justify-between gap-3 rounded-[20px] border px-5 py-3.5 text-[14px] font-medium ${
+            feedbackNotice.tone === "success"
+              ? "border-[#CBE5D5] bg-[#E4F2EA] text-[#1E603E]"
+              : feedbackNotice.tone === "error"
+                ? "border-[#F1C9C9] bg-[#FDF2F2] text-[#B83232]"
+                : "border-[#E5E0DA] bg-white text-[#141416]"
+          }`}
+        >
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>{feedbackNotice.text}</span>
+            {feedbackNotice.href && feedbackNotice.hrefLabel && (
+              <Link
+                href={feedbackNotice.href}
+                className="underline underline-offset-4 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] rounded"
+              >
+                {feedbackNotice.hrefLabel}
+              </Link>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setFeedbackNotice(null)}
+            aria-label="Tutup pemberitahuan"
+            className="inline-flex h-11 min-w-[44px] items-center justify-center rounded-full px-3 text-[13px] font-semibold transition-opacity hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+          >
+            Tutup
+          </button>
+        </div>
+      )}
+
+      {/* Search, Category & Filter Panel */}
       <section
-        aria-label="Filter katalog marketplace"
+        aria-label="Pencarian dan filter katalog marketplace"
         className="rounded-[20px] border border-[#E5E0DA] bg-white p-5 sm:p-6"
       >
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter berdasarkan kategori">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+          {/* Inline Search */}
+          <form
+            role="search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              applySearchToUrl(searchInput);
+            }}
+          >
+            <label htmlFor="marketplace-search" className="block text-[13px] font-medium text-[#57534E]">
+              Cari barang
+            </label>
+            <div className="relative mt-1.5">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden="true"
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
+              >
+                <circle cx="7.25" cy="7.25" r="4.75" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              <input
+                id="marketplace-search"
+                type="search"
+                value={searchInput}
+                onChange={(e) => setSearchDraft({ base: urlSearchQuery, value: e.target.value })}
+                placeholder="Cari judul atau deskripsi barang"
+                className="h-11 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-10 pr-11 text-[14px] text-[#141416] placeholder:text-[#66625E] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
+              />
+              {searchInput !== "" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchDraft({ base: "", value: "" });
+                    applySearchToUrl("");
+                  }}
+                  aria-label="Hapus kata kunci pencarian"
+                  className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl text-[#57534E] transition-colors hover:text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </form>
+
+          {/* Price Range */}
+          <div>
+            <label htmlFor="price-range" className="block text-[13px] font-medium text-[#57534E]">
+              Rentang harga
+            </label>
+            <div className="relative mt-1.5">
+              <select
+                id="price-range"
+                value={priceFilter}
+                onChange={(e) => {
+                  setPriceFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="h-11 w-full appearance-none rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-3.5 pr-9 text-[14px] text-[#141416] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
+              >
+                {PRICE_RANGE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden="true"
+                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
+              >
+                <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Condition */}
+          <div>
+            <label htmlFor="condition" className="block text-[13px] font-medium text-[#57534E]">
+              Kondisi barang
+            </label>
+            <div className="relative mt-1.5">
+              <select
+                id="condition"
+                value={conditionFilter}
+                onChange={(e) => {
+                  setConditionFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="h-11 w-full appearance-none rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-3.5 pr-9 text-[14px] text-[#141416] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
+              >
+                <option value="any">Semua kondisi</option>
+                {CONDITION_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden="true"
+                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
+              >
+                <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Sort */}
+          <div>
+            <label htmlFor="marketplace-sort" className="block text-[13px] font-medium text-[#57534E]">
+              Urutkan
+            </label>
+            <div className="relative mt-1.5">
+              <select
+                id="marketplace-sort"
+                value={sortBy}
+                onChange={(e) => {
+                  setSortBy(e.target.value as SortOption);
+                  setPage(1);
+                }}
+                className="h-11 w-full appearance-none rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-3.5 pr-9 text-[14px] text-[#141416] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden="true"
+                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
+              >
+                <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Category Pills */}
+        <div
+          className="mt-5 flex flex-wrap items-center gap-2 border-t border-[#F1EDE8] pt-5"
+          role="group"
+          aria-label="Filter berdasarkan kategori"
+        >
           <button
             type="button"
             onClick={() => {
@@ -460,87 +908,97 @@ function MarketplaceContent() {
             );
           })}
         </div>
-
-        <div className="mt-5 grid grid-cols-1 gap-4 border-t border-[#F1EDE8] pt-5 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
-          <div>
-            <label htmlFor="price-range" className="block text-[13px] font-medium text-[#57534E]">
-              Rentang harga
-            </label>
-            <div className="relative mt-1.5">
-              <select
-                id="price-range"
-                value={priceFilter}
-                onChange={(e) => {
-                  setPriceFilter(e.target.value);
-                  setPage(1);
-                }}
-                className="h-11 w-full appearance-none rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-3.5 pr-9 text-[14px] text-[#141416] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
-              >
-                <option value="any">Semua harga</option>
-                <option value="under500">Di bawah Rp 500.000</option>
-                <option value="500-1000">Rp 500.000 – 1.000.000</option>
-                <option value="over1000">Di atas Rp 1.000.000</option>
-              </select>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 16 16"
-                fill="none"
-                aria-hidden="true"
-                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
-              >
-                <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="condition" className="block text-[13px] font-medium text-[#57534E]">
-              Kondisi barang
-            </label>
-            <div className="relative mt-1.5">
-              <select
-                id="condition"
-                value={conditionFilter}
-                onChange={(e) => {
-                  setConditionFilter(e.target.value);
-                  setPage(1);
-                }}
-                className="h-11 w-full appearance-none rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-3.5 pr-9 text-[14px] text-[#141416] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
-              >
-                <option value="any">Semua kondisi</option>
-                <option value="new">Baru</option>
-                <option value="like-new">Bekas seperti baru</option>
-                <option value="good">Layak pakai</option>
-                <option value="fair">Perlu perbaikan</option>
-              </select>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 16 16"
-                fill="none"
-                aria-hidden="true"
-                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
-              >
-                <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-          </div>
-
-          {hasActiveFilter && (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-5 text-[14px] font-medium text-[#141416] transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:border-[#141416] hover:bg-[#FAF8F6] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
-            >
-              Atur ulang filter
-            </button>
-          )}
-        </div>
       </section>
 
-      {/* Catalog Grid */}
-      <section aria-label="Daftar barang marketplace">
+      {/* Catalog Summary & Active Filter Chips */}
+      <section ref={catalogSectionRef} aria-label="Daftar barang marketplace" className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-[14px] text-[#57534E]">
+            {isLoading ? (
+              "Memuat katalog barang..."
+            ) : total === 0 ? (
+              "0 barang ditemukan"
+            ) : rangeStart !== null && rangeEnd !== null ? (
+              <>
+                Menampilkan{" "}
+                <strong className="font-semibold text-[#141416]">
+                  {rangeStart}-{rangeEnd}
+                </strong>{" "}
+                dari <strong className="font-semibold text-[#141416]">{total}</strong> barang
+              </>
+            ) : (
+              <>
+                <strong className="font-semibold text-[#141416]">{total}</strong> barang aktif
+              </>
+            )}
+          </p>
+
+          {hasActiveFilter && (
+            <div className="flex flex-wrap items-center gap-2">
+              {urlSearchQuery !== "" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchDraft({ base: "", value: "" });
+                    applySearchToUrl("");
+                  }}
+                  className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-[#D9D2C9] bg-white px-3.5 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                >
+                  <span>Cari: &ldquo;{urlSearchQuery}&rdquo;</span>
+                  <span aria-hidden="true">×</span>
+                </button>
+              )}
+              {activeCategoryName && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveCategoryId(null);
+                    setPage(1);
+                  }}
+                  className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-[#D9D2C9] bg-white px-3.5 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                >
+                  <span>Kategori: {activeCategoryName}</span>
+                  <span aria-hidden="true">×</span>
+                </button>
+              )}
+              {activePriceLabel && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPriceFilter("any");
+                    setPage(1);
+                  }}
+                  className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-[#D9D2C9] bg-white px-3.5 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                >
+                  <span>{activePriceLabel}</span>
+                  <span aria-hidden="true">×</span>
+                </button>
+              )}
+              {activeConditionLabel && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConditionFilter("any");
+                    setPage(1);
+                  }}
+                  className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-[#D9D2C9] bg-white px-3.5 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                >
+                  <span>Kondisi: {activeConditionLabel}</span>
+                  <span aria-hidden="true">×</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 text-[13px] font-semibold text-[#57534E] underline underline-offset-4 transition-colors hover:text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+              >
+                Atur ulang semua
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Catalog Grid States */}
         {isLoading ? (
           <div
             className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
@@ -551,7 +1009,7 @@ function MarketplaceContent() {
             {Array.from({ length: 6 }).map((_, i) => (
               <ItemCardSkeleton key={i} />
             ))}
-            <span className="sr-only">Memuat data marketplace…</span>
+            <span className="sr-only">Memuat data marketplace...</span>
           </div>
         ) : error ? (
           <div
@@ -564,9 +1022,11 @@ function MarketplaceContent() {
             <p className="mx-auto mt-1.5 max-w-md text-[14px] text-[#6E6A66]">{error}</p>
             <button
               type="button"
-              onClick={() =>
-                void loadItems(page, activeCategoryId, conditionFilter, priceFilter, urlSearchQuery)
-              }
+              onClick={() => {
+                setIsLoading(true);
+                setError(null);
+                setReloadNonce((n) => n + 1);
+              }}
               className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
             >
               Muat ulang daftar
@@ -594,10 +1054,7 @@ function MarketplaceContent() {
               )}
               <button
                 type="button"
-                onClick={() => {
-                  setSubmitError(null);
-                  setIsModalOpen(true);
-                }}
+                onClick={openModal}
                 className="inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
               >
                 Pasang iklan barang
@@ -609,17 +1066,21 @@ function MarketplaceContent() {
             {items.map((item, idx) => {
               const categoryName = item.category?.name ?? "Lainnya";
               const sellerName = item.user?.name ?? "Mahasiswa UPN";
-              const conditionLabel = CONDITION_LABELS[item.condition] ?? item.condition;
+              const conditionInfo = CONDITION_META[item.condition] ?? {
+                label: item.condition,
+                badgeClass: "bg-[#F4F1EE] text-[#57534E]",
+              };
+              const isFavorited = favoriteIds.has(item.id);
+              const isTogglingFavorite = togglingFavoriteIds.has(item.id);
+              const photoCount = item.images?.length ?? 0;
+
               return (
                 <article
                   key={item.id}
-                  className="group flex flex-col overflow-hidden rounded-[20px] border border-[#E5E0DA] bg-white transition-all duration-180 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[2px] hover:border-[#CFC8BF] hover:shadow-[0_14px_28px_-14px_rgba(20,20,22,0.10)] focus-within:ring-2 focus-within:ring-[#141416]"
+                  className="group relative flex flex-col overflow-hidden rounded-[20px] border border-[#E5E0DA] bg-white transition-all duration-180 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[2px] hover:border-[#CFC8BF] hover:shadow-[0_14px_28px_-14px_rgba(20,20,22,0.10)] focus-within:ring-2 focus-within:ring-[#141416]"
                 >
-                  <Link
-                    href={`/marketplace/${item.id}`}
-                    aria-label={`Lihat detail ${item.title}`}
-                    className="block overflow-hidden bg-[#F4F1EE] focus:outline-none"
-                  >
+                  {/* Media Frame */}
+                  <div className="relative overflow-hidden bg-[#EFECE8]">
                     <ListingImage
                       module="marketplace"
                       seed={item.id}
@@ -627,30 +1088,72 @@ function MarketplaceContent() {
                       hint={`${categoryName} ${item.title}`}
                       images={item.images}
                       alt={`Foto ${item.title}`}
-                      className="aspect-[4/3] w-full object-cover transition-transform duration-600 ease-[cubic-bezier(.2,.8,.2,1)] group-hover:scale-[1.03]"
+                      className="aspect-[4/3] w-full object-cover transition-transform duration-500 ease-[cubic-bezier(.2,.8,.2,1)] group-hover:scale-[1.03]"
                     />
-                  </Link>
 
+                    {/* Quick Favorite Button (44px touch target, matte high-contrast surface) */}
+                    <button
+                      type="button"
+                      onClick={() => void handleToggleFavorite(item)}
+                      disabled={isTogglingFavorite}
+                      aria-pressed={isFavorited}
+                      aria-label={
+                        isFavorited
+                          ? `Hapus ${item.title} dari favorit`
+                          : `Simpan ${item.title} ke favorit`
+                      }
+                      className={`absolute right-2.5 top-2.5 z-10 flex h-11 w-11 items-center justify-center rounded-full border transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2 disabled:opacity-60 ${
+                        isFavorited
+                          ? "border-[#141416] bg-[#141416] text-white"
+                          : "border-[#E5E0DA] bg-white text-[#141416] hover:border-[#141416]"
+                      }`}
+                    >
+                      <svg
+                        width="17"
+                        height="17"
+                        viewBox="0 0 20 20"
+                        fill={isFavorited ? "currentColor" : "none"}
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M10 17.2l-1.15-1.05C4.7 12.4 2 9.95 2 6.95 2 4.5 3.92 2.6 6.35 2.6c1.38 0 2.7.65 3.65 1.66A4.9 4.9 0 0 1 13.65 2.6C16.08 2.6 18 4.5 18 6.95c0 3-2.7 5.45-6.85 9.2L10 17.2Z"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+
+                    {photoCount > 1 && (
+                      <span className="pointer-events-none absolute bottom-2.5 right-2.5 rounded-md bg-[#141416]/85 px-2.5 py-1 text-[13px] font-medium text-white">
+                        {photoCount} foto
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Card Body */}
                   <div className="flex flex-1 flex-col p-5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="rounded-md bg-[#F4F1EE] px-2.5 py-1 text-[13px] font-medium text-[#57534E]">
                         {categoryName}
                       </span>
-                      {conditionLabel && (
-                        <span className="text-[13px] font-medium text-[#6E6A66]">
-                          {conditionLabel}
+                      {conditionInfo.label && (
+                        <span
+                          className={`rounded-md px-2.5 py-1 text-[13px] font-medium ${conditionInfo.badgeClass}`}
+                        >
+                          {conditionInfo.label}
                         </span>
                       )}
                     </div>
 
-                    <h3 className="mt-3 line-clamp-2 font-display text-[16px] font-semibold leading-snug text-[#141416]">
+                    <h2 className="mt-3 line-clamp-2 font-display text-[16px] font-semibold leading-snug text-[#141416]">
                       <Link
                         href={`/marketplace/${item.id}`}
-                        className="hover:underline focus:outline-none"
+                        className="after:absolute after:inset-0 hover:underline focus:outline-none"
                       >
                         {item.title}
                       </Link>
-                    </h3>
+                    </h2>
 
                     <p className="mt-1.5 font-display text-[20px] font-bold tracking-tight text-[#141416]">
                       {formatRupiah(item.price)}
@@ -666,6 +1169,12 @@ function MarketplaceContent() {
                         <span className="truncate text-[13px] font-medium text-[#141416]">
                           {sellerName}
                         </span>
+                        {item.user?.is_official_account && (
+                          <VerifiedBadge
+                            size="xs"
+                            title="Akun resmi terverifikasi UPN"
+                          />
+                        )}
                       </span>
                       <span className="shrink-0 text-[13px] text-[#6E6A66]">
                         {formatTimeAgo(item.created_at)}
@@ -678,6 +1187,7 @@ function MarketplaceContent() {
           </div>
         )}
 
+        {/* Pagination */}
         {!isLoading && !error && lastPage > 1 && (
           <nav
             aria-label="Navigasi halaman marketplace"
@@ -691,25 +1201,25 @@ function MarketplaceContent() {
               <button
                 type="button"
                 disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => handlePageChange(Math.max(1, page - 1))}
                 className="inline-flex h-11 items-center justify-center rounded-full border border-[#E5E0DA] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-40"
               >
-                ← Sebelumnya
+                Sebelumnya
               </button>
               <button
                 type="button"
                 disabled={page >= lastPage}
-                onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
+                onClick={() => handlePageChange(Math.min(lastPage, page + 1))}
                 className="inline-flex h-11 items-center justify-center rounded-full border border-[#E5E0DA] bg-white px-5 text-[14px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-40"
               >
-                Berikutnya →
+                Berikutnya
               </button>
             </div>
           </nav>
         )}
       </section>
 
-      {/* Matte Warm-Alabaster Modal Pasang Iklan */}
+      {/* Matte Modal Pasang Iklan */}
       {isModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-[#141416]/50 p-4"
@@ -753,13 +1263,19 @@ function MarketplaceContent() {
                 {/* Form Card */}
                 <div className="space-y-4 rounded-[20px] border border-[#E5E0DA] bg-white p-5 sm:p-6">
                   <div>
-                    <label
-                      htmlFor="iklan-title"
-                      className="block text-[14px] font-medium text-[#141416]"
-                    >
-                      Judul barang <span className="text-[#C53939]">*</span>
-                    </label>
+                    <div className="flex items-center justify-between gap-2">
+                      <label
+                        htmlFor="iklan-title"
+                        className="block text-[14px] font-medium text-[#141416]"
+                      >
+                        Judul barang <span className="text-[#B83232]">*</span>
+                      </label>
+                      <span className="text-[13px] text-[#6E6A66]">
+                        {formData.title.length}/255
+                      </span>
+                    </div>
                     <input
+                      ref={titleInputRef}
                       id="iklan-title"
                       type="text"
                       required
@@ -777,7 +1293,7 @@ function MarketplaceContent() {
                         htmlFor="iklan-category"
                         className="block text-[14px] font-medium text-[#141416]"
                       >
-                        Kategori <span className="text-[#C53939]">*</span>
+                        Kategori <span className="text-[#B83232]">*</span>
                       </label>
                       <select
                         id="iklan-category"
@@ -806,7 +1322,7 @@ function MarketplaceContent() {
                         htmlFor="iklan-price"
                         className="block text-[14px] font-medium text-[#141416]"
                       >
-                        Harga (Rp) <span className="text-[#C53939]">*</span>
+                        Harga (Rp) <span className="text-[#B83232]">*</span>
                       </label>
                       <div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-3.5 transition-all focus-within:border-[#141416] focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(20,20,22,0.06)]">
                         <span className="text-[14px] font-semibold text-[#57534E]">Rp</span>
@@ -822,12 +1338,17 @@ function MarketplaceContent() {
                           className="w-full bg-transparent text-[14px] font-semibold text-[#141416] placeholder:font-normal placeholder:text-[#66625E] focus:outline-none"
                         />
                       </div>
+                      {hasValidPreviewPrice && (
+                        <p className="mt-1.5 text-[13px] text-[#6E6A66]">
+                          Tampilan harga: {formatRupiah(parsedPreviewPrice)}
+                        </p>
+                      )}
                     </div>
                   </div>
 
                   <fieldset>
                     <legend className="text-[14px] font-medium text-[#141416]">
-                      Kondisi barang <span className="text-[#C53939]">*</span>
+                      Kondisi barang <span className="text-[#B83232]">*</span>
                     </legend>
                     <div
                       className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4"
@@ -839,7 +1360,7 @@ function MarketplaceContent() {
                         return (
                           <label
                             key={opt.value}
-                            className={`flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border px-3 py-2 text-center text-[13px] font-medium transition-all ${
+                            className={`flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border px-3 py-2 text-center text-[13px] font-medium transition-all focus-within:ring-2 focus-within:ring-[#141416] focus-within:ring-offset-1 ${
                               checked
                                 ? "border-[#141416] bg-[#141416] text-white"
                                 : "border-[#E5E0DA] bg-[#F6F4F1] text-[#57534E] hover:border-[#CFC8BF]"
@@ -866,7 +1387,7 @@ function MarketplaceContent() {
                       htmlFor="iklan-description"
                       className="block text-[14px] font-medium text-[#141416]"
                     >
-                      Deskripsi barang <span className="text-[#C53939]">*</span>
+                      Deskripsi barang <span className="text-[#B83232]">*</span>
                     </label>
                     <textarea
                       id="iklan-description"
@@ -880,10 +1401,22 @@ function MarketplaceContent() {
                   </div>
 
                   <div>
-                    <span id="iklan-photos-label" className="block text-[14px] font-medium text-[#141416]">
-                      Foto barang (maksimal 6)
-                    </span>
-                    <div className="mt-2 flex flex-wrap gap-3" role="group" aria-labelledby="iklan-photos-label">
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        id="iklan-photos-label"
+                        className="block text-[14px] font-medium text-[#141416]"
+                      >
+                        Foto barang ({photos.length}/{MAX_PHOTOS})
+                      </span>
+                      <span className="text-[13px] text-[#6E6A66]">
+                        Foto pertama menjadi sampul
+                      </span>
+                    </div>
+                    <div
+                      className="mt-2 flex flex-wrap gap-3"
+                      role="group"
+                      aria-labelledby="iklan-photos-label"
+                    >
                       {photos.map((photo, i) => (
                         <span key={photo.id} className="relative h-20 w-20">
                           {/* eslint-disable-next-line @next/next/no-img-element -- local object URLs for instant upload preview only */}
@@ -894,36 +1427,48 @@ function MarketplaceContent() {
                             height={80}
                             className="h-20 w-20 rounded-xl border border-[#E5E0DA] object-cover"
                           />
+                          {i === 0 && (
+                            <span className="pointer-events-none absolute bottom-1 left-1 rounded bg-[#141416]/85 px-1.5 py-0.5 text-[11px] font-medium text-white">
+                              Utama
+                            </span>
+                          )}
                           <button
                             type="button"
                             onClick={() => removePhoto(photo.id)}
                             aria-label={`Hapus foto barang ${i + 1}`}
                             className="group absolute -right-3 -top-3 flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
                           >
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#141416] text-[13px] font-bold leading-none text-white transition-colors group-hover:bg-[#C53939]">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#141416] text-[13px] font-bold leading-none text-white transition-colors group-hover:bg-[#B83232]">
                               ×
                             </span>
                           </button>
                         </span>
                       ))}
-                      <label className="flex h-20 w-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[#CFC8BF] bg-[#F6F4F1] text-[#57534E] transition-colors hover:border-[#141416] hover:bg-white focus-within:ring-2 focus-within:ring-[#141416]">
-                        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                          <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                        </svg>
-                        <span className="text-[13px] font-medium">Tambah</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          aria-label="Tambah foto barang"
-                          className="sr-only"
-                          onChange={(e) => {
-                            addPhotos(e.target.files);
-                            e.target.value = "";
-                          }}
-                        />
-                      </label>
+                      {photos.length < MAX_PHOTOS && (
+                        <label className="flex h-20 w-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[#CFC8BF] bg-[#F6F4F1] text-[#57534E] transition-colors hover:border-[#141416] hover:bg-white focus-within:ring-2 focus-within:ring-[#141416]">
+                          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          </svg>
+                          <span className="text-[13px] font-medium">Tambah</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            aria-label="Tambah foto barang"
+                            className="sr-only"
+                            onChange={(e) => {
+                              addPhotos(e.target.files);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      )}
                     </div>
+                    {photoError && (
+                      <p role="alert" className="mt-2 text-[13px] font-medium text-[#B83232]">
+                        {photoError}
+                      </p>
+                    )}
                   </div>
 
                   {submitError && (
@@ -949,7 +1494,7 @@ function MarketplaceContent() {
                       disabled={isSubmitting}
                       className="inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-60"
                     >
-                      {isSubmitting ? "Menyimpan iklan…" : "Terbitkan iklan barang"}
+                      {isSubmitting ? "Menyimpan iklan..." : "Terbitkan iklan barang"}
                     </button>
                   </div>
                 </div>
@@ -963,7 +1508,7 @@ function MarketplaceContent() {
                     Pratinjau tampilan katalog
                   </p>
                   <div className="mt-3 overflow-hidden rounded-2xl border border-[#EAE5DF] bg-white">
-                    <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-[#EFECE8] text-[#5F5B57]">
+                    <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-[#EFECE8] text-[#5F5B57]">
                       {photos.length > 0 ? (
                         // eslint-disable-next-line @next/next/no-img-element -- local preview before upload
                         <img
@@ -974,18 +1519,23 @@ function MarketplaceContent() {
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <span className="text-[13px] font-medium">
-                          Belum ada foto dipilih
+                        <span className="text-[13px] font-medium">Belum ada foto dipilih</span>
+                      )}
+                      {photos.length > 1 && (
+                        <span className="pointer-events-none absolute bottom-2 right-2 rounded-md bg-[#141416]/85 px-2 py-0.5 text-[13px] font-medium text-white">
+                          {photos.length} foto
                         </span>
                       )}
                     </div>
                     <div className="p-4">
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <span className="rounded-md bg-[#F4F1EE] px-2.5 py-0.5 text-[13px] font-medium text-[#57534E]">
                           {previewCategoryName}
                         </span>
-                        <span className="text-[13px] font-medium text-[#6E6A66]">
-                          {CONDITION_LABELS[formData.condition] ?? "Layak pakai"}
+                        <span
+                          className={`rounded-md px-2.5 py-0.5 text-[13px] font-medium ${previewCondition.badgeClass}`}
+                        >
+                          {previewCondition.label}
                         </span>
                       </div>
                       <p className="mt-2.5 line-clamp-2 font-display text-[15px] font-semibold text-[#141416]">
@@ -1025,7 +1575,7 @@ function MarketplaceContent() {
 
 export default function MarketplacePage() {
   return (
-    <Suspense fallback={<p className="text-[14px] text-[#6E6A66]">Memuat marketplace…</p>}>
+    <Suspense fallback={<p className="text-[14px] text-[#6E6A66]">Memuat marketplace...</p>}>
       <MarketplaceContent />
     </Suspense>
   );

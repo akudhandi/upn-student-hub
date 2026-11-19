@@ -61,8 +61,13 @@ class MarketplaceController extends Controller
                 'category:id,name,slug',
                 'images',
             ])
-            ->where('status', 'active')
-            ->latest();
+            ->where('status', 'active');
+
+        match ($request->query('sort')) {
+            'price_asc' => $query->orderBy('price', 'asc')->latest(),
+            'price_desc' => $query->orderBy('price', 'desc')->latest(),
+            default => $query->latest(),
+        };
 
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->query('category_id'));
