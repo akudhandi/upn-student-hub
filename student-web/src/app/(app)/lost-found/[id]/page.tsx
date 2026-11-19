@@ -93,6 +93,35 @@ function normalizeWaNumber(raw: string): string | null {
   return null;
 }
 
+function parseExternalContact(raw: string | null | undefined):
+  | { kind: "whatsapp"; href: string; label: string }
+  | { kind: "instagram"; href: string; handle: string }
+  | { kind: "telegram"; href: string; handle: string }
+  | { kind: "other"; text: string }
+  | null {
+  const trimmed = raw?.trim() ?? "";
+  if (!trimmed) return null;
+
+  const igMatch = trimmed.match(/^(?:instagram|ig)\s*:\s*@?([a-zA-Z0-9._]{1,40})$/i);
+  if (igMatch) {
+    const handle = igMatch[1];
+    return { kind: "instagram", href: `https://instagram.com/${encodeURIComponent(handle)}`, handle };
+  }
+
+  const tgMatch = trimmed.match(/^(?:telegram|tg)\s*:\s*@?([a-zA-Z0-9_]{1,40})$/i);
+  if (tgMatch) {
+    const handle = tgMatch[1];
+    return { kind: "telegram", href: `https://t.me/${encodeURIComponent(handle)}`, handle };
+  }
+
+  const wa = normalizeWaNumber(trimmed);
+  if (wa) {
+    return { kind: "whatsapp", href: `https://wa.me/${wa}`, label: trimmed };
+  }
+
+  return { kind: "other", text: trimmed };
+}
+
 function StatusPill({ type, status }: { type: "lost" | "found"; status: string }) {
   if (status === "resolved" || status === "closed") {
     return (
@@ -265,7 +294,7 @@ export default function LostFoundDetailPage() {
   const reportCode = Number.isNaN(postedYear)
     ? `LNF-${item.id}`
     : `LNF-${postedYear}-${String(item.id).padStart(4, "0")}`;
-  const waNumber = item.contact_info?.trim() ? normalizeWaNumber(item.contact_info.trim()) : null;
+  const externalContact = parseExternalContact(item.contact_info);
   const descriptionParagraphs = (item.description ?? "")
     .split(/\n\s*\n/)
     .map((p) => p.trim())
@@ -538,24 +567,44 @@ export default function LostFoundDetailPage() {
                 {item.type === "lost" ? "Saya Melihat Barang Ini (Chat)" : "Klaim Barang Ini (Chat)"}
               </ChatButton>
             </div>
-            {waNumber ? (
+            {externalContact?.kind === "whatsapp" ? (
               <a
-                href={`https://wa.me/${waNumber}?text=${encodeURIComponent(`Halo, saya menanggapi laporan "${item.title}" di UPN Student Hub.`)}`}
+                href={`${externalContact.href}?text=${encodeURIComponent(`Halo, saya menanggapi laporan "${item.title}" di UPN Student Hub.`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
+                className="mt-2 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="text-emerald-600">
                   <path d="M8 1.5C4.4 1.5 1.5 4.4 1.5 8C1.5 9.4 1.9 10.7 2.6 11.8L1.5 14.5L4.3 13.4C5.4 14.1 6.6 14.5 8 14.5C11.6 14.5 14.5 11.6 14.5 8C14.5 4.4 11.6 1.5 8 1.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
                 </svg>
                 Hubungi via WhatsApp
               </a>
+            ) : externalContact?.kind === "instagram" ? (
+              <a
+                href={externalContact.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
+              >
+                Hubungi via Instagram (@{externalContact.handle})
+              </a>
+            ) : externalContact?.kind === "telegram" ? (
+              <a
+                href={externalContact.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
+              >
+                Hubungi via Telegram (@{externalContact.handle})
+              </a>
+            ) : externalContact?.kind === "other" ? (
+              <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2.5 text-[13px] font-semibold text-slate-700 ring-1 ring-inset ring-slate-100">
+                Kontak: {externalContact.text}
+              </p>
             ) : (
-              item.contact_info && (
-                <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-[12px] font-semibold text-slate-700 ring-1 ring-inset ring-slate-100">
-                  Kontak: {item.contact_info}
-                </p>
-              )
+              <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2.5 text-[12px] leading-relaxed text-slate-600 ring-1 ring-inset ring-slate-100">
+                Pelapor memilih dihubungi lewat Chat dalam aplikasi untuk menjaga privasi kontak.
+              </p>
             )}
             <p className="mt-3 text-center text-[10px] font-medium text-slate-400">
               🛡 Verifikasi Aman Terpadu UPN

@@ -713,7 +713,7 @@ function EditListingModal({
             title: title.trim(),
             description: description.trim(),
             location: location.trim(),
-            contact_info: contactInfo.trim(),
+            contact_info: contactInfo.trim() === "" ? null : contactInfo.trim(),
           }),
         });
       }
@@ -875,16 +875,15 @@ function EditListingModal({
                   htmlFor="edit-lf-contact"
                   className="block text-[14px] font-medium text-[#141416]"
                 >
-                  Kontak penghubung <span className="text-[#B83232]">*</span>
+                  Kontak penghubung <span className="font-normal text-[#6E6A66]">(Opsional)</span>
                 </label>
                 <input
                   id="edit-lf-contact"
                   type="text"
-                  required
-                  maxLength={50}
+                  maxLength={80}
                   value={contactInfo}
                   onChange={(e) => setContactInfo(e.target.value)}
-                  placeholder="Kontak atau kanal yang aktif"
+                  placeholder="Nomor WhatsApp, @username medsos, atau kosongkan untuk chat"
                   className={INPUT_CLASS}
                 />
               </div>

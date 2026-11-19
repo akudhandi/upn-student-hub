@@ -55,7 +55,13 @@ type LostFoundCreateResponse = {
 
 type ReportType = "lost" | "found";
 type TypeFilter = "all" | "lost" | "found";
-type OpenMenuKey = "type" | "category-mobile" | "category-overflow" | "modal-category";
+type ContactChannel = "chat" | "whatsapp" | "instagram" | "telegram" | "other";
+type OpenMenuKey =
+  | "type"
+  | "category-mobile"
+  | "category-overflow"
+  | "modal-category"
+  | "modal-contact-channel";
 
 const EMPTY_FORM = {
   title: "",
@@ -66,6 +72,14 @@ const EMPTY_FORM = {
   description: "",
   contact_info: "",
 };
+
+const CONTACT_CHANNEL_OPTIONS: { value: ContactChannel; label: string }[] = [
+  { value: "chat", label: "Chat dalam aplikasi saja (Privasi)" },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "instagram", label: "Instagram" },
+  { value: "telegram", label: "Telegram" },
+  { value: "other", label: "Media sosial / kontak lain" },
+];
 
 const TYPE_OPTIONS: { value: TypeFilter; label: string }[] = [
   { value: "all", label: "Semua laporan" },
@@ -331,6 +345,7 @@ export function LostAndFoundContent() {
   const [isModalManuallyOpen, setIsModalManuallyOpen] = useState(false);
   const isModalOpen = isModalManuallyOpen || createRequested;
   const [reportType, setReportType] = useState<ReportType>("lost");
+  const [contactChannel, setContactChannel] = useState<ContactChannel>("chat");
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [photos, setPhotos] = useState<{ id: number; url: string; file: File }[]>([]);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -343,6 +358,7 @@ export function LostAndFoundContent() {
   const photosRef = useRef(photos);
   const filterBarRef = useRef<HTMLElement | null>(null);
   const modalCategoryDropdownRef = useRef<HTMLDivElement | null>(null);
+  const modalContactChannelDropdownRef = useRef<HTMLDivElement | null>(null);
   const catalogSectionRef = useRef<HTMLElement | null>(null);
   const lastTriggerRef = useRef<HTMLButtonElement | null>(null);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
@@ -500,7 +516,7 @@ export function LostAndFoundContent() {
 
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        if (openMenu === "modal-category") {
+        if (openMenu === "modal-category" || openMenu === "modal-contact-channel") {
           setOpenMenu(null);
           return;
         }
@@ -527,13 +543,26 @@ export function LostAndFoundContent() {
         }
         return;
       }
+      if (openMenu === "modal-contact-channel") {
+        if (
+          modalContactChannelDropdownRef.current &&
+          !modalContactChannelDropdownRef.current.contains(target)
+        ) {
+          setOpenMenu(null);
+        }
+        return;
+      }
       if (filterBarRef.current && !filterBarRef.current.contains(target)) {
         setOpenMenu(null);
       }
     }
 
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape" && openMenu !== "modal-category") {
+      if (
+        e.key === "Escape" &&
+        openMenu !== "modal-category" &&
+        openMenu !== "modal-contact-channel"
+      ) {
         setOpenMenu(null);
       }
     }
@@ -698,6 +727,38 @@ export function LostAndFoundContent() {
     e.preventDefault();
     const rewardRaw = formData.reward.trim();
     const rewardNumeric = Number(rewardRaw);
+
+    let normalizedContact: string | null = null;
+    const rawContact = formData.contact_info.trim();
+    if (contactChannel === "whatsapp") {
+      const contactDigits = rawContact.replace(/\D/g, "");
+      if (contactDigits.length < 9) {
+        setSubmitError("Masukkan nomor WhatsApp aktif yang valid atau pilih opsi Chat dalam aplikasi.");
+        return;
+      }
+      normalizedContact = contactDigits.startsWith("8") ? `0${contactDigits}` : rawContact;
+    } else if (contactChannel === "instagram") {
+      const handle = rawContact.replace(/^@+/, "").replace(/\s+/g, "");
+      if (!handle) {
+        setSubmitError("Masukkan username Instagram atau pilih opsi Chat dalam aplikasi.");
+        return;
+      }
+      normalizedContact = `Instagram: @${handle}`;
+    } else if (contactChannel === "telegram") {
+      const handle = rawContact.replace(/^@+/, "").replace(/\s+/g, "");
+      if (!handle) {
+        setSubmitError("Masukkan username Telegram atau pilih opsi Chat dalam aplikasi.");
+        return;
+      }
+      normalizedContact = `Telegram: @${handle}`;
+    } else if (contactChannel === "other") {
+      if (!rawContact) {
+        setSubmitError("Masukkan ID atau kontak yang dapat dihubungi, atau pilih opsi Chat dalam aplikasi.");
+        return;
+      }
+      normalizedContact = rawContact;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
     try {
@@ -705,12 +766,6 @@ export function LostAndFoundContent() {
         photos.length > 0
           ? await Promise.all(photos.map((p) => uploadMedia(p.file, "lost-found")))
           : [];
-      const rawContact = formData.contact_info.trim();
-      const contactDigits = rawContact.replace(/\D/g, "");
-      const normalizedContact =
-        contactDigits.startsWith("8") && contactDigits.length >= 9
-          ? `0${contactDigits}`
-          : rawContact;
       const created = await apiFetch<LostFoundCreateResponse>("/v1/lost-found", {
         method: "POST",
         body: JSON.stringify({
@@ -732,6 +787,7 @@ export function LostAndFoundContent() {
       setIsModalManuallyOpen(false);
       setOpenMenu(null);
       setFormData(EMPTY_FORM);
+      setContactChannel("chat");
       setPhotoError(null);
       setPhotos((prev) => {
         prev.forEach((p) => URL.revokeObjectURL(p.url));
@@ -1741,26 +1797,76 @@ export function LostAndFoundContent() {
                     <h3 id="laporan-kontak-heading" className="font-display text-[16px] font-semibold text-[#141416]">
                       Kontak pelapor
                     </h3>
-                    <div>
-                      <label htmlFor="laporan-contact" className="block text-[14px] font-medium text-[#141416]">
-                        Nomor WhatsApp <span className="text-[#B83232]">*</span>
-                      </label>
-                      <div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-3.5 transition-all focus-within:border-[#141416] focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(20,20,22,0.06)]">
-                        <span className="shrink-0 rounded-md bg-[#EFECE8] px-2 py-0.5 text-[13px] font-semibold text-[#5F5B57]">
-                          +62
-                        </span>
-                        <input
-                          id="laporan-contact"
-                          type="tel"
-                          required
-                          maxLength={50}
-                          value={formData.contact_info}
-                          onChange={(e) => updateForm("contact_info", e.target.value)}
-                          placeholder="Masukkan nomor WhatsApp aktif"
-                          className="w-full bg-transparent text-[14px] text-[#141416] placeholder:text-[#66625E] focus:outline-none"
-                        />
-                      </div>
+                    <div ref={modalContactChannelDropdownRef}>
+                      <CustomSelectField
+                        id="laporan-contact-channel"
+                        label="Preferensi kontak"
+                        value={contactChannel}
+                        displayLabel={
+                          CONTACT_CHANNEL_OPTIONS.find((opt) => opt.value === contactChannel)
+                            ?.label ?? "Chat dalam aplikasi saja (Privasi)"
+                        }
+                        isOpen={openMenu === "modal-contact-channel"}
+                        onToggle={() => toggleMenu("modal-contact-channel")}
+                        onSelect={(nextVal) => {
+                          setContactChannel(nextVal as ContactChannel);
+                          updateForm("contact_info", "");
+                          setSubmitError(null);
+                          setOpenMenu(null);
+                        }}
+                        options={CONTACT_CHANNEL_OPTIONS}
+                      />
                     </div>
+
+                    {contactChannel === "chat" ? (
+                      <p className="rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-4 py-3 text-[13px] leading-relaxed text-[#57534E]">
+                        Nomor telepon dan akun media sosial Anda tetap privat. Rekan kampus tetap dapat menghubungi Anda lewat{" "}
+                        <strong className="font-semibold text-[#141416]">
+                          Chat 1-on-1 dalam aplikasi
+                        </strong>{" "}
+                        pada halaman detail laporan.
+                      </p>
+                    ) : (
+                      <div>
+                        <label htmlFor="laporan-contact" className="block text-[14px] font-medium text-[#141416]">
+                          {contactChannel === "whatsapp"
+                            ? "Nomor WhatsApp"
+                            : contactChannel === "instagram"
+                              ? "Username Instagram"
+                              : contactChannel === "telegram"
+                                ? "Username Telegram"
+                                : "Kontak atau ID media sosial lain"}{" "}
+                          <span className="text-[#B83232]">*</span>
+                        </label>
+                        <div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-3.5 transition-all focus-within:border-[#141416] focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(20,20,22,0.06)]">
+                          {(contactChannel === "whatsapp" ||
+                            contactChannel === "instagram" ||
+                            contactChannel === "telegram") && (
+                            <span className="shrink-0 rounded-md bg-[#EFECE8] px-2 py-0.5 text-[13px] font-semibold text-[#5F5B57]">
+                              {contactChannel === "whatsapp" ? "+62" : "@"}
+                            </span>
+                          )}
+                          <input
+                            id="laporan-contact"
+                            type={contactChannel === "whatsapp" ? "tel" : "text"}
+                            required
+                            maxLength={contactChannel === "other" ? 65 : 50}
+                            value={formData.contact_info}
+                            onChange={(e) => updateForm("contact_info", e.target.value)}
+                            placeholder={
+                              contactChannel === "whatsapp"
+                                ? "Masukkan nomor WhatsApp aktif"
+                                : contactChannel === "instagram"
+                                  ? "Username Instagram tanpa @"
+                                  : contactChannel === "telegram"
+                                    ? "Username Telegram tanpa @"
+                                    : "Masukkan ID media sosial atau kanal aktif"
+                            }
+                            className="w-full bg-transparent text-[14px] text-[#141416] placeholder:text-[#66625E] focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </section>
 
                   {submitError && (

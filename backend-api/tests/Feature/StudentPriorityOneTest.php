@@ -157,4 +157,28 @@ class StudentPriorityOneTest extends TestCase
         $desc = $this->getJson('/api/v1/marketplace?sort=price_desc')->assertOk();
         $this->assertEquals([980000, 450000, 120000], array_map('floatval', array_column($desc->json('data.data'), 'price')));
     }
+
+    public function test_lost_found_store_supports_nullable_privacy_and_social_contact(): void
+    {
+        $student = User::factory()->create();
+        Sanctum::actingAs($student, ['student']);
+
+        $chatOnly = $this->postJson('/api/v1/lost-found', [
+            'type' => 'lost',
+            'title' => 'Kartu Akses Lab',
+            'location' => 'Gedung FIK',
+            'description' => 'Tertinggal di ruang praktikum lantai 2',
+            'contact_info' => null,
+        ])->assertCreated();
+        $this->assertNull($chatOnly->json('data.contact_info'));
+
+        $social = $this->postJson('/api/v1/lost-found', [
+            'type' => 'found',
+            'title' => 'Tumbler Hitam',
+            'location' => 'Perpustakaan UPN',
+            'description' => 'Diamankan di meja informasi',
+            'contact_info' => 'Instagram: @info.kampus.upn',
+        ])->assertCreated();
+        $this->assertSame('Instagram: @info.kampus.upn', $social->json('data.contact_info'));
+    }
 }
