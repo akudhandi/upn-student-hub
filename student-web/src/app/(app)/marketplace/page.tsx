@@ -129,7 +129,13 @@ function formatTimeAgo(isoDate: string): string {
   });
 }
 
-function priceRangeParams(priceFilter: string): {
+type FilterMenuKey = "price" | "condition" | "sort" | "category-mobile" | "category-overflow";
+
+function priceRangeParams(
+  priceFilter: string,
+  customMinPrice: string,
+  customMaxPrice: string
+): {
   minPrice?: string;
   maxPrice?: string;
 } {
@@ -140,9 +146,135 @@ function priceRangeParams(priceFilter: string): {
       return { minPrice: "500000", maxPrice: "1000000" };
     case "over1000":
       return { minPrice: "1000001" };
+    case "custom": {
+      const result: { minPrice?: string; maxPrice?: string } = {};
+      if (customMinPrice !== "") result.minPrice = customMinPrice;
+      if (customMaxPrice !== "") result.maxPrice = customMaxPrice;
+      return result;
+    }
     default:
       return {};
   }
+}
+
+function formatPriceFilterLabel(
+  priceFilter: string,
+  customMinPrice: string,
+  customMaxPrice: string
+): string {
+  if (priceFilter === "custom") {
+    const hasMin = customMinPrice !== "";
+    const hasMax = customMaxPrice !== "";
+    if (hasMin && hasMax) {
+      return `${formatRupiah(customMinPrice)} - ${formatRupiah(customMaxPrice)}`;
+    }
+    if (hasMin) return `Mulai ${formatRupiah(customMinPrice)}`;
+    if (hasMax) return `Maks. ${formatRupiah(customMaxPrice)}`;
+  }
+  return PRICE_RANGE_OPTIONS.find((p) => p.value === priceFilter)?.label ?? "Semua harga";
+}
+
+function ChevronDownIcon({ rotated }: { rotated: boolean }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+      className={`shrink-0 text-[#6E6A66] transition-transform duration-150 ${
+        rotated ? "rotate-180" : ""
+      }`}
+    >
+      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
+      <path d="M3.5 8.5L6.5 11.5L12.5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function FilterDropdown({
+  id,
+  label,
+  value,
+  displayLabel,
+  isOpen,
+  onToggle,
+  onSelect,
+  options,
+  className,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  displayLabel: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  onSelect: (value: string) => void;
+  options: { value: string; label: string }[];
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <label htmlFor={id} className="block text-[13px] font-medium text-[#57534E]">
+        {label}
+      </label>
+      <div className="relative mt-1.5">
+        <button
+          id={id}
+          type="button"
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          onClick={onToggle}
+          className={`flex h-11 w-full items-center justify-between gap-2 rounded-xl border px-3.5 text-left text-[14px] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
+            isOpen
+              ? "border-[#141416] bg-white text-[#141416] shadow-[0_0_0_3px_rgba(20,20,22,0.06)]"
+              : "border-[#E5E0DA] bg-[#F6F4F1] text-[#141416] hover:border-[#CFC8BF]"
+          }`}
+        >
+          <span className="truncate font-medium">{displayLabel}</span>
+          <ChevronDownIcon rotated={isOpen} />
+        </button>
+
+        {isOpen && (
+          <div
+            role="listbox"
+            aria-label={label}
+            className="absolute left-0 top-[calc(100%+8px)] z-30 w-full min-w-[210px] rounded-2xl border border-[#E5E0DA] bg-white p-1.5 shadow-[0_18px_36px_-18px_rgba(20,20,22,0.18)]"
+          >
+            <div className="max-h-64 space-y-1 overflow-y-auto">
+              {options.map((opt) => {
+                const selected = value === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    onClick={() => onSelect(opt.value)}
+                    className={`flex min-h-[44px] w-full items-center justify-between gap-3 rounded-xl px-3.5 text-left text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
+                      selected
+                        ? "bg-[#141416] font-semibold text-white"
+                        : "font-medium text-[#141416] hover:bg-[#F4F1EE]"
+                    }`}
+                  >
+                    <span className="truncate">{opt.label}</span>
+                    {selected && <CheckIcon />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function SellerAvatar({ name }: { name: string }) {
@@ -201,8 +333,13 @@ function MarketplaceContent() {
   const [error, setError] = useState<string | null>(null);
 
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
-  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<FilterMenuKey | null>(null);
   const [priceFilter, setPriceFilter] = useState("any");
+  const [customMinPrice, setCustomMinPrice] = useState("");
+  const [customMaxPrice, setCustomMaxPrice] = useState("");
+  const [draftMinPrice, setDraftMinPrice] = useState("");
+  const [draftMaxPrice, setDraftMaxPrice] = useState("");
+  const [customPriceError, setCustomPriceError] = useState<string | null>(null);
   const [conditionFilter, setConditionFilter] = useState("any");
   const [sortBy, setSortBy] = useState<SortOption>("latest");
   const [searchDraft, setSearchDraft] = useState({ base: urlSearchQuery, value: urlSearchQuery });
@@ -231,8 +368,7 @@ function MarketplaceContent() {
   const photoIdRef = useRef(0);
   const photosRef = useRef(photos);
   const catalogSectionRef = useRef<HTMLElement | null>(null);
-  const categoryMenuRef = useRef<HTMLDivElement | null>(null);
-  const categoryMenuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const filterBarRef = useRef<HTMLElement | null>(null);
   const createTriggerRef = useRef<HTMLButtonElement | null>(null);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const wasModalOpenRef = useRef(false);
@@ -285,7 +421,7 @@ function MarketplaceContent() {
     params.set("page", String(page));
     if (activeCategoryId !== null) params.set("category_id", String(activeCategoryId));
     if (conditionFilter !== "any") params.set("condition", conditionFilter);
-    const { minPrice, maxPrice } = priceRangeParams(priceFilter);
+    const { minPrice, maxPrice } = priceRangeParams(priceFilter, customMinPrice, customMaxPrice);
     if (minPrice) params.set("min_price", minPrice);
     if (maxPrice) params.set("max_price", maxPrice);
     if (sortBy !== "latest") params.set("sort", sortBy);
@@ -315,7 +451,17 @@ function MarketplaceContent() {
     return () => {
       cancelled = true;
     };
-  }, [page, activeCategoryId, conditionFilter, priceFilter, sortBy, urlSearchQuery, reloadNonce]);
+  }, [
+    page,
+    activeCategoryId,
+    conditionFilter,
+    priceFilter,
+    customMinPrice,
+    customMaxPrice,
+    sortBy,
+    urlSearchQuery,
+    reloadNonce,
+  ]);
 
   const applySearchToUrl = useCallback(
     (rawValue: string) => {
@@ -392,18 +538,17 @@ function MarketplaceContent() {
   }, [isModalOpen, closeModal]);
 
   useEffect(() => {
-    if (!isCategoryMenuOpen) return;
+    if (!openMenu) return;
 
     function handleMouseDown(e: MouseEvent) {
-      if (categoryMenuRef.current && !categoryMenuRef.current.contains(e.target as Node)) {
-        setIsCategoryMenuOpen(false);
+      if (filterBarRef.current && !filterBarRef.current.contains(e.target as Node)) {
+        setOpenMenu(null);
       }
     }
 
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        setIsCategoryMenuOpen(false);
-        categoryMenuButtonRef.current?.focus();
+        setOpenMenu(null);
       }
     }
 
@@ -413,7 +558,7 @@ function MarketplaceContent() {
       document.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isCategoryMenuOpen]);
+  }, [openMenu]);
 
   const categoryOptions = useMemo(() => {
     const raw =
@@ -636,12 +781,13 @@ function MarketplaceContent() {
       : null;
   const activePriceLabel =
     priceFilter !== "any"
-      ? (PRICE_RANGE_OPTIONS.find((p) => p.value === priceFilter)?.label ?? null)
+      ? formatPriceFilterLabel(priceFilter, customMinPrice, customMaxPrice)
       : null;
   const activeConditionLabel =
     conditionFilter !== "any"
       ? (CONDITION_META[conditionFilter]?.label ?? conditionFilter)
       : null;
+  const activeSortLabel = SORT_OPTIONS.find((s) => s.value === sortBy)?.label ?? "Terbaru";
 
   const hasActiveFilter =
     activeCategoryId !== null ||
@@ -649,11 +795,63 @@ function MarketplaceContent() {
     conditionFilter !== "any" ||
     urlSearchQuery !== "";
 
+  function toggleFilterMenu(key: FilterMenuKey) {
+    if (key === "price" && openMenu !== "price") {
+      setDraftMinPrice(customMinPrice);
+      setDraftMaxPrice(customMaxPrice);
+      setCustomPriceError(null);
+    }
+    setOpenMenu((prev) => (prev === key ? null : key));
+  }
+
+  function applyPresetPriceRange(value: string) {
+    setPriceFilter(value);
+    setCustomMinPrice("");
+    setCustomMaxPrice("");
+    setDraftMinPrice("");
+    setDraftMaxPrice("");
+    setCustomPriceError(null);
+    setOpenMenu(null);
+    setPage(1);
+  }
+
+  function applyCustomPriceRange() {
+    const minStr = draftMinPrice.trim();
+    const maxStr = draftMaxPrice.trim();
+    if (minStr === "" && maxStr === "") {
+      setCustomPriceError("Isi harga minimal atau maksimal terlebih dahulu.");
+      return;
+    }
+
+    const minNum = minStr === "" ? null : Number(minStr);
+    const maxNum = maxStr === "" ? null : Number(maxStr);
+    if ((minNum !== null && (Number.isNaN(minNum) || minNum < 0)) || (maxNum !== null && (Number.isNaN(maxNum) || maxNum < 0))) {
+      setCustomPriceError("Masukkan nominal angka minimal Rp 0.");
+      return;
+    }
+    if (minNum !== null && maxNum !== null && minNum > maxNum) {
+      setCustomPriceError("Harga minimal tidak boleh melebihi maksimal.");
+      return;
+    }
+
+    setCustomMinPrice(minStr);
+    setCustomMaxPrice(maxStr);
+    setPriceFilter("custom");
+    setCustomPriceError(null);
+    setOpenMenu(null);
+    setPage(1);
+  }
+
   function resetFilters() {
     setIsLoading(true);
-    setIsCategoryMenuOpen(false);
+    setOpenMenu(null);
     setActiveCategoryId(null);
     setPriceFilter("any");
+    setCustomMinPrice("");
+    setCustomMaxPrice("");
+    setDraftMinPrice("");
+    setDraftMaxPrice("");
+    setCustomPriceError(null);
     setConditionFilter("any");
     setSortBy("latest");
     setSearchDraft({ base: "", value: "" });
@@ -754,6 +952,7 @@ function MarketplaceContent() {
 
       {/* Search, Category & Filter Panel */}
       <section
+        ref={filterBarRef}
         aria-label="Pencarian dan filter katalog marketplace"
         className="rounded-[20px] border border-[#E5E0DA] bg-white p-5 sm:p-6"
       >
@@ -806,144 +1005,200 @@ function MarketplaceContent() {
             </div>
           </form>
 
-          {/* Price Range */}
+          {/* Custom Price Range Dropdown (Presets + Custom Min/Max) */}
           <div>
             <label htmlFor="price-range" className="block text-[13px] font-medium text-[#57534E]">
               Rentang harga
             </label>
             <div className="relative mt-1.5">
-              <select
+              <button
                 id="price-range"
-                value={priceFilter}
-                onChange={(e) => {
-                  setPriceFilter(e.target.value);
-                  setPage(1);
-                }}
-                className="h-11 w-full appearance-none rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-3.5 pr-9 text-[14px] text-[#141416] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
+                type="button"
+                aria-haspopup="dialog"
+                aria-expanded={openMenu === "price"}
+                onClick={() => toggleFilterMenu("price")}
+                className={`flex h-11 w-full items-center justify-between gap-2 rounded-xl border px-3.5 text-left text-[14px] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
+                  openMenu === "price"
+                    ? "border-[#141416] bg-white text-[#141416] shadow-[0_0_0_3px_rgba(20,20,22,0.06)]"
+                    : "border-[#E5E0DA] bg-[#F6F4F1] text-[#141416] hover:border-[#CFC8BF]"
+                }`}
               >
-                {PRICE_RANGE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 16 16"
-                fill="none"
-                aria-hidden="true"
-                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
-              >
-                <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+                <span className="truncate font-medium">
+                  {formatPriceFilterLabel(priceFilter, customMinPrice, customMaxPrice)}
+                </span>
+                <ChevronDownIcon rotated={openMenu === "price"} />
+              </button>
+
+              {openMenu === "price" && (
+                <div
+                  role="dialog"
+                  aria-label="Pilih atau atur rentang harga"
+                  className="absolute left-0 top-[calc(100%+8px)] z-30 w-full min-w-[280px] sm:w-[320px] rounded-2xl border border-[#E5E0DA] bg-white p-2.5 shadow-[0_18px_36px_-18px_rgba(20,20,22,0.18)]"
+                >
+                  <div className="space-y-1" role="listbox" aria-label="Pilihan rentang harga cepat">
+                    {PRICE_RANGE_OPTIONS.map((opt) => {
+                      const selected = priceFilter === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          onClick={() => applyPresetPriceRange(opt.value)}
+                          className={`flex min-h-[44px] w-full items-center justify-between gap-3 rounded-xl px-3.5 text-left text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
+                            selected
+                              ? "bg-[#141416] font-semibold text-white"
+                              : "font-medium text-[#141416] hover:bg-[#F4F1EE]"
+                          }`}
+                        >
+                          <span className="truncate">{opt.label}</span>
+                          {selected && <CheckIcon />}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-2.5 border-t border-[#F1EDE8] px-1 pt-3">
+                    <p className="text-[13px] font-semibold text-[#141416]">
+                      Rentang harga khusus
+                    </p>
+                    <div
+                      className="mt-2 grid grid-cols-2 gap-2"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          applyCustomPriceRange();
+                        }
+                      }}
+                    >
+                      <div>
+                        <label htmlFor="custom-min-price" className="sr-only">
+                          Harga minimal (Rp)
+                        </label>
+                        <div className="flex h-11 items-center gap-1.5 rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-2.5 transition-all focus-within:border-[#141416] focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(20,20,22,0.06)]">
+                          <span className="text-[13px] font-semibold text-[#57534E]">Rp</span>
+                          <input
+                            id="custom-min-price"
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            value={draftMinPrice}
+                            onChange={(e) => {
+                              setDraftMinPrice(e.target.value);
+                              setCustomPriceError(null);
+                            }}
+                            placeholder="Minimal"
+                            className="w-full min-w-0 bg-transparent text-[13px] font-medium text-[#141416] placeholder:font-normal placeholder:text-[#66625E] focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label htmlFor="custom-max-price" className="sr-only">
+                          Harga maksimal (Rp)
+                        </label>
+                        <div className="flex h-11 items-center gap-1.5 rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-2.5 transition-all focus-within:border-[#141416] focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(20,20,22,0.06)]">
+                          <span className="text-[13px] font-semibold text-[#57534E]">Rp</span>
+                          <input
+                            id="custom-max-price"
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            value={draftMaxPrice}
+                            onChange={(e) => {
+                              setDraftMaxPrice(e.target.value);
+                              setCustomPriceError(null);
+                            }}
+                            placeholder="Maksimal"
+                            className="w-full min-w-0 bg-transparent text-[13px] font-medium text-[#141416] placeholder:font-normal placeholder:text-[#66625E] focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {customPriceError && (
+                      <p role="alert" className="mt-2 text-[13px] font-medium text-[#B83232]">
+                        {customPriceError}
+                      </p>
+                    )}
+
+                    <div className="mt-3 flex items-center justify-end gap-2">
+                      {(priceFilter !== "any" || draftMinPrice !== "" || draftMaxPrice !== "") && (
+                        <button
+                          type="button"
+                          onClick={() => applyPresetPriceRange("any")}
+                          className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-4 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                        >
+                          Reset
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={applyCustomPriceRange}
+                        className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-[#141416] px-4 text-[13px] font-medium text-white transition-colors hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                      >
+                        Terapkan
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Condition */}
-          <div>
-            <label htmlFor="condition" className="block text-[13px] font-medium text-[#57534E]">
-              Kondisi barang
-            </label>
-            <div className="relative mt-1.5">
-              <select
-                id="condition"
-                value={conditionFilter}
-                onChange={(e) => {
-                  setConditionFilter(e.target.value);
-                  setPage(1);
-                }}
-                className="h-11 w-full appearance-none rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-3.5 pr-9 text-[14px] text-[#141416] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
-              >
-                <option value="any">Semua kondisi</option>
-                {CONDITION_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 16 16"
-                fill="none"
-                aria-hidden="true"
-                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
-              >
-                <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-          </div>
+          {/* Custom Condition Dropdown */}
+          <FilterDropdown
+            id="condition"
+            label="Kondisi barang"
+            value={conditionFilter}
+            displayLabel={activeConditionLabel ?? "Semua kondisi"}
+            isOpen={openMenu === "condition"}
+            onToggle={() => toggleFilterMenu("condition")}
+            onSelect={(nextVal) => {
+              setConditionFilter(nextVal);
+              setOpenMenu(null);
+              setPage(1);
+            }}
+            options={[
+              { value: "any", label: "Semua kondisi" },
+              ...CONDITION_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label })),
+            ]}
+          />
 
-          {/* Sort */}
-          <div>
-            <label htmlFor="marketplace-sort" className="block text-[13px] font-medium text-[#57534E]">
-              Urutkan
-            </label>
-            <div className="relative mt-1.5">
-              <select
-                id="marketplace-sort"
-                value={sortBy}
-                onChange={(e) => {
-                  setSortBy(e.target.value as SortOption);
-                  setPage(1);
-                }}
-                className="h-11 w-full appearance-none rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-3.5 pr-9 text-[14px] text-[#141416] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
-              >
-                {SORT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 16 16"
-                fill="none"
-                aria-hidden="true"
-                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
-              >
-                <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-          </div>
+          {/* Custom Sort Dropdown */}
+          <FilterDropdown
+            id="marketplace-sort"
+            label="Urutkan"
+            value={sortBy}
+            displayLabel={activeSortLabel}
+            isOpen={openMenu === "sort"}
+            onToggle={() => toggleFilterMenu("sort")}
+            onSelect={(nextVal) => {
+              setSortBy(nextVal as SortOption);
+              setOpenMenu(null);
+              setPage(1);
+            }}
+            options={SORT_OPTIONS}
+          />
 
-          {/* Mobile / Tablet Category Select (keeps 1-line ergonomics without pill wrapping) */}
-          <div className="lg:hidden">
-            <label htmlFor="marketplace-category-mobile" className="block text-[13px] font-medium text-[#57534E]">
-              Kategori barang
-            </label>
-            <div className="relative mt-1.5">
-              <select
-                id="marketplace-category-mobile"
-                value={activeCategoryId === null ? "" : String(activeCategoryId)}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  setActiveCategoryId(raw === "" ? null : Number(raw));
-                  setPage(1);
-                }}
-                className="h-11 w-full appearance-none rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-3.5 pr-9 text-[14px] text-[#141416] transition-all duration-150 hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none"
-              >
-                <option value="">Semua kategori</option>
-                {categoryOptions.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 16 16"
-                fill="none"
-                aria-hidden="true"
-                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6A66]"
-              >
-                <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-          </div>
+          {/* Mobile / Tablet Custom Category Dropdown */}
+          <FilterDropdown
+            id="marketplace-category-mobile"
+            label="Kategori barang"
+            className="lg:hidden"
+            value={activeCategoryId === null ? "" : String(activeCategoryId)}
+            displayLabel={activeCategoryName ?? "Semua kategori"}
+            isOpen={openMenu === "category-mobile"}
+            onToggle={() => toggleFilterMenu("category-mobile")}
+            onSelect={(nextVal) => {
+              setActiveCategoryId(nextVal === "" ? null : Number(nextVal));
+              setOpenMenu(null);
+              setPage(1);
+            }}
+            options={[
+              { value: "", label: "Semua kategori" },
+              ...categoryOptions.map((cat) => ({ value: String(cat.id), label: cat.name })),
+            ]}
+          />
         </div>
 
         {/* Editorial Single-Row Category Tabs (Desktop) */}
@@ -957,7 +1212,7 @@ function MarketplaceContent() {
               type="button"
               onClick={() => {
                 setActiveCategoryId(null);
-                setIsCategoryMenuOpen(false);
+                setOpenMenu(null);
                 setPage(1);
               }}
               aria-pressed={activeCategoryId === null}
@@ -978,7 +1233,7 @@ function MarketplaceContent() {
                   type="button"
                   onClick={() => {
                     setActiveCategoryId(cat.id);
-                    setIsCategoryMenuOpen(false);
+                    setOpenMenu(null);
                     setPage(1);
                   }}
                   aria-pressed={isActive}
@@ -994,15 +1249,14 @@ function MarketplaceContent() {
             })}
 
             {overflowCategories.length > 0 && (
-              <div ref={categoryMenuRef} className="relative -mb-px">
+              <div className="relative -mb-px">
                 <button
-                  ref={categoryMenuButtonRef}
                   type="button"
-                  onClick={() => setIsCategoryMenuOpen((open) => !open)}
-                  aria-expanded={isCategoryMenuOpen}
+                  onClick={() => toggleFilterMenu("category-overflow")}
+                  aria-expanded={openMenu === "category-overflow"}
                   aria-haspopup="menu"
                   className={`inline-flex min-h-[44px] items-center gap-1.5 whitespace-nowrap border-b-2 px-0.5 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2 rounded-t ${
-                    activeOverflowCategory !== null || isCategoryMenuOpen
+                    activeOverflowCategory !== null || openMenu === "category-overflow"
                       ? "border-[#141416] font-semibold text-[#141416]"
                       : "border-transparent font-medium text-[#57534E] hover:border-[#CFC8BF] hover:text-[#141416]"
                   }`}
@@ -1012,21 +1266,10 @@ function MarketplaceContent() {
                       ? activeOverflowCategory.name
                       : `Kategori lain (${overflowCategories.length})`}
                   </span>
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    aria-hidden="true"
-                    className={`transition-transform duration-150 ${
-                      isCategoryMenuOpen ? "rotate-180" : ""
-                    }`}
-                  >
-                    <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <ChevronDownIcon rotated={openMenu === "category-overflow"} />
                 </button>
 
-                {isCategoryMenuOpen && (
+                {openMenu === "category-overflow" && (
                   <div
                     role="menu"
                     aria-label="Kategori marketplace lainnya"
@@ -1043,7 +1286,7 @@ function MarketplaceContent() {
                             aria-checked={isActive}
                             onClick={() => {
                               setActiveCategoryId(cat.id);
-                              setIsCategoryMenuOpen(false);
+                              setOpenMenu(null);
                               setPage(1);
                             }}
                             className={`flex min-h-[44px] w-full items-center justify-between gap-3 rounded-xl px-3.5 text-left text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
@@ -1053,11 +1296,7 @@ function MarketplaceContent() {
                             }`}
                           >
                             <span className="truncate">{cat.name}</span>
-                            {isActive && (
-                              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
-                                <path d="M3.5 8.5L6.5 11.5L12.5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            )}
+                            {isActive && <CheckIcon />}
                           </button>
                         );
                       })}
@@ -1124,10 +1363,7 @@ function MarketplaceContent() {
               {activePriceLabel && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setPriceFilter("any");
-                    setPage(1);
-                  }}
+                  onClick={() => applyPresetPriceRange("any")}
                   className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-[#D9D2C9] bg-white px-3.5 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
                 >
                   <span>{activePriceLabel}</span>
