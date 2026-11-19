@@ -1,6 +1,15 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -89,6 +98,10 @@ const TYPE_OPTIONS: { value: TypeFilter; label: string }[] = [
 
 const MAX_PHOTOS = 3;
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+
+function subscribeNoop() {
+  return () => {};
+}
 
 function formatEventDate(isoDate: string | null): string | null {
   if (!isoDate) return null;
@@ -348,6 +361,11 @@ export function LostAndFoundContent() {
 
   const [isModalManuallyOpen, setIsModalManuallyOpen] = useState(false);
   const isModalOpen = isModalManuallyOpen || createRequested;
+  const isMounted = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false
+  );
   const [reportType, setReportType] = useState<ReportType>("lost");
   const [contactChannel, setContactChannel] = useState<ContactChannel>("chat");
   const [formData, setFormData] = useState(EMPTY_FORM);
@@ -480,9 +498,9 @@ export function LostAndFoundContent() {
     }
   }, [router, searchParams, urlQuery]);
 
-  const openModal = useCallback((type: ReportType, triggerEl?: HTMLButtonElement | null) => {
+  const openModal = useCallback((triggerEl?: HTMLButtonElement | null) => {
     if (triggerEl) lastTriggerRef.current = triggerEl;
-    setReportType(type);
+    setReportType("lost");
     setSubmitError(null);
     setPhotoError(null);
     setOpenMenu(null);
@@ -506,7 +524,7 @@ export function LostAndFoundContent() {
     if (!isModalOpen) {
       if (wasModalOpenRef.current) {
         wasModalOpenRef.current = false;
-        lastTriggerRef.current?.focus();
+        lastTriggerRef.current?.focus({ preventScroll: true });
       }
       return;
     }
@@ -515,7 +533,7 @@ export function LostAndFoundContent() {
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const rafId = window.requestAnimationFrame(() => {
-      titleInputRef.current?.focus();
+      titleInputRef.current?.focus({ preventScroll: true });
     });
 
     return () => {
@@ -909,20 +927,13 @@ export function LostAndFoundContent() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={(e) => openModal("lost", e.currentTarget)}
-            className="inline-flex h-11 shrink-0 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-5 text-[14px] font-medium text-[#141416] transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:border-[#141416] hover:bg-[#FAF8F6] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2"
-          >
-            Lapor hilang
-          </button>
-          <button
-            type="button"
-            onClick={(e) => openModal("found", e.currentTarget)}
+            onClick={(e) => openModal(e.currentTarget)}
             className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2"
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
             </svg>
-            Lapor temuan
+            Buat Laporan
           </button>
         </div>
       </section>
@@ -1291,7 +1302,7 @@ export function LostAndFoundContent() {
                 : "Buat laporan pertama jika Anda kehilangan atau menemukan barang di lingkungan kampus UPN."}
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-              {hasActiveFilter ? (
+              {hasActiveFilter && (
                 <button
                   type="button"
                   onClick={clearFilters}
@@ -1299,21 +1310,13 @@ export function LostAndFoundContent() {
                 >
                   Atur ulang filter
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={(e) => openModal("lost", e.currentTarget)}
-                  className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-6 text-[14px] font-medium text-[#141416] transition-all duration-150 hover:-translate-y-[1px] hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
-                >
-                  Lapor hilang
-                </button>
               )}
               <button
                 type="button"
-                onClick={(e) => openModal("found", e.currentTarget)}
+                onClick={(e) => openModal(e.currentTarget)}
                 className="inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-6 text-[14px] font-medium text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
               >
-                Lapor temuan
+                Buat Laporan
               </button>
             </div>
           </div>
@@ -1499,10 +1502,16 @@ export function LostAndFoundContent() {
         )}
       </section>
 
-      {/* Matte Warm-Alabaster Modal Buat Laporan */}
-      {isModalOpen && (
+      {/* Matte Warm-Alabaster Modal Buat Laporan.
+          Rendered in a portal on document.body: the page wrapper runs an entrance
+          animation that leaves a transform behind, which would turn this fixed
+          overlay into one positioned against the tall page (and under the sticky
+          topbar) instead of the viewport. */}
+      {isModalOpen &&
+        isMounted &&
+        createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#141416]/50 p-4"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-[#141416]/50 p-4 sm:p-8"
           onClick={closeModal}
         >
           <div
@@ -1510,9 +1519,9 @@ export function LostAndFoundContent() {
             aria-modal="true"
             aria-labelledby="lapor-barang-title"
             onClick={(e) => e.stopPropagation()}
-            className="auth-shell-enter max-h-[92vh] w-full max-w-[940px] overflow-y-auto rounded-[28px] border border-[#E5E0DA] bg-[#F4F1EE] p-5 shadow-[0_20px_48px_-20px_rgba(20,20,22,0.20)] sm:p-7"
+            className="flex max-h-[calc(100dvh-2rem)] w-full max-w-[940px] flex-col overflow-hidden rounded-[28px] border border-[#E5E0DA] bg-[#F4F1EE] shadow-[0_20px_48px_-20px_rgba(20,20,22,0.20)] sm:max-h-[calc(100dvh-4rem)]"
           >
-            <div className="border-b border-[#E5E0DA] pb-4">
+            <div className="shrink-0 border-b border-[#E5E0DA] px-5 pb-4 pt-5 sm:px-7 sm:pt-6">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <button
                   type="button"
@@ -1557,7 +1566,10 @@ export function LostAndFoundContent() {
               </h2>
             </div>
 
-            <form onSubmit={handleSubmit} className="mt-5">
+            <form
+              onSubmit={handleSubmit}
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5 pt-5 sm:px-7 sm:pb-7"
+            >
               <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[1.45fr_0.85fr]">
                 {/* Form Card */}
                 <div className="min-w-0 space-y-5 rounded-[20px] border border-[#E5E0DA] bg-white p-5 sm:p-6">
@@ -2032,7 +2044,8 @@ export function LostAndFoundContent() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
