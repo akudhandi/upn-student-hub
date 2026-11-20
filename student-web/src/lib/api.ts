@@ -15,7 +15,7 @@ function buildAuthHeaders(): Record<string, string> {
   const token = getToken();
   if (token && token !== "dev-token") {
     headers.Authorization = `Bearer ${token}`;
-  } else if (token === "dev-token") {
+  } else if (token === "dev-token" && process.env.NODE_ENV !== "production") {
     const user = getUser();
     headers["X-Dev-User-Id"] = String(user?.id || 1);
   }

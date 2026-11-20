@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { getUser } from "@/lib/auth";
+import { getUser, USER_UPDATED_EVENT } from "@/lib/auth";
 import { startConversation, type InteractableType } from "@/lib/interactions";
 import type { ApiError } from "@/lib/api";
 
@@ -14,6 +14,19 @@ type ChatButtonProps = {
   className?: string;
   ariaLabel?: string;
 };
+
+function subscribeUserStore(onStoreChange: () => void) {
+  window.addEventListener(USER_UPDATED_EVENT, onStoreChange);
+  window.addEventListener("storage", onStoreChange);
+  return () => {
+    window.removeEventListener(USER_UPDATED_EVENT, onStoreChange);
+    window.removeEventListener("storage", onStoreChange);
+  };
+}
+
+function getCurrentUserIdSnapshot(): number | null {
+  return getUser()?.id ?? null;
+}
 
 // Reusable direct-chat CTA: POST /v1/conversations then redirect to inbox.
 // Handles own-listing, missing recipient, loading, and API errors inline.
@@ -29,7 +42,11 @@ export default function ChatButton({
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const currentUserId = getUser()?.id ?? null;
+  const currentUserId = useSyncExternalStore(
+    subscribeUserStore,
+    getCurrentUserIdSnapshot,
+    () => null
+  );
 
   if (!recipientId) {
     return (

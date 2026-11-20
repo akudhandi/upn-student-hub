@@ -107,6 +107,19 @@ function normalizeWaNumber(raw: string): string | null {
   return null;
 }
 
+function safeHttpUrl(raw: string | null | undefined): string | null {
+  const trimmed = raw?.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === "http:" || parsed.protocol === "https:"
+      ? parsed.toString()
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function DetailSkeleton() {
   return (
     <div
@@ -262,6 +275,7 @@ export default function EventDetailPage() {
   const benefits = (item.benefits ?? []).filter(Boolean);
   const pics = (item.contact_pics ?? []).filter((p) => p.name?.trim());
   const documents = (item.documents ?? []).filter((d) => d.name?.trim());
+  const safeRegistrationUrl = safeHttpUrl(item.registration_link);
   const descriptionParagraphs = (item.description ?? "")
     .split(/\n\s*\n/)
     .map((p) => p.trim())
@@ -477,14 +491,14 @@ export default function EventDetailPage() {
 
         {/* Sidebar */}
         <div className="min-w-0 space-y-5 lg:sticky lg:top-24">
-          {item.registration_link && (
+          {safeRegistrationUrl && (
             <aside aria-label="Pendaftaran event" className="rounded-xl border border-slate-200 bg-white p-4">
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Pendaftaran</p>
               <p className="mt-1.5 text-xs text-slate-600">
                 Daftar secara daring melalui tautan resmi penyelenggara.
               </p>
               <a
-                href={item.registration_link}
+                href={safeRegistrationUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-3 flex w-full items-center justify-center rounded-lg bg-[#0A2342] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#12325e]"

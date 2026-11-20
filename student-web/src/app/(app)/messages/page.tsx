@@ -367,6 +367,7 @@ function MessagesContent() {
   useEffect(() => {
     if (activeId === null) return;
     const timer = setInterval(() => {
+      if (document.hidden) return;
       void loadMessages(activeId, false);
     }, 5000);
     return () => clearInterval(timer);
@@ -376,19 +377,25 @@ function MessagesContent() {
   useEffect(() => {
     let cancelled = false;
     const timer = setInterval(() => {
+      if (document.hidden) return;
       void (async () => {
         try {
           const data = await fetchConversations();
           if (cancelled) return;
           const currentActive = activeIdRef.current;
-          setThreads(
-            data.map((t) =>
-              currentActive !== null && t.id === currentActive
-                ? { ...t, unread_count: 0 }
-                : t
-            )
+          const nextThreads = data.map((t) =>
+            currentActive !== null && t.id === currentActive
+              ? { ...t, unread_count: 0 }
+              : t
           );
-          window.dispatchEvent(new Event("upn-messages-updated"));
+          setThreads(nextThreads);
+          const unreadCount = nextThreads.reduce(
+            (sum, item) => sum + (item.unread_count || 0),
+            0
+          );
+          window.dispatchEvent(
+            new CustomEvent("upn-messages-updated", { detail: { unreadCount } })
+          );
         } catch {
           // Non-fatal background refresh.
         }
@@ -551,10 +558,17 @@ function MessagesContent() {
       await sendChatMessage(activeId, text);
       await loadMessages(activeId, false);
       const data = await fetchConversations();
-      setThreads(
-        data.map((t) => (t.id === activeId ? { ...t, unread_count: 0 } : t))
+      const nextThreads = data.map((t) =>
+        t.id === activeId ? { ...t, unread_count: 0 } : t
       );
-      window.dispatchEvent(new Event("upn-messages-updated"));
+      setThreads(nextThreads);
+      const unreadCount = nextThreads.reduce(
+        (sum, item) => sum + (item.unread_count || 0),
+        0
+      );
+      window.dispatchEvent(
+        new CustomEvent("upn-messages-updated", { detail: { unreadCount } })
+      );
     } catch {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       setDraft((curr) => (curr === "" ? text : curr));

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { apiFetch } from "@/lib/api";
+import { getUser, USER_UPDATED_EVENT } from "@/lib/auth";
 
 type AnnouncementItem = {
   id: number;
@@ -16,11 +17,28 @@ type AnnouncementListResponse = {
   data: AnnouncementItem[];
 };
 
-const LAST_SEEN_KEY = "upnhub_last_seen_announcement";
+const LAST_SEEN_KEY_PREFIX = "upnhub_last_seen_announcement";
+const LAST_SEEN_UPDATED_EVENT = "upnhub-last-seen-updated";
 
-function readLastSeen(): number {
+function lastSeenStorageKey(): string {
+  const userId = getUser()?.id;
+  return userId ? `${LAST_SEEN_KEY_PREFIX}_${userId}` : `${LAST_SEEN_KEY_PREFIX}_guest`;
+}
+
+function subscribeLastSeen(onStoreChange: () => void) {
+  window.addEventListener(USER_UPDATED_EVENT, onStoreChange);
+  window.addEventListener(LAST_SEEN_UPDATED_EVENT, onStoreChange);
+  window.addEventListener("storage", onStoreChange);
+  return () => {
+    window.removeEventListener(USER_UPDATED_EVENT, onStoreChange);
+    window.removeEventListener(LAST_SEEN_UPDATED_EVENT, onStoreChange);
+    window.removeEventListener("storage", onStoreChange);
+  };
+}
+
+function getLastSeenSnapshot(): number {
   if (typeof window === "undefined") return 0;
-  const raw = window.localStorage.getItem(LAST_SEEN_KEY);
+  const raw = window.localStorage.getItem(lastSeenStorageKey());
   const parsed = raw ? Number(raw) : 0;
   return Number.isFinite(parsed) ? parsed : 0;
 }
@@ -46,7 +64,9 @@ function formatAnnouncementTime(isoDate: string): string {
 export default function NotificationBell() {
   const [items, setItems] = useState<AnnouncementItem[]>([]);
   const [open, setOpen] = useState(false);
-  const [lastSeen, setLastSeen] = useState<number>(() => readLastSeen());
+  const [memoryLastSeen, setMemoryLastSeen] = useState(0);
+  const storedLastSeen = useSyncExternalStore(subscribeLastSeen, getLastSeenSnapshot, () => 0);
+  const lastSeen = Math.max(storedLastSeen, memoryLastSeen);
 
   // Muat pengumuman terbaru saat header dipasang.
   useEffect(() => {
@@ -57,7 +77,7 @@ export default function NotificationBell() {
       },
       () => {
         // Bel diam saat backend tidak terjangkau; tanpa error mencolok.
-      },
+      }
     );
     return () => {
       cancelled = true;
@@ -81,11 +101,11 @@ export default function NotificationBell() {
     setOpen(next);
     if (next && items.length > 0) {
       const maxId = Math.max(...items.map((item) => item.id));
-      setLastSeen(maxId);
       try {
-        window.localStorage.setItem(LAST_SEEN_KEY, String(maxId));
+        window.localStorage.setItem(lastSeenStorageKey(), String(maxId));
+        window.dispatchEvent(new Event(LAST_SEEN_UPDATED_EVENT));
       } catch {
-        // Penyimpanan privat: abaikan, dot tampil lagi saat reload.
+        setMemoryLastSeen(maxId);
       }
     }
   }

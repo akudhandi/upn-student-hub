@@ -177,6 +177,7 @@ export default function AppLayout({
   const [user, setUser] = useState<AuthUser | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const token = getToken();
@@ -213,11 +214,20 @@ export default function AppLayout({
         });
     }
 
+    function handleMessagesUpdated(event: Event) {
+      const detail = (event as CustomEvent<{ unreadCount?: unknown }>).detail;
+      if (typeof detail?.unreadCount === "number" && Number.isFinite(detail.unreadCount)) {
+        setUnreadMessagesCount(detail.unreadCount);
+        return;
+      }
+      loadUnread();
+    }
+
     loadUnread();
-    window.addEventListener("upn-messages-updated", loadUnread);
+    window.addEventListener("upn-messages-updated", handleMessagesUpdated);
     return () => {
       cancelled = true;
-      window.removeEventListener("upn-messages-updated", loadUnread);
+      window.removeEventListener("upn-messages-updated", handleMessagesUpdated);
     };
   }, [checked, pathname]);
 
@@ -278,6 +288,7 @@ export default function AppLayout({
       ? (user.profile as { avatar?: string | null }).avatar
       : null;
   const avatarUrl = avatarPath ? resolveStorageUrl(avatarPath) : null;
+  const showAvatar = Boolean(avatarUrl && failedAvatarUrl !== avatarUrl);
   const displayEmail = typeof user?.email === "string" ? user.email : "";
   const initials = displayName
     .split(" ")
@@ -394,9 +405,14 @@ export default function AppLayout({
               className="flex min-w-0 flex-1 items-center gap-2.5 focus-visible:outline-none"
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-[13px] font-semibold text-white">
-                {avatarUrl ? (
+                {showAvatar ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                  <img
+                    src={avatarUrl!}
+                    alt=""
+                    onError={() => setFailedAvatarUrl(avatarUrl)}
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   initials
                 )}
@@ -502,9 +518,14 @@ export default function AppLayout({
               className="hidden h-11 items-center gap-2.5 rounded-full border border-[#E5E0DA] bg-white py-1 pl-1.5 pr-4 transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:border-[#CFC8BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] sm:inline-flex"
             >
               <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-[13px] font-semibold text-white">
-                {avatarUrl ? (
+                {showAvatar ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                  <img
+                    src={avatarUrl!}
+                    alt=""
+                    onError={() => setFailedAvatarUrl(avatarUrl)}
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   initials
                 )}
@@ -532,9 +553,14 @@ export default function AppLayout({
               aria-label="Profil saya"
               className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-[13px] font-semibold text-white sm:hidden"
             >
-              {avatarUrl ? (
+              {showAvatar ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                <img
+                  src={avatarUrl!}
+                  alt=""
+                  onError={() => setFailedAvatarUrl(avatarUrl)}
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 initials
               )}
