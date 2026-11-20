@@ -1,13 +1,17 @@
 "use client";
 
-import type { PublicCategory } from "@/lib/api";
 import { CheckIcon, ChevronDownIcon } from "@/components/FilterDropdown";
+
+export type CategoryOption = {
+  id: number;
+  name: string;
+};
 
 export type CategoryTabsProps = {
   ariaLabel: string;
   overflowMenuLabel: string;
-  primaryCategories: PublicCategory[];
-  overflowCategories: PublicCategory[];
+  primaryCategories: CategoryOption[];
+  overflowCategories: CategoryOption[];
   activeCategoryId: number | null;
   isOverflowOpen: boolean;
   onSelectCategory: (id: number | null) => void;
