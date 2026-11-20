@@ -11,9 +11,10 @@ import {
 import { getToken, getUser } from "@/lib/auth";
 import { fetchFavorites, toggleFavorite } from "@/lib/interactions";
 import { formatRupiah } from "@/lib/formatters";
-import FilterDropdown, { CheckIcon, ChevronDownIcon } from "@/components/FilterDropdown";
+import FilterDropdown from "@/components/FilterDropdown";
 import CategoryTabs from "@/components/CategoryTabs";
 import PaginationBar from "@/components/PaginationBar";
+import PriceRangeDropdown from "@/components/PriceRangeDropdown";
 import {
   CONDITION_META,
   ItemCardSkeleton,
@@ -636,144 +637,35 @@ function MarketplaceContent() {
           </form>
 
           {/* Custom Price Range Dropdown (Presets + Custom Min/Max) */}
-          <div>
-            <label htmlFor="price-range" className="block text-[13px] font-medium text-[#57534E]">
-              Rentang harga
-            </label>
-            <div className="relative mt-1.5">
-              <button
-                id="price-range"
-                type="button"
-                aria-haspopup="dialog"
-                aria-expanded={openMenu === "price"}
-                onClick={() => toggleFilterMenu("price")}
-                className={`flex h-11 w-full items-center justify-between gap-2 rounded-xl border px-3.5 text-left text-[14px] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
-                  openMenu === "price"
-                    ? "border-[#141416] bg-white text-[#141416] shadow-[0_0_0_3px_rgba(20,20,22,0.06)]"
-                    : "border-[#E5E0DA] bg-[#F6F4F1] text-[#141416] hover:border-[#CFC8BF]"
-                }`}
-              >
-                <span className="truncate font-medium">
-                  {formatPriceFilterLabel(priceFilter, customMinPrice, customMaxPrice)}
-                </span>
-                <ChevronDownIcon rotated={openMenu === "price"} />
-              </button>
-
-              {openMenu === "price" && (
-                <div
-                  role="dialog"
-                  aria-label="Pilih atau atur rentang harga"
-                  className="absolute left-0 top-[calc(100%+8px)] z-30 w-full min-w-[280px] sm:w-[320px] rounded-2xl border border-[#E5E0DA] bg-white p-2.5 shadow-[0_18px_36px_-18px_rgba(20,20,22,0.18)]"
-                >
-                  <div className="space-y-1" role="listbox" aria-label="Pilihan rentang harga cepat">
-                    {PRICE_RANGE_OPTIONS.map((opt) => {
-                      const selected = priceFilter === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          role="option"
-                          aria-selected={selected}
-                          onClick={() => applyPresetPriceRange(opt.value)}
-                          className={`flex min-h-[44px] w-full items-center justify-between gap-3 rounded-xl px-3.5 text-left text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
-                            selected
-                              ? "bg-[#141416] font-semibold text-white"
-                              : "font-medium text-[#141416] hover:bg-[#F4F1EE]"
-                          }`}
-                        >
-                          <span className="truncate">{opt.label}</span>
-                          {selected && <CheckIcon />}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-2.5 border-t border-[#F1EDE8] px-1 pt-3">
-                    <p className="text-[13px] font-semibold text-[#141416]">
-                      Rentang harga khusus
-                    </p>
-                    <div
-                      className="mt-2 grid grid-cols-2 gap-2"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          applyCustomPriceRange();
-                        }
-                      }}
-                    >
-                      <div>
-                        <label htmlFor="custom-min-price" className="sr-only">
-                          Harga minimal (Rp)
-                        </label>
-                        <div className="flex h-11 items-center gap-1.5 rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-2.5 transition-all focus-within:border-[#141416] focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(20,20,22,0.06)]">
-                          <span className="text-[13px] font-semibold text-[#57534E]">Rp</span>
-                          <input
-                            id="custom-min-price"
-                            type="number"
-                            inputMode="numeric"
-                            min={0}
-                            value={draftMinPrice}
-                            onChange={(e) => {
-                              setDraftMinPrice(e.target.value);
-                              setCustomPriceError(null);
-                            }}
-                            placeholder="Minimal"
-                            className="w-full min-w-0 bg-transparent text-[13px] font-medium text-[#141416] placeholder:font-normal placeholder:text-[#66625E] focus:outline-none"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label htmlFor="custom-max-price" className="sr-only">
-                          Harga maksimal (Rp)
-                        </label>
-                        <div className="flex h-11 items-center gap-1.5 rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-2.5 transition-all focus-within:border-[#141416] focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(20,20,22,0.06)]">
-                          <span className="text-[13px] font-semibold text-[#57534E]">Rp</span>
-                          <input
-                            id="custom-max-price"
-                            type="number"
-                            inputMode="numeric"
-                            min={0}
-                            value={draftMaxPrice}
-                            onChange={(e) => {
-                              setDraftMaxPrice(e.target.value);
-                              setCustomPriceError(null);
-                            }}
-                            placeholder="Maksimal"
-                            className="w-full min-w-0 bg-transparent text-[13px] font-medium text-[#141416] placeholder:font-normal placeholder:text-[#66625E] focus:outline-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {customPriceError && (
-                      <p role="alert" className="mt-2 text-[13px] font-medium text-[#B83232]">
-                        {customPriceError}
-                      </p>
-                    )}
-
-                    <div className="mt-3 flex items-center justify-end gap-2">
-                      {(priceFilter !== "any" || draftMinPrice !== "" || draftMaxPrice !== "") && (
-                        <button
-                          type="button"
-                          onClick={() => applyPresetPriceRange("any")}
-                          className="inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-4 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
-                        >
-                          Reset
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={applyCustomPriceRange}
-                        className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-[#141416] px-4 text-[13px] font-medium text-white transition-colors hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
-                      >
-                        Terapkan
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <PriceRangeDropdown
+            id="price-range"
+            label="Rentang harga"
+            dialogAriaLabel="Pilih atau atur rentang harga"
+            presetsAriaLabel="Pilihan rentang harga cepat"
+            customHeading="Rentang harga khusus"
+            minInputId="custom-min-price"
+            maxInputId="custom-max-price"
+            minInputAriaLabel="Harga minimal (Rp)"
+            maxInputAriaLabel="Harga maksimal (Rp)"
+            displayLabel={formatPriceFilterLabel(priceFilter, customMinPrice, customMaxPrice)}
+            value={priceFilter}
+            options={PRICE_RANGE_OPTIONS}
+            isOpen={openMenu === "price"}
+            draftMin={draftMinPrice}
+            draftMax={draftMaxPrice}
+            error={customPriceError}
+            onToggle={() => toggleFilterMenu("price")}
+            onSelectPreset={applyPresetPriceRange}
+            onDraftMinChange={(nextVal) => {
+              setDraftMinPrice(nextVal);
+              setCustomPriceError(null);
+            }}
+            onDraftMaxChange={(nextVal) => {
+              setDraftMaxPrice(nextVal);
+              setCustomPriceError(null);
+            }}
+            onApplyCustom={applyCustomPriceRange}
+          />
 
           {/* Custom Condition Dropdown */}
           <FilterDropdown
