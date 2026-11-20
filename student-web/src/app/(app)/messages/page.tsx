@@ -14,6 +14,7 @@ import { useSearchParams } from "next/navigation";
 import ListingImage from "@/components/ListingImage";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { accountTypeLabel, getUser } from "@/lib/auth";
+import { initialsOf } from "@/lib/formatters";
 import type { ApiImage, ImageModule } from "@/lib/images";
 import {
   deleteChatMessage,
@@ -43,18 +44,6 @@ const CONTEXT_LABELS: Record<string, string> = {
   lostfound: "Barang Hilang",
   event: "Event & Info",
 };
-
-function initialsOf(name: string): string {
-  return (
-    name
-      .split(" ")
-      .map((w) => w[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "UP"
-  );
-}
 
 function isOfficialRecipient(recipient: ConversationItem["recipient"]): boolean {
   if (!recipient) return false;
@@ -270,7 +259,7 @@ function MessagesContent() {
     try {
       setIsLoadingThreads(true);
       setThreadsError(null);
-      const data = await fetchConversations();
+      const data = await fetchConversations(signal);
       if (signal?.aborted) return;
       setThreads(data);
     } catch {
@@ -314,7 +303,7 @@ function MessagesContent() {
           setIsLoadingMessages(true);
           setMessagesError(null);
         }
-        const { conversation: detail, messages: history } = await fetchConversation(id);
+        const { conversation: detail, messages: history } = await fetchConversation(id, signal);
         if (signal?.aborted) return;
         setMessages(history);
         setThreads((prev) => {

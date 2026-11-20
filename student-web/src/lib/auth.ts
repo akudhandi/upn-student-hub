@@ -17,6 +17,7 @@ export type AuthUser = {
   status?: string;
   account_type?: AccountType | string;
   is_official_account?: boolean;
+  created_at?: string;
   profile?: {
     name?: string;
     nim?: string | null;
@@ -24,8 +25,6 @@ export type AuthUser = {
     bio?: string | null;
     avatar?: string | null;
   } | null;
-  // allow additional fields from backend without breaking
-  [key: string]: unknown;
 };
 
 export function isOfficialAccount(user: AuthUser | null | undefined): boolean {
@@ -72,11 +71,7 @@ export function getUser(): AuthUser | null {
 export function getStoredUserDisplayName(): string | null {
   const user = getUser();
   if (!user) return null;
-  if (user.profile && typeof user.profile === "object" && "name" in user.profile) {
-    const profileName = (user.profile as { name?: string }).name;
-    if (profileName) return profileName;
-  }
-  return user.name ?? null;
+  return user.profile?.name || user.name || null;
 }
 
 export function setAuth(token: string, user: AuthUser): void {

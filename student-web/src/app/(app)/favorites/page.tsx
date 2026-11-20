@@ -10,34 +10,14 @@ import {
 } from "@/lib/interactions";
 import ListingImage from "@/components/ListingImage";
 import VerifiedBadge, { isVerifiedEventOrganizer } from "@/components/VerifiedBadge";
-import type { ApiImage, ImageModule } from "@/lib/images";
+import type { ImageModule } from "@/lib/images";
+import {
+  formatOptionalShortDate,
+  formatRupiah,
+  formatTimeAgo,
+} from "@/lib/formatters";
 
 type SavedItemType = InteractableType;
-
-type RawFavoriteItem = {
-  id?: number | string;
-  title?: string | null;
-  type?: string | null;
-  price?: number | string | null;
-  price_min?: number | string | null;
-  price_max?: number | string | null;
-  reward?: string | null;
-  location?: string | null;
-  organizer_name?: string | null;
-  event_date?: string | null;
-  is_verified?: boolean | null;
-  user?: {
-    id?: number;
-    name?: string | null;
-    account_type?: string | null;
-  } | null;
-  category?: {
-    id?: number;
-    name?: string | null;
-    slug?: string | null;
-  } | null;
-  images?: ApiImage[] | null;
-};
 
 type SavedItem = {
   key: string;
@@ -52,7 +32,7 @@ type SavedItem = {
   highlight?: string;
   isVerified?: boolean;
   favoritedAt?: string | null;
-  images?: ApiImage[] | null;
+  images?: NonNullable<FavoriteEntry["item"]>["images"];
 };
 
 function parseFiniteNumber(value: unknown): number | null {
@@ -61,47 +41,9 @@ function parseFiniteNumber(value: unknown): number | null {
   return Number.isFinite(num) ? num : null;
 }
 
-function formatRupiah(value: number | string): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Number(value));
-}
-
-function formatEventDate(iso?: string | null): string | null {
-  if (!iso) return null;
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function formatTimeAgo(iso?: string | null): string {
-  if (!iso) return "";
-  const diffMs = Date.now() - new Date(iso).getTime();
-  if (Number.isNaN(diffMs) || diffMs < 0) return "";
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return "Baru disimpan";
-  if (minutes < 60) return `${minutes} menit lalu`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} jam lalu`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} hari lalu`;
-  return new Date(iso).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 function normalizeEntry(entry: FavoriteEntry): SavedItem | null {
   if (!entry.type || !entry.item || typeof entry.item !== "object") return null;
-  const item = entry.item as RawFavoriteItem;
+  const item = entry.item;
   const base = {
     key: `${entry.type}-${item.id ?? entry.id}`,
     type: entry.type,
@@ -158,7 +100,7 @@ function normalizeEntry(entry: FavoriteEntry): SavedItem | null {
     }
     case "event": {
       const categoryName = item.category?.name?.trim() || null;
-      const eventDateLabel = formatEventDate(item.event_date);
+      const eventDateLabel = formatOptionalShortDate(item.event_date);
       const metaParts = [item.organizer_name?.trim(), item.location?.trim()].filter(
         (v): v is string => Boolean(v)
       );
@@ -349,7 +291,7 @@ export default function FavoritesPage() {
           setIsLoading(true);
           setLoadError(null);
         }
-        const entries = await fetchFavorites();
+        const entries = await fetchFavorites(signal);
         if (signal?.aborted) return;
         setItems(entries.map(normalizeEntry).filter((i): i is SavedItem => i !== null));
         setLoadError(null);
@@ -618,7 +560,9 @@ export default function FavoritesPage() {
             <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {visibleItems.map((item, idx) => {
                 const isRemoving = Boolean(removingKeys[item.key]);
-                const savedAgo = formatTimeAgo(item.favoritedAt);
+                const savedAgo = formatTimeAgo(item.favoritedAt, {
+                  justNowLabel: "Baru disimpan",
+                });
                 return (
                   <li
                     key={item.key}

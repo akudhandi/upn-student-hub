@@ -4,6 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
+import {
+  formatShortDate,
+  initialsOf,
+  normalizeWaNumber,
+  safeHttpUrl,
+} from "@/lib/formatters";
 import { useFavorite } from "@/lib/interactions";
 import ReportModal from "@/components/ReportModal";
 import ListingImage from "@/components/ListingImage";
@@ -78,48 +84,6 @@ function formatLongDate(isoDate: string): string {
   });
 }
 
-function formatShortDate(isoDate: string): string {
-  const date = new Date(isoDate);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function ownerInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
-
-// Normalize an Indonesian WA number to a wa.me-compatible digit string.
-function normalizeWaNumber(raw: string): string | null {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length < 9) return null;
-  if (digits.startsWith("0")) return `62${digits.slice(1)}`;
-  if (digits.startsWith("62")) return digits;
-  return null;
-}
-
-function safeHttpUrl(raw: string | null | undefined): string | null {
-  const trimmed = raw?.trim();
-  if (!trimmed) return null;
-  try {
-    const parsed = new URL(trimmed);
-    return parsed.protocol === "http:" || parsed.protocol === "https:"
-      ? parsed.toString()
-      : null;
-  } catch {
-    return null;
-  }
-}
-
 function DetailSkeleton() {
   return (
     <div
@@ -166,12 +130,13 @@ export default function EventDetailPage() {
       setIsNotFound(false);
       setError(null);
       const res = await apiFetch<EventDetailResponse>(
-        `/v1/events/${encodeURIComponent(itemId)}`
+        `/v1/events/${encodeURIComponent(itemId)}`,
+        { signal }
       );
       if (signal?.aborted) return;
       setItem(res.data);
       try {
-        const list = await apiFetch<EventListResponse>("/v1/events");
+        const list = await apiFetch<EventListResponse>("/v1/events", { signal });
         if (signal?.aborted) return;
         setRelated(list.data.data.filter((entry) => entry.id !== res.data.id).slice(0, 3));
       } catch {
@@ -416,7 +381,7 @@ export default function EventDetailPage() {
                 {speakers.map((speaker, i) => (
                   <div key={`${speaker.name}-${i}`} className="rounded-lg bg-slate-50 p-4 text-center ring-1 ring-inset ring-slate-100">
                     <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#0A2342] text-sm font-bold text-white" aria-hidden="true">
-                      {ownerInitials(speaker.name)}
+                      {initialsOf(speaker.name)}
                     </span>
                     <p className={`mt-2 text-[10px] font-bold uppercase tracking-wide ${speaker.role === "moderator" ? "text-indigo-600" : "text-amber-600"}`}>
                       {speaker.role === "moderator" ? "Moderator" : "Narasumber"}

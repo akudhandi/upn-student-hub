@@ -4,6 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
+import {
+  formatRupiah,
+  formatTimeAgo,
+  initialsOf,
+  normalizeWaNumber,
+} from "@/lib/formatters";
 import { useFavorite } from "@/lib/interactions";
 import ChatButton from "@/components/ChatButton";
 import ListingImage from "@/components/ListingImage";
@@ -61,15 +67,6 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   flexible: "Fleksibel",
 };
 
-function formatRupiah(value: number | string): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Number(value));
-}
-
 function hasPriceRange(min: number | string, max: number | string | null): boolean {
   return (
     max !== null &&
@@ -105,42 +102,6 @@ function priceHeadline(item: ApiServiceDetail): { amount: string; suffix: string
     return { amount: formatRupiah(item.price_min), suffix: "Tarif Tetap" };
   }
   return { amount: formatPriceRange(item.price_min, item.price_max), suffix: "Mulai dari" };
-}
-
-function formatTimeAgo(isoDate: string): string {
-  const diffMs = Date.now() - new Date(isoDate).getTime();
-  if (Number.isNaN(diffMs) || diffMs < 0) return "";
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return "Baru saja";
-  if (minutes < 60) return `${minutes} menit lalu`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} jam lalu`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} hari lalu`;
-  return new Date(isoDate).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function ownerInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
-
-// Normalize an Indonesian WA number to a wa.me-compatible digit string.
-function normalizeWaNumber(raw: string): string | null {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length < 9) return null;
-  if (digits.startsWith("0")) return `62${digits.slice(1)}`;
-  if (digits.startsWith("62")) return digits;
-  return null;
 }
 
 function ServiceCover({
@@ -227,12 +188,13 @@ export default function ServiceDetailPage() {
       setError(null);
       setActivePhotoIdx(0);
       const res = await apiFetch<ServiceDetailResponse>(
-        `/v1/services/${encodeURIComponent(itemId)}`
+        `/v1/services/${encodeURIComponent(itemId)}`,
+        { signal }
       );
       if (signal?.aborted) return;
       setItem(res.data);
       try {
-        const list = await apiFetch<ServiceListResponse>("/v1/services");
+        const list = await apiFetch<ServiceListResponse>("/v1/services", { signal });
         if (signal?.aborted) return;
         const others = list.data.data.filter((entry) => entry.id !== res.data.id);
         const sameCategory = others.filter(
@@ -558,7 +520,7 @@ export default function ServiceDetailPage() {
           <div className="mt-4 border-t border-slate-100 pt-4">
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white" aria-hidden="true">
-                {ownerInitials(providerName)}
+                {initialsOf(providerName)}
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-sm font-semibold text-slate-900">{providerName}</span>
@@ -676,7 +638,7 @@ export default function ServiceDetailPage() {
                     </p>
                     <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
                       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[10px] font-semibold text-white" aria-hidden="true">
-                        {ownerInitials(entryProvider)}
+                        {initialsOf(entryProvider)}
                       </span>
                       <span className="truncate text-xs font-medium text-slate-700">{entryProvider}</span>
                     </div>

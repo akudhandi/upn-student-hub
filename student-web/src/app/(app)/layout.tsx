@@ -15,6 +15,7 @@ import {
 import { logout } from "@/lib/api";
 import { fetchConversations } from "@/lib/interactions";
 import { resolveStorageUrl } from "@/lib/images";
+import { initialsOf } from "@/lib/formatters";
 import DevUserSwitcher from "@/components/DevUserSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import VerifiedBadge from "@/components/VerifiedBadge";
@@ -200,12 +201,12 @@ export default function AppLayout({
 
   useEffect(() => {
     if (!checked) return;
-    let cancelled = false;
+    const controller = new AbortController();
 
     function loadUnread() {
-      fetchConversations()
+      fetchConversations(controller.signal)
         .then((list) => {
-          if (cancelled) return;
+          if (controller.signal.aborted) return;
           const total = list.reduce((sum, item) => sum + (item.unread_count || 0), 0);
           setUnreadMessagesCount(total);
         })
@@ -226,7 +227,7 @@ export default function AppLayout({
     loadUnread();
     window.addEventListener("upn-messages-updated", handleMessagesUpdated);
     return () => {
-      cancelled = true;
+      controller.abort();
       window.removeEventListener("upn-messages-updated", handleMessagesUpdated);
     };
   }, [checked, pathname]);
@@ -290,12 +291,7 @@ export default function AppLayout({
   const avatarUrl = avatarPath ? resolveStorageUrl(avatarPath) : null;
   const showAvatar = Boolean(avatarUrl && failedAvatarUrl !== avatarUrl);
   const displayEmail = typeof user?.email === "string" ? user.email : "";
-  const initials = displayName
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const initials = initialsOf(displayName);
 
   return (
     <div className="min-h-screen bg-[#F4F1EE] text-[#141416] selection:bg-[#141416] selection:text-white">

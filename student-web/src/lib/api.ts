@@ -101,10 +101,12 @@ export type PublicCategory = {
 };
 
 export async function fetchPublicCategories(
-  type: "marketplace" | "service" | "lost_found" | "event"
+  type: "marketplace" | "service" | "lost_found" | "event",
+  signal?: AbortSignal
 ): Promise<PublicCategory[]> {
   const res = await apiFetch<{ message: string; data: PublicCategory[] }>(
-    `/v1/categories?type=${type}`
+    `/v1/categories?type=${type}`,
+    { signal }
   );
   return res.data;
 }

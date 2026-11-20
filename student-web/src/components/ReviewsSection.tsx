@@ -61,7 +61,7 @@ export default function ReviewsSection({
   const load = useCallback(async (signal?: AbortSignal) => {
     try {
       setIsLoading(true);
-      const data = await fetchReviews(type, id);
+      const data = await fetchReviews(type, id, signal);
       if (signal?.aborted) return;
       setSummary(data.summary);
       setReviews(data.reviews);

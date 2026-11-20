@@ -5,17 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { login, register, type ApiError } from "@/lib/api";
 import { setAuth } from "@/lib/auth";
+import { UPN_FACULTIES } from "@/lib/constants";
 
-const FAKULTAS_OPTIONS = [
-  "Fakultas Ilmu Komputer",
-  "Fakultas Teknik",
-  "Fakultas Ekonomi & Bisnis",
-  "Fakultas Pertanian",
-  "Fakultas Ilmu Sosial & Politik",
-  "Fakultas Arsitektur & Desain",
-  "Fakultas Hukum",
-  "Fakultas Kedokteran",
-] as const;
+const FAKULTAS_OPTIONS = UPN_FACULTIES;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ALPHA_SPACE_RE = /^[A-Za-z\s]+$/;

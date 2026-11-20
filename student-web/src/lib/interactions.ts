@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { getToken } from "@/lib/auth";
+import type { ApiImage } from "@/lib/images";
 
 // ---------------------------------------------------------------------------
 // Shared client for the polymorphic interaction endpoints
@@ -18,12 +19,36 @@ export const REPORT_REASONS = [
   { value: "other", label: "Lainnya" },
 ] as const;
 
+export type FavoriteItemPayload = {
+  id?: number | string;
+  title?: string | null;
+  type?: string | null;
+  price?: number | string | null;
+  price_min?: number | string | null;
+  price_max?: number | string | null;
+  reward?: string | null;
+  location?: string | null;
+  organizer_name?: string | null;
+  event_date?: string | null;
+  is_verified?: boolean | null;
+  user?: {
+    id?: number;
+    name?: string | null;
+    account_type?: string | null;
+  } | null;
+  category?: {
+    id?: number;
+    name?: string | null;
+    slug?: string | null;
+  } | null;
+  images?: ApiImage[] | null;
+};
+
 export type FavoriteEntry = {
   id: number;
   type: InteractableType | null;
   favorited_at: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- favoritable shape varies per module
-  item: any;
+  item: FavoriteItemPayload | null;
 };
 
 export type ReviewSummary = {
@@ -40,9 +65,14 @@ export type ReviewItem = {
   user?: { id: number; name: string } | null;
 };
 
-export async function checkFavorite(type: InteractableType, id: number | string): Promise<boolean> {
+export async function checkFavorite(
+  type: InteractableType,
+  id: number | string,
+  signal?: AbortSignal
+): Promise<boolean> {
   const res = await apiFetch<{ message: string; favorited: boolean }>(
-    `/v1/favorites/check?type=${encodeURIComponent(type)}&id=${encodeURIComponent(String(id))}`
+    `/v1/favorites/check?type=${encodeURIComponent(type)}&id=${encodeURIComponent(String(id))}`,
+    { signal }
   );
   return Boolean(res.favorited);
 }
@@ -55,8 +85,10 @@ export async function toggleFavorite(type: InteractableType, id: number | string
   return res.favorited;
 }
 
-export async function fetchFavorites(): Promise<FavoriteEntry[]> {
-  const res = await apiFetch<{ message: string; data: FavoriteEntry[] }>("/v1/favorites");
+export async function fetchFavorites(signal?: AbortSignal): Promise<FavoriteEntry[]> {
+  const res = await apiFetch<{ message: string; data: FavoriteEntry[] }>("/v1/favorites", {
+    signal,
+  });
   return res.data;
 }
 
@@ -79,12 +111,13 @@ export async function submitReport(
 
 export async function fetchReviews(
   type: InteractableType,
-  id: number | string
+  id: number | string,
+  signal?: AbortSignal
 ): Promise<{ summary: ReviewSummary; reviews: ReviewItem[] }> {
   const res = await apiFetch<{
     message: string;
     data: { summary: ReviewSummary; reviews: ReviewItem[] };
-  }>(`/v1/reviews?type=${type}&id=${encodeURIComponent(String(id))}`);
+  }>(`/v1/reviews?type=${type}&id=${encodeURIComponent(String(id))}`, { signal });
   return res.data;
 }
 
@@ -132,13 +165,16 @@ export type ChatMessageItem = {
   updated_at?: string;
 };
 
-export async function fetchConversations(): Promise<ConversationItem[]> {
-  const res = await apiFetch<{ message: string; data: ConversationItem[] }>("/v1/conversations");
+export async function fetchConversations(signal?: AbortSignal): Promise<ConversationItem[]> {
+  const res = await apiFetch<{ message: string; data: ConversationItem[] }>("/v1/conversations", {
+    signal,
+  });
   return res.data;
 }
 
 export async function fetchConversation(
-  id: number | string
+  id: number | string,
+  signal?: AbortSignal
 ): Promise<{ conversation: ConversationItem; messages: ChatMessageItem[]; recipient: ConversationItem["recipient"]; context: ChatContext | null }> {
   const res = await apiFetch<{
     message: string;
@@ -151,7 +187,7 @@ export async function fetchConversation(
       updated_at: string;
       messages: ChatMessageItem[];
     };
-  }>(`/v1/conversations/${encodeURIComponent(String(id))}`);
+  }>(`/v1/conversations/${encodeURIComponent(String(id))}`, { signal });
   const { messages, ...conversation } = res.data;
   return { conversation, messages, recipient: res.data.recipient, context: res.data.context };
 }
@@ -222,16 +258,16 @@ export function useFavorite(type: InteractableType, id: number | string | undefi
 
   useEffect(() => {
     if (id === undefined || !getToken()) return;
-    let cancelled = false;
-    checkFavorite(type, id)
+    const controller = new AbortController();
+    checkFavorite(type, id, controller.signal)
       .then((favorited) => {
-        if (!cancelled) setIsFavorite(favorited);
+        if (!controller.signal.aborted) setIsFavorite(favorited);
       })
       .catch(() => {
         // Ignore transient or unauthenticated state checks
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [type, id]);
 

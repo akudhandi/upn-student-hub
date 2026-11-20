@@ -133,13 +133,15 @@ export default function EventCreatePage() {
     const controller = new AbortController();
     void (async () => {
       try {
-        const cats = await fetchPublicCategories("event");
+        const cats = await fetchPublicCategories("event", controller.signal);
         if (controller.signal.aborted) return;
         if (cats.length > 0) {
           setCategoryOptions(cats.map((c) => ({ id: c.id, name: c.name })));
           return;
         }
-        const res = await apiFetch<EventListResponse>("/v1/events");
+        const res = await apiFetch<EventListResponse>("/v1/events", {
+          signal: controller.signal,
+        });
         if (controller.signal.aborted) return;
         const byId = new Map<number, string>();
         for (const item of res.data.data) {

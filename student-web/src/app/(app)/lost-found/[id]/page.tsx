@@ -4,6 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
+import {
+  formatShortDate,
+  formatTimeAgo,
+  initialsOf,
+  normalizeWaNumber,
+} from "@/lib/formatters";
 import { useFavorite } from "@/lib/interactions";
 import ChatButton from "@/components/ChatButton";
 import ListingImage from "@/components/ListingImage";
@@ -44,54 +50,6 @@ type LostFoundListResponse = {
     data: ApiLostFoundDetail[];
   };
 };
-
-function formatEventDate(isoDate: string | null): string {
-  if (!isoDate) return "-";
-  const date = new Date(isoDate);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function formatTimeAgo(isoDate: string): string {
-  const diffMs = Date.now() - new Date(isoDate).getTime();
-  if (Number.isNaN(diffMs) || diffMs < 0) return "";
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return "Baru saja";
-  if (minutes < 60) return `${minutes} menit lalu`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} jam lalu`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} hari lalu`;
-  return new Date(isoDate).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function ownerInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
-
-// Normalize an Indonesian WA number to a wa.me-compatible digit string.
-function normalizeWaNumber(raw: string): string | null {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length < 9) return null;
-  if (digits.startsWith("0")) return `62${digits.slice(1)}`;
-  if (digits.startsWith("62")) return digits;
-  if (digits.startsWith("8")) return `62${digits}`;
-  return null;
-}
 
 function parseExternalContact(raw: string | null | undefined):
   | { kind: "whatsapp"; href: string; label: string }
@@ -194,12 +152,13 @@ export default function LostFoundDetailPage() {
       setError(null);
       setActivePhotoIdx(0);
       const res = await apiFetch<LostFoundDetailResponse>(
-        `/v1/lost-found/${encodeURIComponent(itemId)}`
+        `/v1/lost-found/${encodeURIComponent(itemId)}`,
+        { signal }
       );
       if (signal?.aborted) return;
       setItem(res.data);
       try {
-        const list = await apiFetch<LostFoundListResponse>("/v1/lost-found");
+        const list = await apiFetch<LostFoundListResponse>("/v1/lost-found", { signal });
         if (signal?.aborted) return;
         setRelated(list.data.data.filter((entry) => entry.id !== res.data.id).slice(0, 3));
       } catch {
@@ -343,7 +302,7 @@ export default function LostFoundDetailPage() {
                   <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2" />
                   <path d="M8 4.5V8L10.5 9.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
                 </svg>
-                {formatTimeAgo(item.created_at) || formatEventDate(item.date_event)}
+                {formatTimeAgo(item.created_at) || formatShortDate(item.date_event)}
               </span>
             </div>
 
@@ -438,7 +397,7 @@ export default function LostFoundDetailPage() {
 
             <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
               {[
-                { label: "Tanggal Kejadian", value: formatEventDate(item.date_event) },
+                { label: "Tanggal Kejadian", value: formatShortDate(item.date_event) },
                 { label: "Kategori", value: categoryName ?? "-" },
                 {
                   label: "Status",
@@ -617,7 +576,7 @@ export default function LostFoundDetailPage() {
             </p>
             <div className="mt-2 flex items-center gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white" aria-hidden="true">
-                {ownerInitials(reporterName)}
+                {initialsOf(reporterName)}
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-sm font-semibold text-slate-900">{reporterName}</span>

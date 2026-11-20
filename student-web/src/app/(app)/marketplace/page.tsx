@@ -15,6 +15,9 @@ import VerifiedBadge from "@/components/VerifiedBadge";
 import { getToken, getUser } from "@/lib/auth";
 import type { ApiImage } from "@/lib/images";
 import { fetchFavorites, toggleFavorite } from "@/lib/interactions";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_PHOTOS } from "@/lib/constants";
+import { formatRupiah, formatTimeAgo, initialsOf } from "@/lib/formatters";
+import FilterDropdown, { CheckIcon, ChevronDownIcon } from "@/components/FilterDropdown";
 
 type ApiMarketplaceItem = {
   id: number;
@@ -100,34 +103,8 @@ const CONDITION_META: Record<string, { label: string; badgeClass: string }> = {
   },
 };
 
-const MAX_PHOTOS = 6;
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
-
-function formatRupiah(value: number | string): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Number(value));
-}
-
-function formatTimeAgo(isoDate: string): string {
-  const diffMs = Date.now() - new Date(isoDate).getTime();
-  if (Number.isNaN(diffMs) || diffMs < 0) return "";
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return "Baru saja";
-  if (minutes < 60) return `${minutes} menit lalu`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} jam lalu`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} hari lalu`;
-  return new Date(isoDate).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+const MAX_PHOTOS = MAX_UPLOAD_PHOTOS;
+const MAX_PHOTO_BYTES = MAX_UPLOAD_BYTES;
 
 type FilterMenuKey = "price" | "condition" | "sort" | "category-mobile" | "category-overflow";
 
@@ -174,118 +151,8 @@ function formatPriceFilterLabel(
   return PRICE_RANGE_OPTIONS.find((p) => p.value === priceFilter)?.label ?? "Semua harga";
 }
 
-function ChevronDownIcon({ rotated }: { rotated: boolean }) {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-      className={`shrink-0 text-[#6E6A66] transition-transform duration-150 ${
-        rotated ? "rotate-180" : ""
-      }`}
-    >
-      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
-      <path d="M3.5 8.5L6.5 11.5L12.5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function FilterDropdown({
-  id,
-  label,
-  value,
-  displayLabel,
-  isOpen,
-  onToggle,
-  onSelect,
-  options,
-  className,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  displayLabel: string;
-  isOpen: boolean;
-  onToggle: () => void;
-  onSelect: (value: string) => void;
-  options: { value: string; label: string }[];
-  className?: string;
-}) {
-  return (
-    <div className={className}>
-      <label htmlFor={id} className="block text-[13px] font-medium text-[#57534E]">
-        {label}
-      </label>
-      <div className="relative mt-1.5">
-        <button
-          id={id}
-          type="button"
-          aria-haspopup="listbox"
-          aria-expanded={isOpen}
-          onClick={onToggle}
-          className={`flex h-11 w-full items-center justify-between gap-2 rounded-xl border px-3.5 text-left text-[14px] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
-            isOpen
-              ? "border-[#141416] bg-white text-[#141416] shadow-[0_0_0_3px_rgba(20,20,22,0.06)]"
-              : "border-[#E5E0DA] bg-[#F6F4F1] text-[#141416] hover:border-[#CFC8BF]"
-          }`}
-        >
-          <span className="truncate font-medium">{displayLabel}</span>
-          <ChevronDownIcon rotated={isOpen} />
-        </button>
-
-        {isOpen && (
-          <div
-            role="listbox"
-            aria-label={label}
-            className="absolute left-0 top-[calc(100%+8px)] z-30 w-full min-w-[210px] rounded-2xl border border-[#E5E0DA] bg-white p-1.5 shadow-[0_18px_36px_-18px_rgba(20,20,22,0.18)]"
-          >
-            <div className="max-h-64 space-y-1 overflow-y-auto">
-              {options.map((opt) => {
-                const selected = value === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    role="option"
-                    aria-selected={selected}
-                    onClick={() => onSelect(opt.value)}
-                    className={`flex min-h-[44px] w-full items-center justify-between gap-3 rounded-xl px-3.5 text-left text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
-                      selected
-                        ? "bg-[#141416] font-semibold text-white"
-                        : "font-medium text-[#141416] hover:bg-[#F4F1EE]"
-                    }`}
-                  >
-                    <span className="truncate">{opt.label}</span>
-                    {selected && <CheckIcon />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function SellerAvatar({ name }: { name: string }) {
-  const initials =
-    name
-      .split(" ")
-      .filter(Boolean)
-      .map((w) => w[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "UP";
+  const initials = initialsOf(name);
   return (
     <span
       aria-hidden="true"
@@ -385,7 +252,7 @@ function MarketplaceContent() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchPublicCategories("marketplace")
+    fetchPublicCategories("marketplace", controller.signal)
       .then((cats) => {
         if (!controller.signal.aborted) setBackendCategories(cats);
       })
@@ -397,10 +264,10 @@ function MarketplaceContent() {
 
   useEffect(() => {
     if (!getToken()) return;
-    let active = true;
-    fetchFavorites()
+    const controller = new AbortController();
+    fetchFavorites(controller.signal)
       .then((entries) => {
-        if (!active) return;
+        if (controller.signal.aborted) return;
         const ids = new Set<number>();
         for (const entry of entries) {
           if (entry.type === "marketplace" && typeof entry.item?.id === "number") {
@@ -411,12 +278,12 @@ function MarketplaceContent() {
       })
       .catch(() => {});
     return () => {
-      active = false;
+      controller.abort();
     };
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     const params = new URLSearchParams();
     params.set("page", String(page));
     if (activeCategoryId !== null) params.set("category_id", String(activeCategoryId));
@@ -427,9 +294,11 @@ function MarketplaceContent() {
     if (sortBy !== "latest") params.set("sort", sortBy);
     if (urlSearchQuery !== "") params.set("q", urlSearchQuery);
 
-    apiFetch<MarketplaceListResponse>(`/v1/marketplace?${params.toString()}`)
+    apiFetch<MarketplaceListResponse>(`/v1/marketplace?${params.toString()}`, {
+      signal: controller.signal,
+    })
       .then((res) => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         setItems(res.data.data);
         setPage(res.data.current_page);
         setLastPage(res.data.last_page);
@@ -440,7 +309,7 @@ function MarketplaceContent() {
         setIsLoading(false);
       })
       .catch(() => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         setItems([]);
         setRangeStart(null);
         setRangeEnd(null);
@@ -449,7 +318,7 @@ function MarketplaceContent() {
       });
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [
     page,

@@ -14,17 +14,10 @@ import {
   type AuthUser,
 } from "@/lib/auth";
 import { resolveStorageUrl, type ApiImage, type ImageModule } from "@/lib/images";
+import { UPN_FACULTIES } from "@/lib/constants";
+import { formatRupiah, initialsOf } from "@/lib/formatters";
 
-const FAKULTAS_OPTIONS = [
-  "Fakultas Ilmu Komputer",
-  "Fakultas Teknik",
-  "Fakultas Ekonomi & Bisnis",
-  "Fakultas Pertanian",
-  "Fakultas Ilmu Sosial & Politik",
-  "Fakultas Arsitektur & Desain",
-  "Fakultas Hukum",
-  "Fakultas Kedokteran",
-] as const;
+const FAKULTAS_OPTIONS = UPN_FACULTIES;
 
 const INPUT_CLASS =
   "mt-1.5 h-11 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] px-3.5 text-[14px] text-[#141416] placeholder:text-[#66625E] transition-all focus:border-[#141416] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,20,22,0.06)] focus:outline-none";
@@ -135,15 +128,6 @@ type UnifiedMyItem = {
   rawLostFound?: RawLostFoundItem;
 };
 
-function formatRupiah(value: number | string): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Number(value));
-}
-
 function formatRelativeDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
@@ -156,18 +140,6 @@ function formatRelativeDate(iso: string): string {
     month: "short",
     year: "numeric",
   });
-}
-
-function initialsOf(name: string): string {
-  return (
-    name
-      .split(" ")
-      .map((part) => part[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "M"
-  );
 }
 
 function extractApiErrorMessage(err: unknown, fallback: string): string {

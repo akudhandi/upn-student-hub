@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
+import { formatRupiah, formatTimeAgo, initialsOf } from "@/lib/formatters";
 import { useFavorite } from "@/lib/interactions";
 import ChatButton from "@/components/ChatButton";
 import ListingImage from "@/components/ListingImage";
@@ -49,42 +50,6 @@ const CONDITION_LABELS: Record<string, string> = {
   good: "Layak Pakai",
   fair: "Perlu Perbaikan",
 };
-
-function formatRupiah(value: number | string): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Number(value));
-}
-
-function formatTimeAgo(isoDate: string): string {
-  const diffMs = Date.now() - new Date(isoDate).getTime();
-  if (Number.isNaN(diffMs) || diffMs < 0) return "";
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return "Baru saja";
-  if (minutes < 60) return `${minutes} menit lalu`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} jam lalu`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} hari lalu`;
-  return new Date(isoDate).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function ownerInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
 
 function GalleryImage({
   title,
@@ -168,12 +133,13 @@ export default function MarketplaceDetailPage() {
       setError(null);
       setActivePhotoIdx(0);
       const res = await apiFetch<MarketplaceDetailResponse>(
-        `/v1/marketplace/${encodeURIComponent(itemId)}`
+        `/v1/marketplace/${encodeURIComponent(itemId)}`,
+        { signal }
       );
       if (signal?.aborted) return;
       setItem(res.data);
       try {
-        const list = await apiFetch<MarketplaceListResponse>("/v1/marketplace");
+        const list = await apiFetch<MarketplaceListResponse>("/v1/marketplace", { signal });
         if (signal?.aborted) return;
         setRelated(list.data.data.filter((entry) => entry.id !== res.data.id).slice(0, 3));
       } catch {
@@ -419,7 +385,7 @@ export default function MarketplaceDetailPage() {
         <aside aria-label="Profil penjual" className="min-w-0 rounded-xl border border-gray-200 bg-white p-5 lg:sticky lg:top-24">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white" aria-hidden="true">
-              {ownerInitials(sellerName)}
+              {initialsOf(sellerName)}
             </span>
             <span className="min-w-0">
               <span className="flex items-center gap-1 text-sm font-semibold text-slate-900">
@@ -509,7 +475,7 @@ export default function MarketplaceDetailPage() {
                     <p className="mt-1 text-[15px] font-bold text-slate-900">{formatRupiah(entry.price)}</p>
                     <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
                       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[10px] font-semibold text-white" aria-hidden="true">
-                        {ownerInitials(entrySeller)}
+                        {initialsOf(entrySeller)}
                       </span>
                       <span className="truncate text-xs font-medium text-slate-700">{entrySeller}</span>
                     </div>

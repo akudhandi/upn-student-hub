@@ -12,6 +12,7 @@ import {
   type AuthUser,
 } from "@/lib/auth";
 import type { ApiImage, ImageModule } from "@/lib/images";
+import { formatRupiah, formatTimeAgo } from "@/lib/formatters";
 import { fetchConversations, type ConversationItem } from "@/lib/interactions";
 
 type ModuleKey = "marketplace" | "services" | "lostFound" | "events";
@@ -105,32 +106,6 @@ const FEED_FILTERS: { id: FeedFilter; label: string }[] = [
 
 const WEEKDAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"] as const;
 
-function formatRupiah(value: number | string): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Number(value));
-}
-
-function formatTimeAgo(iso: string | null): string {
-  if (!iso) return "";
-  const ms = Date.now() - new Date(iso).getTime();
-  if (Number.isNaN(ms) || ms < 0) return "";
-  const mins = Math.floor(ms / 60000);
-  if (mins < 1) return "Baru saja";
-  if (mins < 60) return `${mins} menit lalu`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs} jam lalu`;
-  const days = Math.floor(hrs / 24);
-  if (days < 30) return `${days} hari lalu`;
-  return new Date(iso).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-  });
-}
-
 function ArrowGlyph() {
   return (
     <svg
@@ -215,7 +190,7 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
 
     Promise.all([
       apiFetch<
@@ -228,7 +203,7 @@ export default function DashboardPage() {
           category?: { name: string } | null;
           images?: ApiImage[] | null;
         }>
-      >("/v1/marketplace").catch(() => null),
+      >("/v1/marketplace", { signal: controller.signal }).catch(() => null),
       apiFetch<
         PaginatedData<{
           id: number;
@@ -239,7 +214,7 @@ export default function DashboardPage() {
           category?: { name: string } | null;
           images?: ApiImage[] | null;
         }>
-      >("/v1/services").catch(() => null),
+      >("/v1/services", { signal: controller.signal }).catch(() => null),
       apiFetch<
         PaginatedData<{
           id: number;
@@ -250,7 +225,7 @@ export default function DashboardPage() {
           user?: { name: string } | null;
           images?: ApiImage[] | null;
         }>
-      >("/v1/lost-found").catch(() => null),
+      >("/v1/lost-found", { signal: controller.signal }).catch(() => null),
       apiFetch<
         PaginatedData<{
           id: number;
@@ -262,7 +237,7 @@ export default function DashboardPage() {
           user?: { id: number; name: string; account_type?: string } | null;
           images?: ApiImage[] | null;
         }>
-      >("/v1/events").catch(() => null),
+      >("/v1/events", { signal: controller.signal }).catch(() => null),
       apiFetch<
         PaginatedData<{
           id: number;
@@ -272,9 +247,9 @@ export default function DashboardPage() {
           is_verified?: boolean;
           user?: { id: number; name: string; account_type?: string } | null;
         }>
-      >("/v1/events?upcoming=1").catch(() => null),
+      >("/v1/events?upcoming=1", { signal: controller.signal }).catch(() => null),
     ]).then(([mkt, svc, lf, evt, upcomingEvt]) => {
-      if (cancelled) return;
+      if (controller.signal.aborted) return;
 
       const mktRows = mkt?.data.data ?? [];
       const svcRows = svc?.data.data ?? [];
@@ -392,16 +367,16 @@ export default function DashboardPage() {
       setFeed(merged);
     });
 
-    fetchConversations()
+    fetchConversations(controller.signal)
       .then((list) => {
-        if (!cancelled) setConversations(list.slice(0, 4));
+        if (!controller.signal.aborted) setConversations(list.slice(0, 4));
       })
       .catch(() => {
-        if (!cancelled) setConversations([]);
+        if (!controller.signal.aborted) setConversations([]);
       });
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, []);
 

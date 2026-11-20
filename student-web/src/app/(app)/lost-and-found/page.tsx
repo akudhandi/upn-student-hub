@@ -24,6 +24,13 @@ import VerifiedBadge from "@/components/VerifiedBadge";
 import { getToken, getUser, USER_UPDATED_EVENT, type AuthUser } from "@/lib/auth";
 import type { ApiImage } from "@/lib/images";
 import { fetchFavorites, toggleFavorite } from "@/lib/interactions";
+import { MAX_UPLOAD_BYTES } from "@/lib/constants";
+import {
+  formatOptionalShortDate,
+  formatTimeAgo,
+  initialsOf,
+} from "@/lib/formatters";
+import FilterDropdown, { CheckIcon, ChevronDownIcon } from "@/components/FilterDropdown";
 
 type ApiLostFoundItem = {
   id: number;
@@ -97,163 +104,10 @@ const TYPE_OPTIONS: { value: TypeFilter; label: string }[] = [
 ];
 
 const MAX_PHOTOS = 3;
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+const MAX_PHOTO_BYTES = MAX_UPLOAD_BYTES;
 
 function subscribeNoop() {
   return () => {};
-}
-
-function formatEventDate(isoDate: string | null): string | null {
-  if (!isoDate) return null;
-  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(isoDate) ? `${isoDate}T00:00:00` : isoDate;
-  const date = new Date(normalized);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function formatTimeAgo(isoDate: string): string {
-  const diffMs = Date.now() - new Date(isoDate).getTime();
-  if (Number.isNaN(diffMs) || diffMs < 0) return "";
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return "Baru saja";
-  if (minutes < 60) return `${minutes} menit lalu`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} jam lalu`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} hari lalu`;
-  return new Date(isoDate).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function initialsOf(name: string): string {
-  return (
-    name
-      .split(" ")
-      .filter(Boolean)
-      .map((w) => w[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "UP"
-  );
-}
-
-function ChevronDownIcon({ rotated }: { rotated: boolean }) {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-      className={`shrink-0 text-[#6E6A66] transition-transform duration-150 ${
-        rotated ? "rotate-180" : ""
-      }`}
-    >
-      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
-      <path d="M3.5 8.5L6.5 11.5L12.5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function CustomSelectField({
-  id,
-  label,
-  requiredMarker,
-  value,
-  displayLabel,
-  isOpen,
-  disabled,
-  placement = "bottom",
-  onToggle,
-  onSelect,
-  options,
-  className,
-}: {
-  id: string;
-  label: string;
-  requiredMarker?: boolean;
-  value: string;
-  displayLabel: string;
-  isOpen: boolean;
-  disabled?: boolean;
-  placement?: "bottom" | "top";
-  onToggle: () => void;
-  onSelect: (value: string) => void;
-  options: { value: string; label: string }[];
-  className?: string;
-}) {
-  return (
-    <div className={className}>
-      <label htmlFor={id} className="block text-[13px] font-medium text-[#57534E]">
-        {label} {requiredMarker && <span className="text-[#B83232]">*</span>}
-      </label>
-      <div className="relative mt-1.5">
-        <button
-          id={id}
-          type="button"
-          disabled={disabled}
-          aria-haspopup="listbox"
-          aria-expanded={isOpen}
-          onClick={onToggle}
-          className={`flex h-11 w-full items-center justify-between gap-2 rounded-xl border px-3.5 text-left text-[14px] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] disabled:opacity-60 ${
-            isOpen
-              ? "border-[#141416] bg-white text-[#141416] shadow-[0_0_0_3px_rgba(20,20,22,0.06)]"
-              : "border-[#E5E0DA] bg-[#F6F4F1] text-[#141416] hover:border-[#CFC8BF]"
-          }`}
-        >
-          <span className="truncate font-medium">{displayLabel}</span>
-          <ChevronDownIcon rotated={isOpen} />
-        </button>
-
-        {isOpen && (
-          <div
-            role="listbox"
-            aria-label={label}
-            className={`absolute left-0 z-30 w-full min-w-[210px] rounded-2xl border border-[#E5E0DA] bg-white p-1.5 shadow-[0_18px_36px_-18px_rgba(20,20,22,0.18)] ${
-              placement === "top" ? "bottom-[calc(100%+8px)]" : "top-[calc(100%+8px)]"
-            }`}
-          >
-            <div className="max-h-64 space-y-1 overflow-y-auto">
-              {options.map((opt) => {
-                const selected = value === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    role="option"
-                    aria-selected={selected}
-                    onClick={() => onSelect(opt.value)}
-                    className={`flex min-h-[44px] w-full items-center justify-between gap-3 rounded-xl px-3.5 text-left text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
-                      selected
-                        ? "bg-[#141416] font-semibold text-white"
-                        : "font-medium text-[#141416] hover:bg-[#F4F1EE]"
-                    }`}
-                  >
-                    <span className="truncate">{opt.label}</span>
-                    {selected && <CheckIcon />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 }
 
 function StatusBadge({ type, status }: { type: "lost" | "found"; status: string }) {
@@ -406,7 +260,7 @@ export function LostAndFoundContent() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchPublicCategories("lost_found")
+    fetchPublicCategories("lost_found", controller.signal)
       .then((cats) => {
         if (!controller.signal.aborted) setBackendCategories(cats);
       })
@@ -418,10 +272,10 @@ export function LostAndFoundContent() {
 
   useEffect(() => {
     if (!getToken()) return;
-    let active = true;
-    fetchFavorites()
+    const controller = new AbortController();
+    fetchFavorites(controller.signal)
       .then((entries) => {
-        if (!active) return;
+        if (controller.signal.aborted) return;
         const ids = new Set<number>();
         for (const entry of entries) {
           if (entry.type === "lostfound" && typeof entry.item?.id === "number") {
@@ -432,21 +286,23 @@ export function LostAndFoundContent() {
       })
       .catch(() => {});
     return () => {
-      active = false;
+      controller.abort();
     };
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     const params = new URLSearchParams();
     params.set("page", String(page));
     if (typeFilter !== "all") params.set("type", typeFilter);
     if (activeCategoryId !== null) params.set("category_id", String(activeCategoryId));
     if (urlQuery !== "") params.set("q", urlQuery);
 
-    apiFetch<LostFoundListResponse>(`/v1/lost-found?${params.toString()}`)
+    apiFetch<LostFoundListResponse>(`/v1/lost-found?${params.toString()}`, {
+      signal: controller.signal,
+    })
       .then((res) => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         setItems(res.data.data);
         setPage(res.data.current_page);
         setLastPage(res.data.last_page);
@@ -457,7 +313,7 @@ export function LostAndFoundContent() {
         setIsLoading(false);
       })
       .catch(() => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         setItems([]);
         setRangeStart(null);
         setRangeEnd(null);
@@ -466,7 +322,7 @@ export function LostAndFoundContent() {
       });
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [typeFilter, page, activeCategoryId, urlQuery, reloadNonce]);
 
@@ -881,7 +737,7 @@ export function LostAndFoundContent() {
   const previewCategory =
     categoryOptions.find((c) => String(c.id) === formData.category_id)?.name ?? "Kategori barang";
   const previewDate = formData.date_event
-    ? formatEventDate(formData.date_event) ?? "Tanggal belum dipilih"
+    ? formatOptionalShortDate(formData.date_event) ?? "Tanggal belum dipilih"
     : "Tanggal belum dipilih";
   const previewReporterName = currentUser?.profile?.name || currentUser?.name || "Mahasiswa UPN";
   const parsedPreviewReward = Number(formData.reward);
@@ -1028,7 +884,7 @@ export function LostAndFoundContent() {
           </form>
 
           {/* Custom Type Dropdown */}
-          <CustomSelectField
+          <FilterDropdown
             id="lost-found-type"
             label="Jenis laporan"
             value={typeFilter}
@@ -1045,7 +901,7 @@ export function LostAndFoundContent() {
           />
 
           {/* Mobile / Tablet Custom Category Dropdown */}
-          <CustomSelectField
+          <FilterDropdown
             id="lost-found-category-mobile"
             label="Kategori barang"
             className="lg:hidden"
@@ -1326,7 +1182,7 @@ export function LostAndFoundContent() {
               const categoryName = item.category?.name ?? "Lainnya";
               const reporterName = item.user?.name ?? "Mahasiswa UPN";
               const eventDateText =
-                formatEventDate(item.date_event) ?? formatTimeAgo(item.created_at);
+                formatOptionalShortDate(item.date_event) ?? formatTimeAgo(item.created_at);
               const isFavorited = favoriteIds.has(item.id);
               const isTogglingFavorite = togglingFavoriteIds.has(item.id);
               const photoCount = item.images?.length ?? 0;
@@ -1641,7 +1497,7 @@ export function LostAndFoundContent() {
                     </div>
 
                     <div ref={modalCategoryDropdownRef}>
-                      <CustomSelectField
+                      <FilterDropdown
                         id="laporan-category"
                         label="Kategori"
                         value={formData.category_id}
@@ -1838,7 +1694,7 @@ export function LostAndFoundContent() {
                       Kontak pelapor
                     </h3>
                     <div ref={modalContactChannelDropdownRef}>
-                      <CustomSelectField
+                      <FilterDropdown
                         id="laporan-contact-channel"
                         label="Preferensi kontak"
                         placement="top"
