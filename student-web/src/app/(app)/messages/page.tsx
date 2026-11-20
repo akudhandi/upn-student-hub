@@ -11,11 +11,9 @@ import {
 } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import ListingImage from "@/components/ListingImage";
 import VerifiedBadge from "@/components/VerifiedBadge";
-import { accountTypeLabel, getUser } from "@/lib/auth";
+import { getUser } from "@/lib/auth";
 import { initialsOf } from "@/lib/formatters";
-import type { ApiImage, ImageModule } from "@/lib/images";
 import {
   deleteChatMessage,
   fetchConversation,
@@ -23,180 +21,21 @@ import {
   markConversationRead,
   sendChatMessage,
   updateChatMessage,
-  type ChatContext,
   type ChatMessageItem,
   type ConversationItem,
-  type InteractableType,
 } from "@/lib/interactions";
-
-type ExtendedRecipient = NonNullable<ConversationItem["recipient"]> & {
-  account_type?: string | null;
-  is_official_account?: boolean;
-};
-
-type ExtendedContext = ChatContext & {
-  images?: ApiImage[] | null;
-};
-
-const CONTEXT_LABELS: Record<string, string> = {
-  marketplace: "Marketplace",
-  service: "Jasa & Layanan",
-  lostfound: "Barang Hilang",
-  event: "Event & Info",
-};
-
-function isOfficialRecipient(recipient: ConversationItem["recipient"]): boolean {
-  if (!recipient) return false;
-  const r = recipient as ExtendedRecipient;
-  if (r.is_official_account === true) return true;
-  return (
-    r.account_type === "hima" ||
-    r.account_type === "ormawa" ||
-    r.account_type === "faculty"
-  );
-}
-
-function recipientRoleLabel(recipient: ConversationItem["recipient"]): string {
-  if (!recipient) return "Mahasiswa UPN";
-  const r = recipient as ExtendedRecipient;
-  if (
-    r.account_type === "hima" ||
-    r.account_type === "ormawa" ||
-    r.account_type === "faculty"
-  ) {
-    return accountTypeLabel(r.account_type);
-  }
-  if (r.is_official_account === true) {
-    return "Akun Resmi UPN";
-  }
-  return "Mahasiswa UPN";
-}
-
-function isImageModule(type: string | null | undefined): type is ImageModule {
-  return (
-    type === "marketplace" ||
-    type === "service" ||
-    type === "lostfound" ||
-    type === "event"
-  );
-}
-
-function formatClock(isoDate: string): string {
-  const date = new Date(isoDate);
-  if (Number.isNaN(date.getTime())) return "";
-  return date
-    .toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
-    .replace(":", ".");
-}
-
-function formatThreadTime(isoDate: string | null): string {
-  if (!isoDate) return "";
-  const date = new Date(isoDate);
-  if (Number.isNaN(date.getTime())) return "";
-  const now = new Date();
-  if (date.toDateString() === now.toDateString()) return formatClock(isoDate);
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  if (date.toDateString() === yesterday.toDateString()) return "Kemarin";
-  return date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
-}
-
-function dayKeyOf(isoDate: string): string {
-  const date = new Date(isoDate);
-  if (Number.isNaN(date.getTime())) return "";
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
-}
-
-function formatDayLabel(isoDate: string): string {
-  const date = new Date(isoDate);
-  if (Number.isNaN(date.getTime())) return "";
-  const now = new Date();
-  if (date.toDateString() === now.toDateString()) return "Hari ini";
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  if (date.toDateString() === yesterday.toDateString()) return "Kemarin";
-  return date.toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function contextDetailHref(context: ChatContext | null): string | null {
-  if (!context?.type || !context?.id) return null;
-  switch (context.type as InteractableType) {
-    case "marketplace":
-      return `/marketplace/${context.id}`;
-    case "service":
-      return `/services/${context.id}`;
-    case "lostfound":
-      return `/lost-found/${context.id}`;
-    case "event":
-      return `/events/${context.id}`;
-    default:
-      return null;
-  }
-}
-
-function ContextThumbnail({ context }: { context: ChatContext }) {
-  const extended = context as ExtendedContext;
-  if (isImageModule(context.type) && context.id !== null) {
-    return (
-      <div className="h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-[#E5E0DA] bg-[#EFECE8]">
-        <ListingImage
-          module={context.type}
-          seed={context.id}
-          hint={context.title}
-          images={extended.images}
-          eager
-          width={88}
-          height={88}
-          alt={context.title ? `Foto ${context.title}` : "Foto listing"}
-          className="h-full w-full object-cover"
-        />
-      </div>
-    );
-  }
-
-  return (
-    <span
-      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#E5E0DA] bg-white text-[#57534E]"
-      aria-hidden="true"
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M5 4.5C5 4 5.4 3.5 6 3.5H15L19 7.5V19.5C19 20 18.6 20.5 18 20.5H6C5.4 20.5 5 20 5 19.5V4.5Z"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M15 3.5V7.5H19"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </span>
-  );
-}
-
-function ThreadSkeleton() {
-  return (
-    <div className="flex items-start gap-3 px-4 py-3.5">
-      <div className="h-11 w-11 shrink-0 animate-pulse rounded-full bg-[#EFECE8]" />
-      <div className="min-w-0 flex-1 space-y-2 pt-0.5">
-        <div className="flex items-center justify-between gap-2">
-          <div className="h-3.5 w-1/2 animate-pulse rounded-md bg-[#EFECE8]" />
-          <div className="h-3 w-12 animate-pulse rounded-md bg-[#F4F1EE]" />
-        </div>
-        <div className="h-3.5 w-4/5 animate-pulse rounded-md bg-[#F4F1EE]" />
-      </div>
-    </div>
-  );
-}
+import {
+  CONTEXT_LABELS,
+  contextDetailHref,
+  ContextThumbnail,
+  dayKeyOf,
+  formatClock,
+  formatDayLabel,
+  isOfficialRecipient,
+  recipientRoleLabel,
+} from "./_components/chat-helpers";
+import { ContextSidebar } from "./_components/ContextSidebar";
+import { ThreadListPane } from "./_components/ThreadListPane";
 
 function MessagesContent() {
   const searchParams = useSearchParams();
@@ -616,247 +455,25 @@ function MessagesContent() {
         }`}
       >
         {/* ---------- COLUMN 1: Inbox list ---------- */}
-        <section
-          aria-label="Daftar percakapan"
-          className={`${
-            mobileView === "chat" ? "hidden" : "flex"
-          } min-h-0 min-w-0 flex-col border-[#E5E0DA] bg-white md:flex md:border-r`}
-        >
-          <div className="border-b border-[#E5E0DA] p-4">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="font-display text-[17px] font-semibold tracking-tight text-[#141416]">
-                Percakapan
-              </h2>
-              <span className="rounded-md bg-[#F4F1EE] px-2.5 py-1 text-[13px] font-medium text-[#57534E]">
-                {threads.length} obrolan
-              </span>
-            </div>
-
-            <div className="relative mt-3">
-              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#66625E]">
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.4" />
-                  <path
-                    d="M10.5 10.5L13 13"
-                    stroke="currentColor"
-                    strokeWidth="1.4"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </span>
-              <label htmlFor="search-chat" className="sr-only">
-                Cari obrolan
-              </label>
-              <input
-                id="search-chat"
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Cari nama, pesan, atau listing..."
-                className={`h-11 w-full rounded-xl border border-[#E5E0DA] bg-[#F6F4F1] pl-10 text-[14px] text-[#141416] placeholder:text-[#66625E] transition-colors hover:border-[#CFC8BF] focus:border-[#141416] focus:bg-white focus:outline-none ${
-                  query ? "pr-11" : "pr-3.5"
-                }`}
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={() => setQuery("")}
-                  aria-label="Hapus pencarian"
-                  className="absolute right-0 top-0 inline-flex h-11 w-11 items-center justify-center rounded-xl text-[#57534E] transition-colors hover:text-[#141416] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
-                >
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path
-                      d="M4 4l8 8M12 4l-8 8"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </button>
-              )}
-            </div>
-
-            <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filter percakapan">
-              {(["Semua", "Belum Dibaca"] as const).map((f) => {
-                const isActive = filter === f;
-                const label = f === "Belum Dibaca" ? `Belum Dibaca (${unreadTotal})` : f;
-                return (
-                  <button
-                    key={f}
-                    type="button"
-                    onClick={() => setFilter(f)}
-                    aria-pressed={isActive}
-                    className={`min-h-[44px] rounded-full px-4 py-2 text-[13px] font-medium transition-colors duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
-                      isActive
-                        ? "bg-[#141416] text-white"
-                        : "bg-[#F4F1EE] text-[#57534E] hover:bg-[#EAE6E2] hover:text-[#141416]"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {isLoadingThreads ? (
-            <div
-              role="status"
-              aria-busy="true"
-              aria-label="Memuat percakapan"
-              className="flex-1 divide-y divide-[#F1EDE8] overflow-hidden"
-            >
-              {Array.from({ length: 5 }).map((_, i) => (
-                <ThreadSkeleton key={i} />
-              ))}
-              <span className="sr-only">Memuat percakapan…</span>
-            </div>
-          ) : threadsError ? (
-            <div role="alert" className="flex flex-1 flex-col items-center justify-center px-5 py-10 text-center">
-              <div className="w-full rounded-2xl border border-[#E8C5C5] bg-[#FDF2F2] p-4">
-                <p className="font-display text-[15px] font-semibold text-[#B83232]">
-                  Gagal memuat percakapan
-                </p>
-                <p className="mt-1 text-[13px] leading-relaxed text-[#B83232]">
-                  {threadsError}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => void loadThreads()}
-                className="mt-4 inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-5 text-[13px] font-medium text-white transition-colors hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
-              >
-                Muat ulang percakapan
-              </button>
-            </div>
-          ) : threads.length === 0 ? (
-            <div className="flex flex-1 flex-col items-center justify-center px-5 py-12 text-center">
-              <h3 className="font-display text-[16px] font-semibold text-[#141416]">
-                Belum ada percakapan
-              </h3>
-              <p className="mt-1.5 max-w-[260px] text-[14px] leading-relaxed text-[#6E6A66]">
-                Mulai chat 1-on-1 langsung dari halaman detail barang, jasa, atau barang hilang.
-              </p>
-              <Link
-                href="/marketplace"
-                className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[#141416] px-5 text-[13px] font-medium text-white transition-colors hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] md:hidden"
-              >
-                Jelajahi marketplace
-              </Link>
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-1 flex-col items-center justify-center px-5 py-12 text-center">
-              <h3 className="font-display text-[16px] font-semibold text-[#141416]">
-                Tidak ada obrolan yang cocok
-              </h3>
-              <p className="mt-1.5 max-w-[260px] text-[14px] leading-relaxed text-[#6E6A66]">
-                {filter === "Belum Dibaca" && query.trim() === ""
-                  ? "Semua pesan sudah dibaca. Tampilkan seluruh percakapan untuk melihat riwayat."
-                  : "Coba ubah kata kunci pencarian atau tampilkan semua obrolan."}
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setFilter("Semua");
-                  setQuery("");
-                }}
-                className="mt-5 inline-flex h-11 items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-5 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] hover:bg-[#FAF8F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
-              >
-                Tampilkan semua obrolan
-              </button>
-            </div>
-          ) : (
-            <ul className="flex-1 divide-y divide-[#F1EDE8] overflow-y-auto" role="list">
-              {filtered.map((t) => {
-                const name = t.recipient?.name?.trim() || "Pengguna UPN";
-                const official = isOfficialRecipient(t.recipient);
-                const isActive = t.id === activeId;
-                const contextLabel = t.context?.type
-                  ? CONTEXT_LABELS[t.context.type] ?? null
-                  : null;
-                return (
-                  <li key={t.id}>
-                    <button
-                      type="button"
-                      onClick={() => openChat(t.id)}
-                      aria-current={isActive ? "true" : undefined}
-                      className={`flex min-h-[76px] w-full items-start gap-3 border-l-[3px] px-4 py-3.5 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#141416] ${
-                        isActive
-                          ? "border-l-[#141416] bg-[#EFECE8]"
-                          : "border-l-transparent bg-white hover:bg-[#FAF8F6]"
-                      }`}
-                    >
-                      <span
-                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold ${
-                          isActive
-                            ? "bg-[#141416] text-white"
-                            : "border border-[#E5E0DA] bg-[#F4F1EE] text-[#141416]"
-                        }`}
-                        aria-hidden="true"
-                      >
-                        {initialsOf(name)}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-baseline justify-between gap-2">
-                          <span className="flex min-w-0 items-center gap-1.5">
-                            <span className="truncate text-[14px] font-semibold text-[#141416]">
-                              {name}
-                            </span>
-                            {official && (
-                              <VerifiedBadge
-                                size="xs"
-                                title={`${recipientRoleLabel(t.recipient)} terverifikasi`}
-                              />
-                            )}
-                          </span>
-                          <span
-                            className={`shrink-0 text-[13px] ${
-                              isActive ? "text-[#5F5B57]" : "text-[#6E6A66]"
-                            }`}
-                          >
-                            {formatThreadTime(t.last_message?.created_at ?? t.updated_at)}
-                          </span>
-                        </span>
-
-                        {t.context?.title && (
-                          <span
-                            className={`mt-0.5 block truncate text-[13px] font-medium ${
-                              isActive ? "text-[#141416]" : "text-[#57534E]"
-                            }`}
-                          >
-                            {contextLabel ? `${contextLabel}: ${t.context.title}` : t.context.title}
-                          </span>
-                        )}
-
-                        <span className="mt-1 flex items-center justify-between gap-2">
-                          <span
-                            className={`truncate text-[13px] ${
-                              t.unread_count > 0
-                                ? "font-semibold text-[#141416]"
-                                : isActive
-                                  ? "text-[#57534E]"
-                                  : "text-[#6E6A66]"
-                            }`}
-                          >
-                            {t.last_message?.body ?? "Belum ada pesan"}
-                          </span>
-                          {t.unread_count > 0 && (
-                            <span
-                              className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-[#141416] px-2 text-[13px] font-semibold text-white"
-                              aria-label={`${t.unread_count} pesan belum dibaca`}
-                            >
-                              {t.unread_count}
-                            </span>
-                          )}
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
+        <ThreadListPane
+          mobileView={mobileView}
+          threads={threads}
+          filtered={filtered}
+          activeId={activeId}
+          filter={filter}
+          query={query}
+          unreadTotal={unreadTotal}
+          isLoadingThreads={isLoadingThreads}
+          threadsError={threadsError}
+          onQueryChange={setQuery}
+          onFilterChange={setFilter}
+          onResetFilters={() => {
+            setFilter("Semua");
+            setQuery("");
+          }}
+          onReloadThreads={() => void loadThreads()}
+          onOpenChat={openChat}
+        />
 
         {/* ---------- COLUMN 2: Chat area ---------- */}
         {active === null ? (
@@ -1360,103 +977,7 @@ function MessagesContent() {
         )}
 
         {/* ---------- COLUMN 3: Context / profile (Desktop XL) ---------- */}
-        <aside
-          aria-label="Detail kontak"
-          className="hidden min-h-0 flex-col gap-5 overflow-y-auto border-l border-[#E5E0DA] bg-white p-5 xl:flex"
-        >
-          {active ? (
-            <>
-              <div className="flex flex-col items-center rounded-2xl border border-[#E5E0DA] bg-[#F6F4F1] p-5 text-center">
-                <span
-                  className="flex h-14 w-14 items-center justify-center rounded-full bg-[#141416] text-[15px] font-semibold text-white"
-                  aria-hidden="true"
-                >
-                  {initialsOf(active.recipient?.name?.trim() || "UP")}
-                </span>
-                <h2 className="mt-3 flex max-w-full items-center justify-center gap-1.5 font-display text-[16px] font-semibold text-[#141416]">
-                  <span className="truncate">
-                    {active.recipient?.name?.trim() || "Pengguna UPN"}
-                  </span>
-                  {isOfficialRecipient(active.recipient) && (
-                    <VerifiedBadge
-                      size="xs"
-                      title={`${recipientRoleLabel(active.recipient)} terverifikasi`}
-                    />
-                  )}
-                </h2>
-                <p className="mt-1 text-[13px] text-[#57534E]">
-                  {recipientRoleLabel(active.recipient)}
-                </p>
-              </div>
-
-              {active.context?.title && (
-                <div className="rounded-2xl border border-[#E5E0DA] bg-white p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-[13px] font-semibold text-[#141416]">
-                      Konteks listing
-                    </h3>
-                    {active.context.type && CONTEXT_LABELS[active.context.type] && (
-                      <span className="rounded-md bg-[#F4F1EE] px-2.5 py-0.5 text-[13px] font-medium text-[#57534E]">
-                        {CONTEXT_LABELS[active.context.type]}
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-3 flex items-start gap-3">
-                    <ContextThumbnail context={active.context} />
-                    <p className="line-clamp-2 flex-1 text-[14px] font-medium leading-snug text-[#141416]">
-                      {active.context.title}
-                    </p>
-                  </div>
-                  {contextDetailHref(active.context) && (
-                    <Link
-                      href={contextDetailHref(active.context) as string}
-                      className="mt-3.5 inline-flex min-h-[44px] w-full items-center justify-center rounded-full border border-[#D9D2C9] bg-white px-4 text-[13px] font-medium text-[#141416] transition-colors hover:border-[#141416] hover:bg-[#FAF8F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
-                    >
-                      Lihat detail listing
-                    </Link>
-                  )}
-                </div>
-              )}
-
-              <div className="rounded-2xl border border-[#E5E0DA] bg-[#F6F4F1] p-4">
-                <p className="flex items-center gap-2 text-[14px] font-semibold text-[#141416]">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    aria-hidden="true"
-                    className="shrink-0 text-[#141416]"
-                  >
-                    <path
-                      d="M8 1.5L14 4V8C14 11.5 11.5 14 8 14.8C4.5 14 2 11.5 2 8V4L8 1.5Z"
-                      stroke="currentColor"
-                      strokeWidth="1.3"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M6 8L7.4 9.4L10 6.6"
-                      stroke="currentColor"
-                      strokeWidth="1.3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span>Tips transaksi aman</span>
-                </p>
-                <p className="mt-2 text-[13px] leading-relaxed text-[#57534E]">
-                  Jangan bagikan kode OTP atau data rekening pribadi. Untuk transaksi COD, temui lawan bicara di area kampus yang ramai.
-                </p>
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-1 flex-col items-center justify-center px-2 text-center">
-              <p className="text-[14px] font-medium text-[#57534E]">
-                Detail lawan bicara dan konteks listing akan muncul di sini setelah Anda memilih percakapan.
-              </p>
-            </div>
-          )}
-        </aside>
+        <ContextSidebar active={active} />
       </div>
     </div>
   );
