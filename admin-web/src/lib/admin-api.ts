@@ -1,6 +1,10 @@
 import api from '@/lib/api';
 import type { AdminUser } from '@/lib/auth';
 
+export interface RequestOptions {
+  signal?: AbortSignal;
+}
+
 export interface AdminLoginResponse {
   message: string;
   token: string;
@@ -95,16 +99,22 @@ export async function adminLogout(): Promise<void> {
   await api.post('/admin/auth/logout');
 }
 
-export async function getAdminStats(): Promise<DashboardStats> {
+export async function getAdminStats(
+  options?: RequestOptions,
+): Promise<DashboardStats> {
   const { data } = await api.get<{ message: string; data: DashboardStats }>(
     '/admin/stats',
+    { signal: options?.signal },
   );
   return data.data;
 }
 
-export async function getAdminProfile(): Promise<AdminUser> {
+export async function getAdminProfile(
+  options?: RequestOptions,
+): Promise<AdminUser> {
   const { data } = await api.get<{ data: AdminUser } | AdminUser>(
     '/admin/profile',
+    { signal: options?.signal },
   );
   if (data && typeof data === 'object' && 'data' in data) {
     return (data as { data: AdminUser }).data;
@@ -134,7 +144,7 @@ export async function downloadAdminCsv(
   document.body.appendChild(link);
   link.click();
   link.remove();
-  window.URL.revokeObjectURL(url);
+  window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
 }
 
 export interface Paginated<T> {
@@ -194,16 +204,19 @@ export interface MarketplaceListingItem {
 
 export type ListingAction = 'hide' | 'restore' | 'delete';
 
-export async function getAdminMarketplace(params: {
-  page?: number;
-  status?: string;
-  search?: string;
-  category_id?: number;
-}): Promise<Paginated<MarketplaceListingItem>> {
+export async function getAdminMarketplace(
+  params: {
+    page?: number;
+    status?: string;
+    search?: string;
+    category_id?: number;
+  },
+  options?: RequestOptions,
+): Promise<Paginated<MarketplaceListingItem>> {
   const { data } = await api.get<{
     message: string;
     data: Paginated<MarketplaceListingItem>;
-  }>('/admin/marketplace', { params });
+  }>('/admin/marketplace', { params, signal: options?.signal });
   return data.data;
 }
 
@@ -245,16 +258,19 @@ export interface ServiceListingItem {
   reports_count?: number;
 }
 
-export async function getAdminServices(params: {
-  page?: number;
-  status?: string;
-  search?: string;
-  category_id?: number;
-}): Promise<Paginated<ServiceListingItem>> {
+export async function getAdminServices(
+  params: {
+    page?: number;
+    status?: string;
+    search?: string;
+    category_id?: number;
+  },
+  options?: RequestOptions,
+): Promise<Paginated<ServiceListingItem>> {
   const { data } = await api.get<{
     message: string;
     data: Paginated<ServiceListingItem>;
-  }>('/admin/services', { params });
+  }>('/admin/services', { params, signal: options?.signal });
   return data.data;
 }
 
@@ -297,17 +313,20 @@ export interface LostFoundItem {
   reports_count?: number;
 }
 
-export async function getAdminLostFound(params: {
-  page?: number;
-  tab?: LostFoundTab;
-  status?: string;
-  search?: string;
-  category_id?: number;
-}): Promise<Paginated<LostFoundItem>> {
+export async function getAdminLostFound(
+  params: {
+    page?: number;
+    tab?: LostFoundTab;
+    status?: string;
+    search?: string;
+    category_id?: number;
+  },
+  options?: RequestOptions,
+): Promise<Paginated<LostFoundItem>> {
   const { data } = await api.get<{
     message: string;
     data: Paginated<LostFoundItem>;
-  }>('/admin/lost-found', { params });
+  }>('/admin/lost-found', { params, signal: options?.signal });
   return data.data;
 }
 
@@ -384,24 +403,30 @@ export async function uploadAdminMedia(
   return data.data;
 }
 
-export async function getAdminEvents(params: {
-  page?: number;
-  status?: string;
-  search?: string;
-  category_id?: number;
-}): Promise<Paginated<AdminEventItem>> {
+export async function getAdminEvents(
+  params: {
+    page?: number;
+    status?: string;
+    search?: string;
+    category_id?: number;
+  },
+  options?: RequestOptions,
+): Promise<Paginated<AdminEventItem>> {
   const { data } = await api.get<{
     message: string;
     data: Paginated<AdminEventItem>;
-  }>('/admin/events', { params });
+  }>('/admin/events', { params, signal: options?.signal });
   return data.data;
 }
 
-export async function getAdminEvent(id: number | string): Promise<AdminEventItem> {
+export async function getAdminEvent(
+  id: number | string,
+  options?: RequestOptions,
+): Promise<AdminEventItem> {
   const { data } = await api.get<{
     message: string;
     data: AdminEventItem;
-  }>(`/admin/events/${id}`);
+  }>(`/admin/events/${id}`, { signal: options?.signal });
   return data.data;
 }
 
@@ -460,14 +485,17 @@ export interface CategoryItem {
   created_at?: string;
 }
 
-export async function getAdminCategories(params?: {
-  page?: number;
-  type?: CategoryType;
-}): Promise<Paginated<CategoryItem>> {
+export async function getAdminCategories(
+  params?: {
+    page?: number;
+    type?: CategoryType;
+  },
+  options?: RequestOptions,
+): Promise<Paginated<CategoryItem>> {
   const { data } = await api.get<{
     message: string;
     data: Paginated<CategoryItem>;
-  }>('/admin/categories', { params });
+  }>('/admin/categories', { params, signal: options?.signal });
   return data.data;
 }
 
@@ -519,13 +547,16 @@ export interface AnnouncementItem {
   admin?: { id: number; email: string } | null;
 }
 
-export async function getAdminAnnouncements(params?: {
-  page?: number;
-}): Promise<Paginated<AnnouncementItem>> {
+export async function getAdminAnnouncements(
+  params?: {
+    page?: number;
+  },
+  options?: RequestOptions,
+): Promise<Paginated<AnnouncementItem>> {
   const { data } = await api.get<{
     message: string;
     data: Paginated<AnnouncementItem>;
-  }>('/admin/announcements', { params });
+  }>('/admin/announcements', { params, signal: options?.signal });
   return data.data;
 }
 
@@ -589,17 +620,20 @@ export interface AdminUserDetail {
   reports_history: UserReportHistoryItem[];
 }
 
-export async function getAdminUsers(params: {
-  page?: number;
-  status?: string;
-  account_type?: string;
-  search?: string;
-  faculty?: string;
-}): Promise<Paginated<AdminUserItem>> {
+export async function getAdminUsers(
+  params: {
+    page?: number;
+    status?: string;
+    account_type?: string;
+    search?: string;
+    faculty?: string;
+  },
+  options?: RequestOptions,
+): Promise<Paginated<AdminUserItem>> {
   const { data } = await api.get<{
     message: string;
     data: Paginated<AdminUserItem>;
-  }>('/admin/users', { params });
+  }>('/admin/users', { params, signal: options?.signal });
   return data.data;
 }
 
@@ -630,11 +664,14 @@ export async function updateAdminUserAccountType(
   return data.data;
 }
 
-export async function getAdminUserDetail(id: number): Promise<AdminUserDetail> {
+export async function getAdminUserDetail(
+  id: number,
+  options?: RequestOptions,
+): Promise<AdminUserDetail> {
   const { data } = await api.get<{
     message: string;
     data: AdminUserDetail;
-  }>(`/admin/users/${id}`);
+  }>(`/admin/users/${id}`, { signal: options?.signal });
   return data.data;
 }
 
@@ -689,16 +726,19 @@ export interface AdminReportItem {
   reportable?: ReportableTarget | null;
 }
 
-export async function getAdminReports(params: {
-  page?: number;
-  status?: string;
-  search?: string;
-  reportable_type?: string;
-}): Promise<Paginated<AdminReportItem>> {
+export async function getAdminReports(
+  params: {
+    page?: number;
+    status?: string;
+    search?: string;
+    reportable_type?: string;
+  },
+  options?: RequestOptions,
+): Promise<Paginated<AdminReportItem>> {
   const { data } = await api.get<{
     message: string;
     data: Paginated<AdminReportItem>;
-  }>('/admin/reports', { params });
+  }>('/admin/reports', { params, signal: options?.signal });
   return data.data;
 }
 
@@ -731,11 +771,13 @@ export interface SystemStatusData {
   };
 }
 
-export async function getAdminSystemStatus(): Promise<SystemStatusData> {
+export async function getAdminSystemStatus(
+  options?: RequestOptions,
+): Promise<SystemStatusData> {
   const { data } = await api.get<{
     message: string;
     data: SystemStatusData;
-  }>('/admin/system-status');
+  }>('/admin/system-status', { signal: options?.signal });
   return data.data;
 }
 
@@ -758,11 +800,13 @@ export interface AdminAccount {
   created_at: string;
 }
 
-export async function getAdmins(): Promise<Paginated<AdminAccount>> {
+export async function getAdmins(
+  options?: RequestOptions,
+): Promise<Paginated<AdminAccount>> {
   const { data } = await api.get<{
     message: string;
     data: Paginated<AdminAccount>;
-  }>('/admin/admins');
+  }>('/admin/admins', { signal: options?.signal });
   return data.data;
 }
 

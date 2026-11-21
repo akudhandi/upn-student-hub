@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
-import EmptyState from "@/components/admin/EmptyState";
 import Pagination from "@/components/admin/Pagination";
 import StatusBadge from "@/components/admin/StatusBadge";
+import TableState from "@/components/admin/TableState";
 import {
   createAdminAnnouncement,
   deleteAdminAnnouncement,
@@ -12,6 +12,8 @@ import {
   type AnnouncementItem,
   type Paginated,
 } from "@/lib/admin-api";
+import { extractAdminError, isAbortError } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
 
 const LOAD_ERROR =
   "Gagal memuat riwayat pengumuman. Pastikan backend berjalan lalu coba lagi.";
@@ -33,10 +35,10 @@ export default function NotificationsAdminPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-    getAdminAnnouncements({ page }).then(
+    const controller = new AbortController();
+    getAdminAnnouncements({ page }, { signal: controller.signal }).then(
       (data) => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         if (data.data.length === 0 && data.current_page > 1) {
           setPage(data.current_page - 1);
           return;
@@ -44,13 +46,13 @@ export default function NotificationsAdminPage() {
         setError(null);
         setResult(data);
       },
-      () => {
-        if (cancelled) return;
+      (err: unknown) => {
+        if (controller.signal.aborted || isAbortError(err)) return;
         setError(LOAD_ERROR);
       },
     );
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [page, retryKey]);
 
@@ -76,8 +78,8 @@ export default function NotificationsAdminPage() {
       setPage(1);
       const data = await getAdminAnnouncements({ page: 1 });
       setResult(data);
-    } catch {
-      setFormError("Gagal mengirim pengumuman. Coba lagi.");
+    } catch (err) {
+      setFormError(extractAdminError(err, "Gagal mengirim pengumuman. Coba lagi."));
     } finally {
       setSending(false);
     }
@@ -96,8 +98,8 @@ export default function NotificationsAdminPage() {
       } else {
         setResult(data);
       }
-    } catch {
-      setFormError("Gagal menghapus pengumuman. Coba lagi.");
+    } catch (err) {
+      setFormError(extractAdminError(err, "Gagal menghapus pengumuman. Coba lagi."));
     } finally {
       setBusy(false);
     }
@@ -224,92 +226,71 @@ export default function NotificationsAdminPage() {
             )}
           </div>
 
-          {error ? (
-            <div className="flex flex-col items-center gap-3 px-5 py-12">
-              <p role="alert" className="text-sm font-medium text-rose-700">
-                {error}
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setError(null);
-                  setRetryKey((k) => k + 1);
-                }}
-                className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800"
-              >
-                Coba lagi
-              </button>
-            </div>
-          ) : !result ? (
-            <div className="space-y-3 p-4" aria-label="Memuat pengumuman">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-20 animate-pulse rounded-lg bg-slate-100"
-                />
-              ))}
-            </div>
-          ) : result.data.length === 0 ? (
-            <EmptyState
-              title="Belum ada pengumuman"
-              message="Pengumuman yang dikirim lewat formulir akan muncul di sini."
-            />
-          ) : (
-            <>
-              <ul className="divide-y divide-slate-100">
-                {result.data.map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex items-start justify-between gap-4 px-5 py-4 transition hover:bg-slate-50"
-                  >
-                    <div className="min-w-0 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-bold text-slate-900">
-                          {item.title}
-                        </p>
-                        <StatusBadge
-                          label={
-                            item.target_role === "student"
-                              ? "Mahasiswa"
-                              : "Semua"
-                          }
-                          tone={
-                            item.target_role === "student" ? "green" : "slate"
-                          }
-                        />
-                      </div>
-                      <p className="text-sm whitespace-pre-line text-slate-600">
-                        {item.message}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        {new Date(item.created_at).toLocaleString("id-ID", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                        {item.admin?.email ? ` · oleh ${item.admin.email}` : ""}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDelete(item)}
-                      className="shrink-0 rounded-lg bg-rose-500/15 px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-500/25"
+          <TableState
+            error={error}
+            onRetry={() => {
+              setError(null);
+              setRetryKey((k) => k + 1);
+            }}
+            loading={!result}
+            loadingLabel="Memuat pengumuman"
+            skeletonRows={4}
+            skeletonHeightClass="h-20"
+            empty={Boolean(result && result.data.length === 0)}
+            emptyTitle="Belum ada pengumuman"
+            emptyMessage="Pengumuman yang dikirim lewat formulir akan muncul di sini."
+          >
+            {result && (
+              <>
+                <ul className="divide-y divide-slate-100">
+                  {result.data.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex items-start justify-between gap-4 px-5 py-4 transition hover:bg-slate-50"
                     >
-                      Hapus
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <Pagination
-                page={result.current_page}
-                lastPage={result.last_page}
-                total={result.total}
-                onPage={setPage}
-              />
-            </>
-          )}
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-bold text-slate-900">
+                            {item.title}
+                          </p>
+                          <StatusBadge
+                            label={
+                              item.target_role === "student"
+                                ? "Mahasiswa"
+                                : "Semua"
+                            }
+                            tone={
+                              item.target_role === "student" ? "green" : "slate"
+                            }
+                          />
+                        </div>
+                        <p className="text-sm whitespace-pre-line text-slate-600">
+                          {item.message}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {formatDateTime(item.created_at)}
+                          {item.admin?.email ? ` · oleh ${item.admin.email}` : ""}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDelete(item)}
+                        className="shrink-0 rounded-lg bg-rose-500/15 px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-500/25"
+                      >
+                        Hapus
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <Pagination
+                  page={result.current_page}
+                  lastPage={result.last_page}
+                  total={result.total}
+                  onPage={setPage}
+                />
+              </>
+            )}
+          </TableState>
         </section>
       </div>
 

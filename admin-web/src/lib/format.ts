@@ -4,6 +4,48 @@ export function formatNumber(n: number | string): string {
   return new Intl.NumberFormat("id-ID").format(num);
 }
 
+export function formatDate(
+  iso: string | null | undefined,
+  fallback = "-",
+): string {
+  if (!iso) return fallback;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return fallback;
+  return d.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+export function formatDateTime(
+  iso: string | null | undefined,
+  fallback = "-",
+): string {
+  if (!iso) return fallback;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return fallback;
+  return d.toLocaleString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function initialsOf(name: string, fallback = "U"): string {
+  return (
+    name
+      .split(" ")
+      .map((part) => part[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || fallback
+  );
+}
+
 export function timeAgo(iso: string): string {
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return "";
@@ -15,11 +57,7 @@ export function timeAgo(iso: string): string {
   if (hours < 24) return `${hours}j lalu`;
   const days = Math.floor(hours / 24);
   if (days < 30) return `${days}h lalu`;
-  return new Date(iso).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDate(iso, "");
 }
 
 export function shortReportableType(type: string): string {

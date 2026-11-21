@@ -35,4 +35,48 @@ api.interceptors.response.use(
   },
 );
 
+export interface AdminErrorOptions {
+  statusMessages?: Partial<Record<number, string>>;
+  networkMessage?: string;
+}
+
+export function isAbortError(err: unknown): boolean {
+  if (axios.isCancel(err)) return true;
+  if (axios.isAxiosError(err) && err.code === 'ERR_CANCELED') return true;
+  if (err instanceof DOMException && err.name === 'AbortError') return true;
+  return false;
+}
+
+export function extractAdminError(
+  err: unknown,
+  fallback: string,
+  options?: AdminErrorOptions,
+): string {
+  if (axios.isAxiosError(err)) {
+    const status = err.response?.status;
+    if (status !== undefined && options?.statusMessages?.[status]) {
+      return options.statusMessages[status];
+    }
+    const data = err.response?.data as
+      | { message?: string; errors?: Record<string, string[] | string> }
+      | undefined;
+    if (data?.errors) {
+      const first = Object.values(data.errors)
+        .flat()
+        .find((item) => typeof item === 'string' && item.trim().length > 0);
+      if (first) return first;
+    }
+    if (typeof data?.message === 'string' && data.message.trim().length > 0) {
+      return data.message;
+    }
+    if (!err.response) {
+      return (
+        options?.networkMessage ??
+        'Tidak dapat menghubungi server. Pastikan backend berjalan.'
+      );
+    }
+  }
+  return fallback;
+}
+
 export default api;

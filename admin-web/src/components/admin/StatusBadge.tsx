@@ -1,4 +1,4 @@
-type BadgeTone = "green" | "amber" | "blue" | "slate" | "rose";
+export type BadgeTone = "green" | "amber" | "blue" | "slate" | "rose";
 
 const TONE_CLASSES: Record<BadgeTone, string> = {
   green: "bg-emerald-500/15 text-emerald-700",

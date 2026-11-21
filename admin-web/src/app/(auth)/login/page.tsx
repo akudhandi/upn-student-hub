@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
 import { adminLogin } from "@/lib/admin-api";
+import { extractAdminError } from "@/lib/api";
 import { getAdminToken, setAdminSession } from "@/lib/auth";
 
 export default function AdminLoginPage() {
@@ -30,22 +30,13 @@ export default function AdminLoginPage() {
       setAdminSession(res.token, res.admin);
       router.replace("/");
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        const status = err.response?.status;
-        const message = (err.response?.data as { message?: string } | undefined)
-          ?.message;
-        if (status === 401) {
-          setError("Email atau kata sandi salah.");
-        } else if (status === 422) {
-          setError(message ?? "Periksa kembali email dan kata sandi.");
-        } else if (!err.response) {
-          setError("Tidak dapat menghubungi server. Pastikan backend berjalan.");
-        } else {
-          setError(message ?? "Login gagal. Coba lagi.");
-        }
-      } else {
-        setError("Login gagal. Coba lagi.");
-      }
+      setError(
+        extractAdminError(err, "Login gagal. Coba lagi.", {
+          statusMessages: {
+            401: "Email atau kata sandi salah.",
+          },
+        }),
+      );
     } finally {
       setLoading(false);
     }

@@ -1,41 +1,33 @@
 "use client";
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import axios from "axios";
+import { ActionIcon } from "@/components/admin/ActionIcons";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
-import EmptyState from "@/components/admin/EmptyState";
 import StatusBadge from "@/components/admin/StatusBadge";
+import TableState from "@/components/admin/TableState";
 import {
   createAdmin,
   deleteAdmin,
   getAdmins,
   type AdminAccount,
 } from "@/lib/admin-api";
+import { extractAdminError, isAbortError } from "@/lib/api";
 import {
   getAdminSessionSnapshot,
   getServerAdminSessionSnapshot,
   parseAdminSession,
   subscribeAdminSession,
 } from "@/lib/auth";
+import { formatDate } from "@/lib/format";
 
 const LOAD_ERROR =
   "Gagal memuat daftar admin. Pastikan backend berjalan lalu coba lagi.";
 
-function errorMessage(err: unknown, fallback: string): string {
-  if (axios.isAxiosError(err)) {
-    const status = err.response?.status;
-    const message = (err.response?.data as { message?: string } | undefined)
-      ?.message;
-    if (status === 403) {
-      return "Akses ditolak. Hanya superadmin yang dapat mengelola admin.";
-    }
-    if (message) return message;
-    if (!err.response) {
-      return "Tidak dapat menghubungi server. Pastikan backend berjalan.";
-    }
-  }
-  return fallback;
-}
+const ADMIN_ERROR_OPTIONS = {
+  statusMessages: {
+    403: "Akses ditolak. Hanya superadmin yang dapat mengelola admin.",
+  },
+};
 
 export default function AdminsPage() {
   const [admins, setAdmins] = useState<AdminAccount[] | null>(null);
@@ -65,26 +57,27 @@ export default function AdminsPage() {
       setError(null);
       setAdmins(result.data);
     } catch (err) {
-      setError(errorMessage(err, LOAD_ERROR));
+      setError(extractAdminError(err, LOAD_ERROR, ADMIN_ERROR_OPTIONS));
     }
   }, [isSuperadmin]);
 
   useEffect(() => {
     if (!isSuperadmin) return;
-    let cancelled = false;
-    getAdmins().then(
+    const controller = new AbortController();
+    getAdmins({ signal: controller.signal }).then(
       (result) => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setError(null);
           setAdmins(result.data);
         }
       },
       (err: unknown) => {
-        if (!cancelled) setError(errorMessage(err, LOAD_ERROR));
+        if (controller.signal.aborted || isAbortError(err)) return;
+        setError(extractAdminError(err, LOAD_ERROR, ADMIN_ERROR_OPTIONS));
       },
     );
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [isSuperadmin, retryKey]);
 
@@ -99,7 +92,13 @@ export default function AdminsPage() {
       setRole("admin");
       await load();
     } catch (err) {
-      setFormError(errorMessage(err, "Gagal menambah admin. Coba lagi."));
+      setFormError(
+        extractAdminError(
+          err,
+          "Gagal menambah admin. Coba lagi.",
+          ADMIN_ERROR_OPTIONS,
+        ),
+      );
     } finally {
       setSaving(false);
     }
@@ -114,7 +113,13 @@ export default function AdminsPage() {
       setConfirm(null);
       await load();
     } catch (err) {
-      setActionError(errorMessage(err, "Gagal menghapus admin. Coba lagi."));
+      setActionError(
+        extractAdminError(
+          err,
+          "Gagal menghapus admin. Coba lagi.",
+          ADMIN_ERROR_OPTIONS,
+        ),
+      );
     } finally {
       setBusy(false);
     }
@@ -251,102 +256,70 @@ export default function AdminsPage() {
       )}
 
       <section className="overflow-hidden rounded-xl bg-white shadow-sm">
-        {error ? (
-          <div className="flex flex-col items-center gap-3 px-5 py-12">
-            <p role="alert" className="text-sm font-medium text-rose-700">
-              {error}
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setError(null);
-                setRetryKey((k) => k + 1);
-              }}
-              className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800"
-            >
-              Coba lagi
-            </button>
-          </div>
-        ) : !admins ? (
-          <div className="space-y-3 p-4" aria-label="Memuat admin">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-14 animate-pulse rounded-lg bg-slate-100"
-              />
-            ))}
-          </div>
-        ) : admins.length === 0 ? (
-          <EmptyState
-            title="Belum ada admin"
-            message="Tambah akun administrator lewat formulir di atas."
-          />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left">
-              <thead>
-                <tr className="bg-slate-50 text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                  <th className="px-4 py-3.5 font-medium">Email</th>
-                  <th className="px-4 py-3.5 font-medium">Peran</th>
-                  <th className="px-4 py-3.5 font-medium">Terdaftar</th>
-                  {isSuperadmin && (
-                    <th className="px-4 py-3.5 text-right font-medium">Aksi</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-sm">
-                {admins.map((admin) => (
-                  <tr key={admin.id} className="transition hover:bg-slate-50">
-                    <td className="px-4 py-4 font-medium text-slate-900">
-                      {admin.email}
-                    </td>
-                    <td className="px-4 py-4">
-                      <StatusBadge
-                        label={
-                          admin.role === "superadmin" ? "Superadmin" : "Admin"
-                        }
-                        tone={admin.role === "superadmin" ? "blue" : "slate"}
-                      />
-                    </td>
-                    <td className="px-4 py-4 text-xs whitespace-nowrap text-slate-400">
-                      {new Date(admin.created_at).toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </td>
+        <TableState
+          error={error}
+          onRetry={() => {
+            setError(null);
+            setRetryKey((k) => k + 1);
+          }}
+          loading={!admins}
+          loadingLabel="Memuat admin"
+          skeletonRows={3}
+          skeletonHeightClass="h-14"
+          empty={Boolean(admins && admins.length === 0)}
+          emptyTitle="Belum ada admin"
+          emptyMessage="Tambah akun administrator lewat formulir di atas."
+        >
+          {admins && (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left">
+                <thead>
+                  <tr className="bg-slate-50 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                    <th className="px-4 py-3.5 font-medium">Email</th>
+                    <th className="px-4 py-3.5 font-medium">Peran</th>
+                    <th className="px-4 py-3.5 font-medium">Terdaftar</th>
                     {isSuperadmin && (
-                      <td className="px-4 py-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setConfirm(admin)}
-                          title="Hapus admin"
-                          aria-label={`Hapus ${admin.email}`}
-                          className="rounded p-1.5 text-rose-600 transition hover:bg-rose-500/15"
-                        >
-                          <svg
-                            className="h-[18px] w-[18px]"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                          >
-                            <path
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                            />
-                          </svg>
-                        </button>
-                      </td>
+                      <th className="px-4 py-3.5 text-right font-medium">Aksi</th>
                     )}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-sm">
+                  {admins.map((admin) => (
+                    <tr key={admin.id} className="transition hover:bg-slate-50">
+                      <td className="px-4 py-4 font-medium text-slate-900">
+                        {admin.email}
+                      </td>
+                      <td className="px-4 py-4">
+                        <StatusBadge
+                          label={
+                            admin.role === "superadmin" ? "Superadmin" : "Admin"
+                          }
+                          tone={admin.role === "superadmin" ? "blue" : "slate"}
+                        />
+                      </td>
+                      <td className="px-4 py-4 text-xs whitespace-nowrap text-slate-400">
+                        {formatDate(admin.created_at)}
+                      </td>
+                      {isSuperadmin && (
+                        <td className="px-4 py-4 text-right">
+                          <button
+                            type="button"
+                            onClick={() => setConfirm(admin)}
+                            title="Hapus admin"
+                            aria-label={`Hapus ${admin.email}`}
+                            className="rounded p-1.5 text-rose-600 transition hover:bg-rose-500/15"
+                          >
+                            <ActionIcon name="trash" />
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </TableState>
       </section>
 
       {confirm && (

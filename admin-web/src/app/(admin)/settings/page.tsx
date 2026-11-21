@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axios from "axios";
 import StatusBadge from "@/components/admin/StatusBadge";
 import {
   getAdminProfile,
@@ -9,6 +8,7 @@ import {
   updateAdminPassword,
   type SystemStatusData,
 } from "@/lib/admin-api";
+import { extractAdminError, isAbortError } from "@/lib/api";
 import { getStoredAdmin, type AdminUser } from "@/lib/auth";
 import { formatNumber } from "@/lib/format";
 
@@ -28,26 +28,29 @@ export default function SettingsAdminPage() {
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     Promise.all([
-      getAdminProfile().catch(() => null),
-      getAdminSystemStatus(),
+      getAdminProfile({ signal: controller.signal }).catch((err: unknown) => {
+        if (controller.signal.aborted || isAbortError(err)) throw err;
+        return null;
+      }),
+      getAdminSystemStatus({ signal: controller.signal }),
     ]).then(
       ([prof, sys]) => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         setLoadError(null);
         if (prof) setProfile(prof);
         setSystem(sys);
       },
-      () => {
-        if (cancelled) return;
+      (err: unknown) => {
+        if (controller.signal.aborted || isAbortError(err)) return;
         setLoadError(
           "Gagal memuat status sistem. Pastikan backend berjalan lalu coba lagi.",
         );
       },
     );
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [retryKey]);
 
@@ -75,13 +78,7 @@ export default function SettingsAdminPage() {
       setConfirmPassword("");
       setFormSuccess("Kata sandi administrator berhasil diperbarui.");
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        const msg = (err.response?.data as { message?: string } | undefined)
-          ?.message;
-        setFormError(msg || "Gagal memperbarui kata sandi.");
-      } else {
-        setFormError("Gagal memperbarui kata sandi.");
-      }
+      setFormError(extractAdminError(err, "Gagal memperbarui kata sandi."));
     } finally {
       setSaving(false);
     }

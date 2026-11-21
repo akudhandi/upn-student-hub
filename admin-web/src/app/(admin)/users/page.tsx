@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { ActionIcon } from "@/components/admin/ActionIcons";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
-import EmptyState from "@/components/admin/EmptyState";
+import ExportCsvButton from "@/components/admin/ExportCsvButton";
+import ModalShell from "@/components/admin/ModalShell";
 import Pagination from "@/components/admin/Pagination";
-import StatusBadge from "@/components/admin/StatusBadge";
+import StatusBadge, { type BadgeTone } from "@/components/admin/StatusBadge";
+import TableState from "@/components/admin/TableState";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import {
   createAdminUser,
   downloadAdminCsv,
@@ -18,7 +22,8 @@ import {
   type UserAccountType,
   type UserStatus,
 } from "@/lib/admin-api";
-import { shortReportableType } from "@/lib/format";
+import { extractAdminError, isAbortError } from "@/lib/api";
+import { formatDate, initialsOf, shortReportableType } from "@/lib/format";
 
 const LOAD_ERROR =
   "Gagal memuat daftar pengguna. Pastikan backend berjalan lalu coba lagi.";
@@ -87,7 +92,7 @@ function VerifiedCheckIcon() {
 
 function statusMeta(status: string): {
   label: string;
-  tone: "green" | "amber" | "rose" | "slate";
+  tone: BadgeTone;
 } {
   switch (status) {
     case "active":
@@ -101,18 +106,6 @@ function statusMeta(status: string): {
     default:
       return { label: status, tone: "slate" };
   }
-}
-
-function initialsOf(name: string): string {
-  return (
-    name
-      .split(" ")
-      .map((part) => part[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "U"
-  );
 }
 
 const ACTION_COPY: Record<
@@ -156,14 +149,6 @@ function CreateOfficialAccountDialog({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !saving) onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, saving]);
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -185,203 +170,190 @@ function CreateOfficialAccountDialog({
       });
       onCreated();
       onClose();
-    } catch (err: unknown) {
-      const maybeResponse = (err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })?.response?.data;
-      const firstErr = maybeResponse?.errors
-        ? Object.values(maybeResponse.errors).flat()[0]
-        : null;
-      setError(firstErr || maybeResponse?.message || "Gagal membuat akun baru.");
+    } catch (err) {
+      setError(extractAdminError(err, "Gagal membuat akun baru."));
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
-      onClick={() => {
-        if (!saving) onClose();
-      }}
+    <ModalShell
+      ariaLabel="Buat akun resmi HIMA, Ormawa, atau Fakultas"
+      onClose={onClose}
+      busy={saving}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Buat akun resmi HIMA, Ormawa, atau Fakultas"
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="text-lg font-bold text-slate-900">
-          Buat Akun Resmi Portal Mahasiswa
-        </h3>
-        <p className="mt-1 text-xs text-slate-500">
-          Akun HIMA, Ormawa, atau Fakultas dapat langsung login di Portal Mahasiswa
-          menggunakan email &amp; password ini untuk mengajukan event terverifikasi.
-        </p>
+      <h3 className="text-lg font-bold text-slate-900">
+        Buat Akun Resmi Portal Mahasiswa
+      </h3>
+      <p className="mt-1 text-xs text-slate-500">
+        Akun HIMA, Ormawa, atau Fakultas dapat langsung login di Portal Mahasiswa
+        menggunakan email &amp; password ini untuk mengajukan event terverifikasi.
+      </p>
 
-        <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label
-                htmlFor="org-type"
-                className="block text-xs font-semibold text-slate-700"
-              >
-                Tipe Akun
-              </label>
-              <select
-                id="org-type"
-                value={accountType}
-                onChange={(e) => setAccountType(e.target.value as UserAccountType)}
-                disabled={saving}
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-slate-900 focus:bg-white focus:outline-none"
-              >
-                {ACCOUNT_TYPE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="org-faculty"
-                className="block text-xs font-semibold text-slate-700"
-              >
-                Fakultas / Lingkup
-              </label>
-              <input
-                id="org-faculty"
-                type="text"
-                value={faculty}
-                onChange={(e) => setFaculty(e.target.value)}
-                disabled={saving}
-                placeholder="Mis. Fakultas Ilmu Komputer"
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
-              />
-            </div>
+      <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label
+              htmlFor="org-type"
+              className="block text-xs font-semibold text-slate-700"
+            >
+              Tipe Akun
+            </label>
+            <select
+              id="org-type"
+              value={accountType}
+              onChange={(e) => setAccountType(e.target.value as UserAccountType)}
+              disabled={saving}
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-slate-900 focus:bg-white focus:outline-none"
+            >
+              {ACCOUNT_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
             <label
-              htmlFor="org-name"
+              htmlFor="org-faculty"
               className="block text-xs font-semibold text-slate-700"
             >
-              Nama Organisasi / Fakultas / Akun *
+              Fakultas / Lingkup
             </label>
             <input
-              id="org-name"
+              id="org-faculty"
               type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={faculty}
+              onChange={(e) => setFaculty(e.target.value)}
               disabled={saving}
-              placeholder="Mis. HIMA Informatika UPN"
+              placeholder="Mis. Fakultas Ilmu Komputer"
               className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
             />
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label
-                htmlFor="org-email"
-                className="block text-xs font-semibold text-slate-700"
-              >
-                Email Login *
-              </label>
-              <input
-                id="org-email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={saving}
-                placeholder="himatif@upnjatim.ac.id"
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
-              />
-            </div>
+        <div>
+          <label
+            htmlFor="org-name"
+            className="block text-xs font-semibold text-slate-700"
+          >
+            Nama Organisasi / Fakultas / Akun *
+          </label>
+          <input
+            id="org-name"
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={saving}
+            placeholder="Mis. HIMA Informatika UPN"
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
+          />
+        </div>
 
-            <div>
-              <label
-                htmlFor="org-password"
-                className="block text-xs font-semibold text-slate-700"
-              >
-                Password Awal *
-              </label>
-              <div className="relative mt-1">
-                <input
-                  id="org-password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="new-password"
-                  required
-                  minLength={8}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={saving}
-                  placeholder="Minimal 8 karakter"
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  disabled={saving}
-                  aria-label={
-                    showPassword ? "Sembunyikan password" : "Tampilkan password"
-                  }
-                  className="absolute top-1/2 right-3 -translate-y-1/2 text-xs font-semibold text-slate-500 transition hover:text-slate-800 disabled:opacity-50"
-                >
-                  {showPassword ? "Sembunyi" : "Tampil"}
-                </button>
-              </div>
-            </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label
+              htmlFor="org-email"
+              className="block text-xs font-semibold text-slate-700"
+            >
+              Email Login *
+            </label>
+            <input
+              id="org-email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={saving}
+              placeholder="himatif@upnjatim.ac.id"
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
+            />
           </div>
 
           <div>
             <label
-              htmlFor="org-bio"
+              htmlFor="org-password"
               className="block text-xs font-semibold text-slate-700"
             >
-              Deskripsi Singkat (Opsional)
+              Password Awal *
             </label>
-            <textarea
-              id="org-bio"
-              rows={2}
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              disabled={saving}
-              placeholder="Akun resmi penyelenggara kegiatan…"
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
-            />
+            <div className="relative mt-1">
+              <input
+                id="org-password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={saving}
+                placeholder="Minimal 8 karakter"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                disabled={saving}
+                aria-label={
+                  showPassword ? "Sembunyikan password" : "Tampilkan password"
+                }
+                className="absolute top-1/2 right-3 -translate-y-1/2 text-xs font-semibold text-slate-500 transition hover:text-slate-800 disabled:opacity-50"
+              >
+                {showPassword ? "Sembunyi" : "Tampil"}
+              </button>
+            </div>
           </div>
+        </div>
 
-          {error && (
-            <p
-              role="alert"
-              className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700"
-            >
-              {error}
-            </p>
-          )}
+        <div>
+          <label
+            htmlFor="org-bio"
+            className="block text-xs font-semibold text-slate-700"
+          >
+            Deskripsi Singkat (Opsional)
+          </label>
+          <textarea
+            id="org-bio"
+            rows={2}
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            disabled={saving}
+            placeholder="Akun resmi penyelenggara kegiatan…"
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
+          />
+        </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={saving}
-              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
-            >
-              {saving ? "Menyimpan…" : "Buat Akun"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        {error && (
+          <p
+            role="alert"
+            className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700"
+          >
+            {error}
+          </p>
+        )}
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+          >
+            {saving ? "Menyimpan…" : "Buat Akun"}
+          </button>
+        </div>
+      </form>
+    </ModalShell>
   );
 }
 
@@ -407,29 +379,22 @@ function UserDetailDialog({
   const [roleNotice, setRoleNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !savingRole) onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, savingRole]);
-
-  useEffect(() => {
-    let cancelled = false;
-    getAdminUserDetail(userId).then(
+    const controller = new AbortController();
+    getAdminUserDetail(userId, { signal: controller.signal }).then(
       (data) => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setError(null);
           setDetail(data);
           setNextAccountType(data.user.account_type ?? "student");
         }
       },
-      () => {
-        if (!cancelled) setError("Gagal memuat riwayat aktivitas pengguna.");
+      (err: unknown) => {
+        if (controller.signal.aborted || isAbortError(err)) return;
+        setError("Gagal memuat riwayat aktivitas pengguna.");
       },
     );
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [userId]);
 
@@ -452,217 +417,207 @@ function UserDetailDialog({
       setResetPassword("");
       setRoleNotice("Tipe akun berhasil diperbarui.");
       onUpdated();
-    } catch {
-      setError("Gagal memperbarui tipe akun atau password.");
+    } catch (err) {
+      setError(
+        extractAdminError(err, "Gagal memperbarui tipe akun atau password."),
+      );
     } finally {
       setSavingRole(false);
     }
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
-      onClick={() => {
-        if (!savingRole) onClose();
-      }}
+    <ModalShell
+      ariaLabel={`Detail ${displayName}`}
+      onClose={onClose}
+      busy={savingRole}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Detail ${displayName}`}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">
-              {initialsOf(displayName)}
-            </div>
-            <div>
-              <h3 className="flex items-center gap-1.5 text-base font-bold text-slate-900">
-                <span>{displayName}</span>
-                {typeMeta.isOfficial && <VerifiedCheckIcon />}
-              </h3>
-              <p className="text-xs text-slate-500">{user.email}</p>
-            </div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">
+            {initialsOf(displayName)}
           </div>
-          <StatusBadge label={meta.label} tone={meta.tone} />
+          <div>
+            <h3 className="flex items-center gap-1.5 text-base font-bold text-slate-900">
+              <span>{displayName}</span>
+              {typeMeta.isOfficial && <VerifiedCheckIcon />}
+            </h3>
+            <p className="text-xs text-slate-500">{user.email}</p>
+          </div>
         </div>
+        <StatusBadge label={meta.label} tone={meta.tone} />
+      </div>
 
-        <dl className="mt-5 space-y-2 border-t border-slate-100 pt-4 text-sm">
-          <div className="flex justify-between gap-4">
-            <dt className="text-slate-400">Tipe Akun</dt>
-            <dd>
-              <span
-                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${typeMeta.pillClass}`}
-              >
-                {typeMeta.isOfficial && <VerifiedCheckIcon />}
-                {typeMeta.label}
-              </span>
-            </dd>
-          </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-slate-400">NIM</dt>
-            <dd className="font-mono font-semibold text-slate-800">
-              {user.profile?.nim || "-"}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-slate-400">Fakultas</dt>
-            <dd className="text-right font-medium text-slate-800">
-              {user.profile?.faculty || "-"}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-slate-400">Total Konten / Listing</dt>
-            <dd className="font-bold text-slate-900">
-              {detail ? `${detail.listings_count} item` : "…"}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-slate-400">Terdaftar</dt>
-            <dd className="font-medium text-slate-800">
-              {new Date(user.created_at).toLocaleDateString("id-ID", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })}
-            </dd>
-          </div>
-        </dl>
-
-        {user.profile?.bio && (
-          <p className="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-            {user.profile.bio}
-          </p>
-        )}
-
-        {/* Role & Credentials Provisioning */}
-        <form
-          onSubmit={handleSaveRole}
-          className="mt-5 space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4"
-        >
-          <h4 className="text-xs font-semibold tracking-wider text-slate-700 uppercase">
-            Pengaturan Tipe Akun &amp; Kredensial
-          </h4>
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-            <div>
-              <label
-                htmlFor="detail-account-type"
-                className="block text-[11px] font-semibold text-slate-600"
-              >
-                Tipe Akun
-              </label>
-              <select
-                id="detail-account-type"
-                value={nextAccountType}
-                onChange={(e) =>
-                  setNextAccountType(e.target.value as UserAccountType)
-                }
-                disabled={savingRole}
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
-              >
-                {ACCOUNT_TYPE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label
-                htmlFor="detail-reset-password"
-                className="block text-[11px] font-semibold text-slate-600"
-              >
-                Reset Password (Opsional)
-              </label>
-              <div className="relative mt-1">
-                <input
-                  id="detail-reset-password"
-                  type={showResetPassword ? "text" : "password"}
-                  autoComplete="new-password"
-                  minLength={8}
-                  value={resetPassword}
-                  onChange={(e) => setResetPassword(e.target.value)}
-                  disabled={savingRole}
-                  placeholder="Kosongkan jika tetap"
-                  className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 pr-16 text-xs text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowResetPassword((v) => !v)}
-                  disabled={savingRole}
-                  aria-label={
-                    showResetPassword
-                      ? "Sembunyikan password"
-                      : "Tampilkan password"
-                  }
-                  className="absolute top-1/2 right-2.5 -translate-y-1/2 text-[11px] font-semibold text-slate-500 transition hover:text-slate-800 disabled:opacity-50"
-                >
-                  {showResetPassword ? "Sembunyi" : "Tampil"}
-                </button>
-              </div>
-            </div>
-          </div>
-          {roleNotice && (
-            <p className="text-xs font-medium text-emerald-700">{roleNotice}</p>
-          )}
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={savingRole}
-              className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+      <dl className="mt-5 space-y-2 border-t border-slate-100 pt-4 text-sm">
+        <div className="flex justify-between gap-4">
+          <dt className="text-slate-400">Tipe Akun</dt>
+          <dd>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${typeMeta.pillClass}`}
             >
-              {savingRole ? "Menyimpan…" : "Simpan Pengaturan"}
-            </button>
-          </div>
-        </form>
-
-        <div className="mt-5 border-t border-slate-100 pt-4">
-          <h4 className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-            Riwayat Laporan Terkait
-          </h4>
-          {error ? (
-            <p className="mt-2 text-xs text-rose-600">{error}</p>
-          ) : !detail ? (
-            <div className="mt-2 h-14 animate-pulse rounded-lg bg-slate-100" />
-          ) : detail.reports_history.length === 0 ? (
-            <p className="mt-2 text-xs text-slate-400">
-              Tidak ada catatan pelaporan pada akun ini.
-            </p>
-          ) : (
-            <ul className="mt-2 space-y-2">
-              {detail.reports_history.map((rep) => (
-                <li
-                  key={rep.id}
-                  className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-slate-800">
-                      {shortReportableType(rep.reportable_type)} #{rep.reportable_id}
-                    </span>
-                    <span className="rounded bg-slate-200/70 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 uppercase">
-                      {rep.status}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-slate-600">{rep.reason}</p>
-                </li>
-              ))}
-            </ul>
-          )}
+              {typeMeta.isOfficial && <VerifiedCheckIcon />}
+              {typeMeta.label}
+            </span>
+          </dd>
         </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-slate-400">NIM</dt>
+          <dd className="font-mono font-semibold text-slate-800">
+            {user.profile?.nim || "-"}
+          </dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-slate-400">Fakultas</dt>
+          <dd className="text-right font-medium text-slate-800">
+            {user.profile?.faculty || "-"}
+          </dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-slate-400">Total Konten / Listing</dt>
+          <dd className="font-bold text-slate-900">
+            {detail ? `${detail.listings_count} item` : "…"}
+          </dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-slate-400">Terdaftar</dt>
+          <dd className="font-medium text-slate-800">
+            {formatDate(user.created_at)}
+          </dd>
+        </div>
+      </dl>
 
-        <div className="mt-5 flex justify-end">
+      {user.profile?.bio && (
+        <p className="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+          {user.profile.bio}
+        </p>
+      )}
+
+      {/* Role & Credentials Provisioning */}
+      <form
+        onSubmit={handleSaveRole}
+        className="mt-5 space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4"
+      >
+        <h4 className="text-xs font-semibold tracking-wider text-slate-700 uppercase">
+          Pengaturan Tipe Akun &amp; Kredensial
+        </h4>
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          <div>
+            <label
+              htmlFor="detail-account-type"
+              className="block text-[11px] font-semibold text-slate-600"
+            >
+              Tipe Akun
+            </label>
+            <select
+              id="detail-account-type"
+              value={nextAccountType}
+              onChange={(e) =>
+                setNextAccountType(e.target.value as UserAccountType)
+              }
+              disabled={savingRole}
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+            >
+              {ACCOUNT_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label
+              htmlFor="detail-reset-password"
+              className="block text-[11px] font-semibold text-slate-600"
+            >
+              Reset Password (Opsional)
+            </label>
+            <div className="relative mt-1">
+              <input
+                id="detail-reset-password"
+                type={showResetPassword ? "text" : "password"}
+                autoComplete="new-password"
+                minLength={8}
+                value={resetPassword}
+                onChange={(e) => setResetPassword(e.target.value)}
+                disabled={savingRole}
+                placeholder="Kosongkan jika tetap"
+                className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 pr-16 text-xs text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setShowResetPassword((v) => !v)}
+                disabled={savingRole}
+                aria-label={
+                  showResetPassword
+                    ? "Sembunyikan password"
+                    : "Tampilkan password"
+                }
+                className="absolute top-1/2 right-2.5 -translate-y-1/2 text-[11px] font-semibold text-slate-500 transition hover:text-slate-800 disabled:opacity-50"
+              >
+                {showResetPassword ? "Sembunyi" : "Tampil"}
+              </button>
+            </div>
+          </div>
+        </div>
+        {roleNotice && (
+          <p className="text-xs font-medium text-emerald-700">{roleNotice}</p>
+        )}
+        <div className="flex justify-end">
           <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+            type="submit"
+            disabled={savingRole}
+            className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
           >
-            Tutup
+            {savingRole ? "Menyimpan…" : "Simpan Pengaturan"}
           </button>
         </div>
+      </form>
+
+      <div className="mt-5 border-t border-slate-100 pt-4">
+        <h4 className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+          Riwayat Laporan Terkait
+        </h4>
+        {error ? (
+          <p className="mt-2 text-xs text-rose-600">{error}</p>
+        ) : !detail ? (
+          <div className="mt-2 h-14 animate-pulse rounded-lg bg-slate-100" />
+        ) : detail.reports_history.length === 0 ? (
+          <p className="mt-2 text-xs text-slate-400">
+            Tidak ada catatan pelaporan pada akun ini.
+          </p>
+        ) : (
+          <ul className="mt-2 space-y-2">
+            {detail.reports_history.map((rep) => (
+              <li
+                key={rep.id}
+                className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-slate-800">
+                    {shortReportableType(rep.reportable_type)} #{rep.reportable_id}
+                  </span>
+                  <span className="rounded bg-slate-200/70 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 uppercase">
+                    {rep.status}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-slate-600">{rep.reason}</p>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
-    </div>
+
+      <div className="mt-5 flex justify-end">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={savingRole}
+          className="rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+        >
+          Tutup
+        </button>
+      </div>
+    </ModalShell>
   );
 }
 
@@ -674,7 +629,8 @@ export default function UsersAdminPage() {
   const [accountTypeFilter, setAccountTypeFilter] = useState("");
   const [search, setSearch] = useState("");
   const [faculty, setFaculty] = useState("");
-  const [debounced, setDebounced] = useState({ search: "", faculty: "" });
+  const debouncedSearch = useDebouncedValue(search.trim(), 400, () => setPage(1));
+  const debouncedFaculty = useDebouncedValue(faculty.trim(), 400, () => setPage(1));
   const [retryKey, setRetryKey] = useState(0);
   const [confirm, setConfirm] = useState<{
     user: AdminUserItem;
@@ -685,36 +641,21 @@ export default function UsersAdminPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [detailUser, setDetailUser] = useState<AdminUserItem | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const prevFiltersRef = useRef({ search: "", faculty: "" });
 
   useEffect(() => {
-    const trimmedSearch = search.trim();
-    const trimmedFaculty = faculty.trim();
-    if (
-      prevFiltersRef.current.search === trimmedSearch &&
-      prevFiltersRef.current.faculty === trimmedFaculty
-    ) {
-      return;
-    }
-    const t = window.setTimeout(() => {
-      prevFiltersRef.current = { search: trimmedSearch, faculty: trimmedFaculty };
-      setDebounced({ search: trimmedSearch, faculty: trimmedFaculty });
-      setPage(1);
-    }, 400);
-    return () => window.clearTimeout(t);
-  }, [search, faculty]);
-
-  useEffect(() => {
-    let cancelled = false;
-    getAdminUsers({
-      page,
-      status: status || undefined,
-      account_type: accountTypeFilter || undefined,
-      search: debounced.search || undefined,
-      faculty: debounced.faculty || undefined,
-    }).then(
+    const controller = new AbortController();
+    getAdminUsers(
+      {
+        page,
+        status: status || undefined,
+        account_type: accountTypeFilter || undefined,
+        search: debouncedSearch || undefined,
+        faculty: debouncedFaculty || undefined,
+      },
+      { signal: controller.signal },
+    ).then(
       (data) => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         if (data.data.length === 0 && data.current_page > 1) {
           setPage(data.current_page - 1);
           return;
@@ -722,15 +663,15 @@ export default function UsersAdminPage() {
         setError(null);
         setResult(data);
       },
-      () => {
-        if (cancelled) return;
+      (err: unknown) => {
+        if (controller.signal.aborted || isAbortError(err)) return;
         setError(LOAD_ERROR);
       },
     );
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [page, status, accountTypeFilter, debounced, retryKey]);
+  }, [page, status, accountTypeFilter, debouncedSearch, debouncedFaculty, retryKey]);
 
   async function handleConfirm() {
     if (!confirm) return;
@@ -740,8 +681,10 @@ export default function UsersAdminPage() {
       await updateAdminUserStatus(confirm.user.id, confirm.nextStatus);
       setConfirm(null);
       setRetryKey((k) => k + 1);
-    } catch {
-      setActionError("Gagal memperbarui status pengguna. Coba lagi.");
+    } catch (err) {
+      setActionError(
+        extractAdminError(err, "Gagal memperbarui status pengguna. Coba lagi."),
+      );
     } finally {
       setBusy(false);
     }
@@ -756,13 +699,13 @@ export default function UsersAdminPage() {
         {
           status: status || undefined,
           account_type: accountTypeFilter || undefined,
-          search: debounced.search || undefined,
-          faculty: debounced.faculty || undefined,
+          search: debouncedSearch || undefined,
+          faculty: debouncedFaculty || undefined,
         },
         "users-mahasiswa.csv",
       );
-    } catch {
-      setActionError("Gagal mengekspor CSV. Coba lagi.");
+    } catch (err) {
+      setActionError(extractAdminError(err, "Gagal mengekspor CSV. Coba lagi."));
     } finally {
       setExporting(false);
     }
@@ -790,28 +733,7 @@ export default function UsersAdminPage() {
           >
             + Buat Akun Resmi
           </button>
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={exporting}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 disabled:opacity-60"
-          >
-            <svg
-              className="h-4 w-4 text-slate-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-              />
-            </svg>
-            {exporting ? "Mengekspor…" : "Ekspor CSV"}
-          </button>
+          <ExportCsvButton exporting={exporting} onClick={handleExport} />
         </div>
       </section>
 
@@ -826,20 +748,10 @@ export default function UsersAdminPage() {
 
       <section className="grid grid-cols-1 gap-3 rounded-xl bg-white p-4 shadow-sm lg:grid-cols-12">
         <div className="relative lg:col-span-4">
-          <svg
+          <ActionIcon
+            name="search"
             className="absolute top-1/2 left-3.5 h-5 w-5 -translate-y-1/2 text-slate-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-            />
-          </svg>
+          />
           <input
             type="text"
             value={search}
@@ -896,7 +808,7 @@ export default function UsersAdminPage() {
               setStatus(e.target.value);
               setPage(1);
             }}
-            className="w-full cursor-pointer appearance-none rounded-lg bg-slate-100 py-2 pr-8 pl-3 text-sm text-slate-800 outline-none focus:ring-1 focus:ring-sky-500"
+            className="w-full cursor-pointer appearance-none rounded-lg bg-slate-100 py-2 pr-8 pl-3.5 text-sm text-slate-800 outline-none focus:ring-1 focus:ring-sky-500"
           >
             <option value="">Semua</option>
             <option value="active">Aktif</option>
@@ -908,151 +820,134 @@ export default function UsersAdminPage() {
       </section>
 
       <section className="overflow-hidden rounded-xl bg-white shadow-sm">
-        {error ? (
-          <div className="flex flex-col items-center gap-3 px-5 py-12">
-            <p role="alert" className="text-sm font-medium text-rose-700">
-              {error}
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setError(null);
-                setRetryKey((k) => k + 1);
-              }}
-              className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800"
-            >
-              Coba lagi
-            </button>
-          </div>
-        ) : !result ? (
-          <div className="space-y-3 p-4" aria-label="Memuat pengguna">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-16 animate-pulse rounded-lg bg-slate-100"
-              />
-            ))}
-          </div>
-        ) : result.data.length === 0 ? (
-          <EmptyState
-            title="Tidak ada pengguna ditemukan"
-            message="Ubah kata kunci pencarian, fakultas, tipe akun, atau filter status."
-          />
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left">
-                <thead>
-                  <tr className="bg-slate-50 text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                    <th className="px-4 py-3.5 font-medium">Pengguna</th>
-                    <th className="px-4 py-3.5 font-medium">Tipe</th>
-                    <th className="px-4 py-3.5 font-medium">NIM</th>
-                    <th className="px-4 py-3.5 font-medium">Fakultas</th>
-                    <th className="px-4 py-3.5 font-medium">Status</th>
-                    <th className="px-4 py-3.5 text-right font-medium">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-sm">
-                  {result.data.map((user) => {
-                    const displayName = user.profile?.name || user.name;
-                    const meta = statusMeta(user.status);
-                    const typeMeta = accountTypeMeta(user.account_type);
-                    return (
-                      <tr key={user.id} className="transition hover:bg-slate-50">
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700">
-                              {initialsOf(displayName)}
+        <TableState
+          error={error}
+          onRetry={() => {
+            setError(null);
+            setRetryKey((k) => k + 1);
+          }}
+          loading={!result}
+          loadingLabel="Memuat pengguna"
+          empty={Boolean(result && result.data.length === 0)}
+          emptyTitle="Tidak ada pengguna ditemukan"
+          emptyMessage="Ubah kata kunci pencarian, fakultas, tipe akun, atau filter status."
+        >
+          {result && (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left">
+                  <thead>
+                    <tr className="bg-slate-50 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                      <th className="px-4 py-3.5 font-medium">Pengguna</th>
+                      <th className="px-4 py-3.5 font-medium">Tipe</th>
+                      <th className="px-4 py-3.5 font-medium">NIM</th>
+                      <th className="px-4 py-3.5 font-medium">Fakultas</th>
+                      <th className="px-4 py-3.5 font-medium">Status</th>
+                      <th className="px-4 py-3.5 text-right font-medium">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm">
+                    {result.data.map((user) => {
+                      const displayName = user.profile?.name || user.name;
+                      const meta = statusMeta(user.status);
+                      const typeMeta = accountTypeMeta(user.account_type);
+                      return (
+                        <tr key={user.id} className="transition hover:bg-slate-50">
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700">
+                                {initialsOf(displayName)}
+                              </div>
+                              <div className="min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={() => setDetailUser(user)}
+                                  className="flex max-w-56 items-center gap-1.5 text-left text-sm font-semibold text-slate-900 transition hover:text-sky-600"
+                                >
+                                  <span className="truncate">{displayName}</span>
+                                  {typeMeta.isOfficial && <VerifiedCheckIcon />}
+                                </button>
+                                <p className="max-w-56 truncate text-xs text-slate-400">
+                                  {user.email}
+                                </p>
+                              </div>
                             </div>
-                            <div className="min-w-0">
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${typeMeta.pillClass}`}
+                            >
+                              {typeMeta.label}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 font-mono text-xs whitespace-nowrap text-slate-700">
+                            {user.profile?.nim || "-"}
+                          </td>
+                          <td className="max-w-44 truncate px-4 py-4 text-slate-600">
+                            {user.profile?.faculty || "-"}
+                          </td>
+                          <td className="px-4 py-4">
+                            <StatusBadge label={meta.label} tone={meta.tone} />
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <div className="inline-flex items-center gap-1.5">
                               <button
                                 type="button"
                                 onClick={() => setDetailUser(user)}
-                                className="flex max-w-56 items-center gap-1.5 text-left text-sm font-semibold text-slate-900 transition hover:text-sky-600"
+                                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
                               >
-                                <span className="truncate">{displayName}</span>
-                                {typeMeta.isOfficial && <VerifiedCheckIcon />}
+                                Detail
                               </button>
-                              <p className="max-w-56 truncate text-xs text-slate-400">
-                                {user.email}
-                              </p>
+                              {user.status !== "active" && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setConfirm({ user, nextStatus: "active" })
+                                  }
+                                  className="rounded-lg bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-500/25"
+                                >
+                                  Aktifkan
+                                </button>
+                              )}
+                              {user.status !== "suspended" && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setConfirm({ user, nextStatus: "suspended" })
+                                  }
+                                  className="rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-500/25"
+                                >
+                                  Suspend
+                                </button>
+                              )}
+                              {user.status !== "banned" && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setConfirm({ user, nextStatus: "banned" })
+                                  }
+                                  className="rounded-lg bg-rose-500/15 px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-500/25"
+                                >
+                                  Ban
+                                </button>
+                              )}
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${typeMeta.pillClass}`}
-                          >
-                            {typeMeta.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 font-mono text-xs whitespace-nowrap text-slate-700">
-                          {user.profile?.nim || "-"}
-                        </td>
-                        <td className="max-w-44 truncate px-4 py-4 text-slate-600">
-                          {user.profile?.faculty || "-"}
-                        </td>
-                        <td className="px-4 py-4">
-                          <StatusBadge label={meta.label} tone={meta.tone} />
-                        </td>
-                        <td className="px-4 py-4 text-right">
-                          <div className="inline-flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setDetailUser(user)}
-                              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-                            >
-                              Detail
-                            </button>
-                            {user.status !== "active" && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setConfirm({ user, nextStatus: "active" })
-                                }
-                                className="rounded-lg bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-500/25"
-                              >
-                                Aktifkan
-                              </button>
-                            )}
-                            {user.status !== "suspended" && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setConfirm({ user, nextStatus: "suspended" })
-                                }
-                                className="rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-500/25"
-                              >
-                                Suspend
-                              </button>
-                            )}
-                            {user.status !== "banned" && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setConfirm({ user, nextStatus: "banned" })
-                                }
-                                className="rounded-lg bg-rose-500/15 px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-500/25"
-                              >
-                                Ban
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <Pagination
-              page={result.current_page}
-              lastPage={result.last_page}
-              total={result.total}
-              onPage={setPage}
-            />
-          </>
-        )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination
+                page={result.current_page}
+                lastPage={result.last_page}
+                total={result.total}
+                onPage={setPage}
+              />
+            </>
+          )}
+        </TableState>
       </section>
 
       {confirm && (

@@ -13,6 +13,7 @@ import {
   uploadAdminMedia,
   type CategoryItem,
 } from "@/lib/admin-api";
+import { extractAdminError, isAbortError } from "@/lib/api";
 
 export default function EventCreatePage() {
   const router = useRouter();
@@ -21,15 +22,17 @@ export default function EventCreatePage() {
   const [serverError, setServerError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    getAdminCategories({ type: "event" }).then(
+    const controller = new AbortController();
+    getAdminCategories({ type: "event" }, { signal: controller.signal }).then(
       (res) => {
-        if (!cancelled) setCategories(res.data);
+        if (!controller.signal.aborted) setCategories(res.data);
       },
-      () => {},
+      (err: unknown) => {
+        if (controller.signal.aborted || isAbortError(err)) return;
+      },
     );
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, []);
 
@@ -55,8 +58,13 @@ export default function EventCreatePage() {
         image_paths: imagePaths,
       });
       router.push("/events");
-    } catch {
-      setServerError("Gagal membuat event. Periksa isian lalu coba lagi.");
+    } catch (err) {
+      setServerError(
+        extractAdminError(
+          err,
+          "Gagal membuat event. Periksa isian lalu coba lagi.",
+        ),
+      );
     } finally {
       setSubmitting(false);
     }

@@ -7,6 +7,7 @@ import {
   getAdminStats,
   type DashboardStats,
 } from "@/lib/admin-api";
+import { isAbortError } from "@/lib/api";
 import { formatNumber, shortReportableType, timeAgo } from "@/lib/format";
 
 const LOAD_ERROR =
@@ -115,22 +116,22 @@ export default function DashboardPage() {
 
   // Fetch awal via promise callback agar tidak ada setState sinkron di effect.
   useEffect(() => {
-    let cancelled = false;
-    getAdminStats().then(
+    const controller = new AbortController();
+    getAdminStats({ signal: controller.signal }).then(
       (data) => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         setError(null);
         setStats(data);
         setLoading(false);
       },
-      () => {
-        if (cancelled) return;
+      (err: unknown) => {
+        if (controller.signal.aborted || isAbortError(err)) return;
         setError(LOAD_ERROR);
         setLoading(false);
       },
     );
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, []);
 

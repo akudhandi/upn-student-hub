@@ -13,6 +13,7 @@ import {
   type CategoryItem,
   type EventStatus,
 } from "@/lib/admin-api";
+import { extractAdminError, isAbortError } from "@/lib/api";
 
 function toFormValues(item: AdminEventItem): EventFormValues {
   return {
@@ -45,24 +46,29 @@ export default function EventEditPage({
   const [serverError, setServerError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     Promise.all([
-      getAdminEvent(id),
-      getAdminCategories({ type: "event" }).catch(() => null),
+      getAdminEvent(id, { signal: controller.signal }),
+      getAdminCategories({ type: "event" }, { signal: controller.signal }).catch(
+        (err: unknown) => {
+          if (controller.signal.aborted || isAbortError(err)) throw err;
+          return null;
+        },
+      ),
     ]).then(
       ([detail, catRes]) => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         setLoadError(null);
         setInitial(toFormValues(detail));
         if (catRes) setCategories(catRes.data);
       },
-      () => {
-        if (cancelled) return;
+      (err: unknown) => {
+        if (controller.signal.aborted || isAbortError(err)) return;
         setLoadError("Gagal memuat detail event. Pastikan data tersedia.");
       },
     );
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [id, retryKey]);
 
@@ -90,8 +96,10 @@ export default function EventEditPage({
         image_paths: imagePaths,
       });
       router.push("/events");
-    } catch {
-      setServerError("Gagal menyimpan perubahan event. Coba lagi.");
+    } catch (err) {
+      setServerError(
+        extractAdminError(err, "Gagal menyimpan perubahan event. Coba lagi."),
+      );
     } finally {
       setSubmitting(false);
     }
