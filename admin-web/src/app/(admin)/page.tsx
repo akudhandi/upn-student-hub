@@ -47,7 +47,7 @@ function buildFeed(stats: DashboardStats): FeedItem[] {
     items.push({
       key: `user-${u.id}`,
       badge: "ID",
-      badgeClass: "bg-blue-50 text-blue-600",
+      badgeClass: "bg-[#E7EEF9] text-[#35518C]",
       title: u.profile?.name || u.name || "Mahasiswa baru bergabung",
       sub: u.email,
       createdAt: u.created_at,
@@ -57,7 +57,7 @@ function buildFeed(stats: DashboardStats): FeedItem[] {
     items.push({
       key: `marketplace-${m.id}`,
       badge: "MP",
-      badgeClass: "bg-amber-50 text-amber-600",
+      badgeClass: "bg-[#FBEAD8] text-[#8E581A]",
       title: m.title,
       sub: `${m.status} · ${m.user?.name ?? "Mahasiswa"}`,
       createdAt: m.created_at,
@@ -67,7 +67,7 @@ function buildFeed(stats: DashboardStats): FeedItem[] {
     items.push({
       key: `report-${r.id}`,
       badge: "RP",
-      badgeClass: "bg-rose-50 text-rose-600",
+      badgeClass: "bg-[#FDECEC] text-[#A62D2D]",
       title: r.reason,
       sub: `${shortReportableType(r.reportable_type)} #${r.reportable_id} · ${r.status}`,
       createdAt: r.created_at,
@@ -77,7 +77,7 @@ function buildFeed(stats: DashboardStats): FeedItem[] {
     items.push({
       key: `event-${e.id}`,
       badge: "EV",
-      badgeClass: "bg-indigo-50 text-indigo-600",
+      badgeClass: "bg-[#ECEAF9] text-[#53469B]",
       title: e.title,
       sub: e.status,
       createdAt: e.created_at,
@@ -141,10 +141,10 @@ export default function DashboardPage() {
     <main className="mx-auto w-full max-w-7xl flex-1 space-y-8 p-4 sm:p-8">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h2 className="font-display text-2xl font-semibold tracking-tight text-[#141416] sm:text-3xl">
             Dashboard
           </h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-[#6E6A66]">
             Ringkasan aktivitas platform, hal yang perlu perhatian, dan
             aktivitas terbaru.
           </p>
@@ -153,10 +153,10 @@ export default function DashboardPage() {
           type="button"
           onClick={() => load(true)}
           disabled={loading || refreshing}
-          className="inline-flex items-center gap-1.5 self-start rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 shadow-2xs transition hover:bg-slate-50 disabled:opacity-60 sm:self-auto"
+          className="inline-flex items-center gap-1.5 self-start rounded-full border border-[#DFD9D2] bg-white px-4 py-2 text-xs font-semibold text-[#141416] transition hover:border-[#CFC8BF] hover:bg-[#FAF8F6] disabled:opacity-60 sm:self-auto"
         >
           <svg
-            className="h-3.5 w-3.5 text-slate-500"
+            className="h-3.5 w-3.5 text-[#57534E]"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -176,13 +176,13 @@ export default function DashboardPage() {
       {error && (
         <div
           role="alert"
-          className="flex flex-col gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm sm:flex-row sm:items-center sm:justify-between"
+          className="flex flex-col gap-3 rounded-2xl border border-[#F3C6C6] bg-[#FDECEC] p-5 text-sm sm:flex-row sm:items-center sm:justify-between"
         >
-          <p className="font-medium text-rose-700">{error}</p>
+          <p className="font-medium text-[#A62D2D]">{error}</p>
           <button
             type="button"
             onClick={() => load(true)}
-            className="shrink-0 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800"
+            className="shrink-0 rounded-full bg-[#141416] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[#242428]"
           >
             Coba lagi
           </button>
@@ -197,7 +197,7 @@ export default function DashboardPage() {
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="h-44 animate-pulse rounded-2xl border border-slate-200/80 bg-white"
+              className="h-44 animate-pulse rounded-2xl border border-[#E5E0DA] bg-white"
             />
           ))}
         </section>
@@ -214,7 +214,7 @@ export default function DashboardPage() {
               icon={cardIcon(
                 "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z",
               )}
-              iconClass="bg-blue-50 text-blue-600"
+              iconClass="bg-[#E7EEF9] text-[#35518C]"
             />
             <StatCard
               label="Marketplace"
@@ -224,7 +224,7 @@ export default function DashboardPage() {
               linkLabel="Lihat Semua"
               footnote="Aktif tayang"
               icon={cardIcon("M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z")}
-              iconClass="bg-amber-50 text-amber-600"
+              iconClass="bg-[#FBEAD8] text-[#8E581A]"
             />
             <StatCard
               label="Jasa Mahasiswa"
@@ -236,7 +236,7 @@ export default function DashboardPage() {
               icon={cardIcon(
                 "M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
               )}
-              iconClass="bg-indigo-50 text-indigo-600"
+              iconClass="bg-[#ECEAF9] text-[#53469B]"
             />
             <StatCard
               label="Lost & Found"
@@ -248,7 +248,7 @@ export default function DashboardPage() {
               icon={cardIcon(
                 "M8 16l2.879-2.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242zM21 12a9 9 0 11-18 0 9 9 0 0118 0z",
               )}
-              iconClass="bg-sky-50 text-sky-600"
+              iconClass="bg-[#E4F2EA] text-[#226A46]"
             />
             <StatCard
               label="Event & Informasi"
@@ -260,20 +260,20 @@ export default function DashboardPage() {
               icon={cardIcon(
                 "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
               )}
-              iconClass="bg-rose-50 text-rose-600"
+              iconClass="bg-[#FDECEC] text-[#A62D2D]"
             />
           </section>
 
-          <section className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
-            <div className="overflow-hidden rounded-2xl border border-amber-200/90 bg-white shadow-xs lg:col-span-5">
-              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+          <section className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+            <div className="overflow-hidden rounded-2xl border border-[#E6CFAF] bg-white lg:col-span-5">
+              <div className="flex items-center justify-between border-b border-[#F2EEEA] px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-amber-500" />
-                  <h3 className="text-sm font-bold text-slate-900">
+                  <span className="h-2 w-2 rounded-full bg-[#B45309]" />
+                  <h3 className="font-display text-sm font-semibold text-[#141416]">
                     Perlu Tindakan
                   </h3>
                 </div>
-                <span className="rounded-full border border-amber-200/60 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                <span className="rounded-full bg-[#FBEAD8] px-2.5 py-0.5 text-xs font-semibold text-[#8E581A]">
                   {formatNumber(
                     stats.needs_attention.pending_reports +
                       stats.needs_attention.pending_events,
@@ -281,16 +281,16 @@ export default function DashboardPage() {
                   Menunggu
                 </span>
               </div>
-              <div className="space-y-3 divide-y divide-slate-100 p-4">
+              <div className="space-y-3 divide-y divide-[#F2EEEA] p-4">
                 <div className="flex items-center justify-between gap-3 pt-1 first:pt-0">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500" />
-                      <h4 className="truncate text-xs font-semibold text-slate-800">
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#C53939]" />
+                      <h4 className="truncate text-xs font-semibold text-[#141416]">
                         Laporan menunggu tindakan
                       </h4>
                     </div>
-                    <p className="mt-0.5 ml-3.5 text-[11px] text-slate-400">
+                    <p className="mt-0.5 ml-3.5 text-[11px] text-[#787470]">
                       {formatNumber(stats.needs_attention.pending_reports)}{" "}
                       laporan ·{" "}
                       {formatNumber(stats.needs_attention.reported_listings)}{" "}
@@ -301,7 +301,7 @@ export default function DashboardPage() {
                   </div>
                   <Link
                     href="/reports"
-                    className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 hover:text-slate-900"
+                    className="shrink-0 rounded-full border border-[#DFD9D2] bg-white px-3 py-1 text-xs font-semibold text-[#141416] transition hover:border-[#CFC8BF] hover:bg-[#FAF8F6]"
                   >
                     Periksa
                   </Link>
@@ -309,57 +309,57 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between gap-3 pt-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-                      <h4 className="truncate text-xs font-semibold text-slate-800">
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#B45309]" />
+                      <h4 className="truncate text-xs font-semibold text-[#141416]">
                         Event menunggu kurasi
                       </h4>
                     </div>
-                    <p className="mt-0.5 ml-3.5 text-[11px] text-slate-400">
+                    <p className="mt-0.5 ml-3.5 text-[11px] text-[#787470]">
                       {formatNumber(stats.needs_attention.pending_events)}{" "}
                       event berstatus draft/pending
                     </p>
                   </div>
                   <Link
                     href="/events"
-                    className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 hover:text-slate-900"
+                    className="shrink-0 rounded-full border border-[#DFD9D2] bg-white px-3 py-1 text-xs font-semibold text-[#141416] transition hover:border-[#CFC8BF] hover:bg-[#FAF8F6]"
                   >
                     Kurasi
                   </Link>
                 </div>
               </div>
-              <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-5 py-2.5 text-xs text-slate-500">
+              <div className="flex items-center justify-between border-t border-[#F2EEEA] bg-[#FAF8F6] px-5 py-3 text-xs text-[#6E6A66]">
                 <span>SLA respon: &lt; 24 jam kerja</span>
                 <Link
                   href="/reports"
-                  className="font-medium text-slate-700 hover:text-sky-600"
+                  className="font-semibold text-[#141416] transition-colors hover:text-[#57534E]"
                 >
                   Semua Antrean →
                 </Link>
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs lg:col-span-7">
-              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+            <div className="overflow-hidden rounded-2xl border border-[#E5E0DA] bg-white lg:col-span-7">
+              <div className="flex items-center justify-between border-b border-[#F2EEEA] px-5 py-4">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">
+                  <h3 className="font-display text-sm font-semibold text-[#141416]">
                     Aktivitas Terbaru
                   </h3>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-[#787470]">
                     Log transaksi dan unggahan di platform
                   </p>
                 </div>
               </div>
               <div className="p-4">
                 {feed.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-slate-400">
+                  <p className="py-6 text-center text-sm text-[#787470]">
                     Belum ada aktivitas tercatat.
                   </p>
                 ) : (
-                  <div className="space-y-3 divide-y divide-slate-100">
+                  <div className="space-y-3 divide-y divide-[#F2EEEA]">
                     {feed.map((item) => (
                       <div
                         key={item.key}
-                        className="flex items-center justify-between pt-1 text-xs first:pt-0"
+                        className="flex items-center justify-between pt-2 text-xs first:pt-0"
                       >
                         <div className="flex min-w-0 items-center gap-2.5">
                           <span
@@ -368,15 +368,15 @@ export default function DashboardPage() {
                             {item.badge}
                           </span>
                           <div className="min-w-0">
-                            <p className="truncate font-semibold text-slate-800">
+                            <p className="truncate font-semibold text-[#141416]">
                               {item.title}
                             </p>
-                            <p className="truncate text-[11px] text-slate-400">
+                            <p className="truncate text-[11px] text-[#787470]">
                               {item.sub}
                             </p>
                           </div>
                         </div>
-                        <span className="ml-2 shrink-0 text-[11px] font-medium whitespace-nowrap text-slate-400">
+                        <span className="ml-2 shrink-0 text-[11px] font-medium whitespace-nowrap text-[#787470]">
                           {timeAgo(item.createdAt)}
                         </span>
                       </div>

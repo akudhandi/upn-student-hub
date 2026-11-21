@@ -7,8 +7,10 @@ export default function EmptyState({
 }) {
   return (
     <div className="px-5 py-12 text-center">
-      <p className="text-sm font-semibold text-slate-700">{title}</p>
-      <p className="mt-1 text-sm text-slate-400">{message}</p>
+      <p className="font-display text-sm font-semibold text-[#141416]">
+        {title}
+      </p>
+      <p className="mt-1 text-sm text-[#6E6A66]">{message}</p>
     </div>
   );
 }

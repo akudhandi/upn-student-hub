@@ -18,27 +18,25 @@ export function accountTypeMeta(type?: string): {
       return {
         label: "Ormawa",
         isOfficial: true,
-        pillClass: "bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-200",
+        pillClass: "bg-[#E7EEF9] text-[#35518C]",
       };
     case "hima":
       return {
         label: "HIMA",
         isOfficial: true,
-        pillClass:
-          "bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-200",
+        pillClass: "bg-[#ECEAF9] text-[#53469B]",
       };
     case "faculty":
       return {
         label: "Fakultas",
         isOfficial: true,
-        pillClass:
-          "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200",
+        pillClass: "bg-[#E4F2EA] text-[#226A46]",
       };
     default:
       return {
         label: "Mahasiswa",
         isOfficial: false,
-        pillClass: "bg-slate-100 text-slate-600",
+        pillClass: "bg-[#EFECE8] text-[#57534E]",
       };
   }
 }
@@ -94,7 +92,7 @@ export function VerifiedCheckIcon() {
       viewBox="0 0 20 20"
       fill="none"
       aria-label="Akun resmi terverifikasi"
-      className="inline-block shrink-0 text-sky-600"
+      className="inline-block shrink-0 text-[#0284C7]"
     >
       <circle cx="10" cy="10" r="9" fill="currentColor" />
       <path

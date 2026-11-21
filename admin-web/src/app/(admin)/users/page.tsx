@@ -138,13 +138,13 @@ export default function UsersAdminPage() {
     <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:p-8">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[11px] font-medium tracking-wide text-slate-400 uppercase">
+          <p className="text-xs font-medium text-[#787470]">
             Komunitas &amp; Akun Resmi
           </p>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h2 className="mt-1 font-display text-2xl font-semibold tracking-tight text-[#141416] sm:text-3xl">
             Manajemen Users
           </h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-[#6E6A66]">
             Kelola akun mahasiswa dan siapkan akun resmi terverifikasi untuk
             HIMA, Ormawa, atau Fakultas.
           </p>
@@ -153,7 +153,7 @@ export default function UsersAdminPage() {
           <button
             type="button"
             onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white shadow-2xs transition hover:bg-slate-800"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#141416] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#242428]"
           >
             + Buat Akun Resmi
           </button>
@@ -164,17 +164,17 @@ export default function UsersAdminPage() {
       {actionError && (
         <p
           role="alert"
-          className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700"
+          className="rounded-xl border border-[#F3C6C6] bg-[#FDECEC] px-3.5 py-2.5 text-sm font-medium text-[#A62D2D]"
         >
           {actionError}
         </p>
       )}
 
-      <section className="grid grid-cols-1 gap-3 rounded-xl bg-white p-4 shadow-sm lg:grid-cols-12">
+      <section className="grid grid-cols-1 gap-3 rounded-2xl border border-[#E5E0DA] bg-white p-4 lg:grid-cols-12">
         <div className="relative lg:col-span-4">
           <ActionIcon
             name="search"
-            className="absolute top-1/2 left-3.5 h-5 w-5 -translate-y-1/2 text-slate-400"
+            className="absolute top-1/2 left-3.5 h-5 w-5 -translate-y-1/2 text-[#787470]"
           />
           <input
             type="text"
@@ -182,7 +182,7 @@ export default function UsersAdminPage() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari nama, email, atau NIM…"
             aria-label="Cari pengguna"
-            className="w-full rounded-lg bg-slate-100 py-2 pr-4 pl-10 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-1 focus:ring-sky-500"
+            className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] py-2 pr-4 pl-10 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
           />
         </div>
         <div className="lg:col-span-3">
@@ -192,13 +192,13 @@ export default function UsersAdminPage() {
             onChange={(e) => setFaculty(e.target.value)}
             placeholder="Filter fakultas…"
             aria-label="Filter fakultas"
-            className="w-full rounded-lg bg-slate-100 px-3.5 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-1 focus:ring-sky-500"
+            className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3.5 py-2 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
           />
         </div>
         <div className="flex items-center gap-2 lg:col-span-3">
           <label
             htmlFor="user-type-filter"
-            className="shrink-0 text-xs font-semibold text-slate-500"
+            className="shrink-0 text-xs font-semibold text-[#57534E]"
           >
             Tipe
           </label>
@@ -210,7 +210,7 @@ export default function UsersAdminPage() {
                 setAccountTypeFilter(e.target.value);
                 setPage(1);
               }}
-              className="w-full cursor-pointer appearance-none rounded-lg bg-slate-100 py-2 pr-8 pl-3.5 text-sm text-slate-800 outline-none focus:ring-1 focus:ring-sky-500"
+              className="w-full cursor-pointer appearance-none rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] py-2 pr-8 pl-3.5 text-sm text-[#141416] outline-none transition focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
             >
               <option value="">Semua Tipe</option>
               <option value="ormawa">Ormawa</option>
@@ -223,7 +223,7 @@ export default function UsersAdminPage() {
         <div className="flex items-center gap-2 lg:col-span-2 lg:justify-end">
           <label
             htmlFor="user-status-filter"
-            className="shrink-0 text-xs font-semibold text-slate-500"
+            className="shrink-0 text-xs font-semibold text-[#57534E]"
           >
             Status
           </label>
@@ -235,7 +235,7 @@ export default function UsersAdminPage() {
                 setStatus(e.target.value);
                 setPage(1);
               }}
-              className="w-full cursor-pointer appearance-none rounded-lg bg-slate-100 py-2 pr-8 pl-3.5 text-sm text-slate-800 outline-none focus:ring-1 focus:ring-sky-500"
+              className="w-full cursor-pointer appearance-none rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] py-2 pr-8 pl-3.5 text-sm text-[#141416] outline-none transition focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
             >
               <option value="">Semua</option>
               <option value="active">Aktif</option>
@@ -247,7 +247,7 @@ export default function UsersAdminPage() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-xl bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-[#E5E0DA] bg-white">
         <TableState
           error={error}
           onRetry={() => {
@@ -265,7 +265,7 @@ export default function UsersAdminPage() {
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left">
                   <thead>
-                    <tr className="bg-slate-50 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                    <tr className="border-b border-[#F2EEEA] bg-[#FAF8F6] text-xs font-semibold tracking-wider text-[#6E6A66] uppercase">
                       <th className="px-4 py-3.5 font-medium">Pengguna</th>
                       <th className="px-4 py-3.5 font-medium">Tipe</th>
                       <th className="px-4 py-3.5 font-medium">NIM</th>
@@ -276,7 +276,7 @@ export default function UsersAdminPage() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-sm">
+                  <tbody className="divide-y divide-[#F2EEEA] text-sm">
                     {result.data.map((user) => {
                       const displayName = user.profile?.name || user.name;
                       const meta = statusMeta(user.status);
@@ -284,23 +284,23 @@ export default function UsersAdminPage() {
                       return (
                         <tr
                           key={user.id}
-                          className="transition hover:bg-slate-50"
+                          className="transition hover:bg-[#FAF8F6]"
                         >
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#141416] text-xs font-semibold text-white">
                                 {initialsOf(displayName)}
                               </div>
                               <div className="min-w-0">
                                 <button
                                   type="button"
                                   onClick={() => setDetailUser(user)}
-                                  className="flex max-w-56 items-center gap-1.5 text-left text-sm font-semibold text-slate-900 transition hover:text-sky-600"
+                                  className="flex max-w-56 items-center gap-1.5 text-left text-sm font-semibold text-[#141416] transition hover:text-[#57534E]"
                                 >
                                   <span className="truncate">{displayName}</span>
                                   {typeMeta.isOfficial && <VerifiedCheckIcon />}
                                 </button>
-                                <p className="max-w-56 truncate text-xs text-slate-400">
+                                <p className="max-w-56 truncate text-xs text-[#787470]">
                                   {user.email}
                                 </p>
                               </div>
@@ -313,10 +313,10 @@ export default function UsersAdminPage() {
                               {typeMeta.label}
                             </span>
                           </td>
-                          <td className="px-4 py-4 font-mono text-xs whitespace-nowrap text-slate-700">
+                          <td className="px-4 py-4 font-mono text-xs whitespace-nowrap text-[#57534E]">
                             {user.profile?.nim || "-"}
                           </td>
-                          <td className="max-w-44 truncate px-4 py-4 text-slate-600">
+                          <td className="max-w-44 truncate px-4 py-4 text-[#57534E]">
                             {user.profile?.faculty || "-"}
                           </td>
                           <td className="px-4 py-4">
@@ -327,7 +327,7 @@ export default function UsersAdminPage() {
                               <button
                                 type="button"
                                 onClick={() => setDetailUser(user)}
-                                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                                className="rounded-full border border-[#DFD9D2] bg-white px-3 py-1 text-xs font-semibold text-[#141416] transition hover:border-[#CFC8BF] hover:bg-[#FAF8F6]"
                               >
                                 Detail
                               </button>
@@ -337,7 +337,7 @@ export default function UsersAdminPage() {
                                   onClick={() =>
                                     setConfirm({ user, nextStatus: "active" })
                                   }
-                                  className="rounded-lg bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-500/25"
+                                  className="rounded-full bg-[#E4F2EA] px-3 py-1 text-xs font-semibold text-[#226A46] transition hover:bg-[#D5E9DD]"
                                 >
                                   Aktifkan
                                 </button>
@@ -351,7 +351,7 @@ export default function UsersAdminPage() {
                                       nextStatus: "suspended",
                                     })
                                   }
-                                  className="rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-500/25"
+                                  className="rounded-full bg-[#FBEAD8] px-3 py-1 text-xs font-semibold text-[#8E581A] transition hover:bg-[#F4DDC2]"
                                 >
                                   Suspend
                                 </button>
@@ -362,7 +362,7 @@ export default function UsersAdminPage() {
                                   onClick={() =>
                                     setConfirm({ user, nextStatus: "banned" })
                                   }
-                                  className="rounded-lg bg-rose-500/15 px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-500/25"
+                                  className="rounded-full bg-[#FDECEC] px-3 py-1 text-xs font-semibold text-[#A62D2D] transition hover:bg-[#FADADA]"
                                 >
                                   Ban
                                 </button>

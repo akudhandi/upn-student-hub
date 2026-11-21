@@ -18,7 +18,7 @@ interface NavGroup {
 function icon(path: string) {
   return (
     <svg
-      className="h-5 w-5 shrink-0"
+      className="h-[17px] w-[17px] shrink-0"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -28,7 +28,7 @@ function icon(path: string) {
         d={path}
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth={2}
+        strokeWidth={1.7}
       />
     </svg>
   );
@@ -155,71 +155,86 @@ export default function Sidebar({
       {open && (
         <button
           aria-label="Tutup navigasi"
-          className="fixed inset-0 z-30 bg-slate-900/50 lg:hidden"
+          className="fixed inset-0 z-30 bg-[#141416]/25 backdrop-blur-[1px] lg:hidden"
           onClick={onClose}
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-30 flex w-64 shrink-0 select-none flex-col border-r border-slate-800/80 bg-brand-sidebar text-slate-300 transition-transform lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-[264px] shrink-0 select-none flex-col border-r border-[#E5E0DA] bg-[#EFECE8] text-[#57534E] transition-transform duration-200 ease-[cubic-bezier(.2,.8,.2,1)] lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
         aria-label="Navigasi admin"
       >
-        <div className="flex h-20 items-center gap-3.5 border-b border-slate-800/60 bg-brand-navy/60 px-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-lg font-extrabold text-white shadow-md shadow-sky-500/20 ring-1 ring-white/20">
-            U
-          </div>
-          <div className="leading-tight">
-            <h1 className="text-[15px] font-bold tracking-tight text-white">
-              UPN Student Hub
+        <Link
+          href="/"
+          onClick={onClose}
+          className="group flex h-[72px] items-center gap-3 px-5 focus-visible:outline-none"
+        >
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#141416] text-white transition-transform duration-150 ease-[cubic-bezier(.2,.8,.2,1)] group-hover:-translate-y-[1px]">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M8 1.5L9.8 6.2L14.5 8L9.8 9.8L8 14.5L6.2 9.8L1.5 8L6.2 6.2L8 1.5Z"
+                fill="currentColor"
+              />
+            </svg>
+          </span>
+          <div className="min-w-0">
+            <h1 className="font-display text-[15px] font-semibold leading-none tracking-tight text-[#141416]">
+              UPN Hub
             </h1>
-            <p className="text-xs font-medium tracking-wide text-slate-400">
-              Admin Portal
+            <p className="mt-1 text-[13px] font-medium text-[#6E6A66]">
+              Portal Admin
             </p>
           </div>
-        </div>
+        </Link>
 
-        <nav className="sidebar-scroll flex-1 space-y-6 overflow-y-auto px-3 py-5">
+        <nav className="sidebar-scroll flex-1 space-y-5 overflow-y-auto px-3.5 py-2">
           {NAV_GROUPS.map((group) => (
             <div key={group.title}>
-              <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <p className="px-3.5 pb-1.5 text-[12px] font-medium text-[#787470]">
                 {group.title}
               </p>
-              <div className="mt-2 space-y-1">
+              <div className="space-y-1">
                 {group.items
                   .filter((item) => !item.superadminOnly || showAdminNav)
                   .map((item) => {
-                  const active = isActive(pathname, item.href);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={onClose}
-                      aria-current={active ? "page" : undefined}
-                      className={
-                        active
-                          ? "flex items-center gap-3 rounded-lg border-l-4 border-sky-400 bg-gradient-to-r from-brand-active to-brand-active/80 px-3 py-2.5 font-medium text-white shadow-sm"
-                          : "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-300 transition hover:bg-brand-hover hover:text-white"
-                      }
-                    >
-                      <span className={active ? "text-sky-400" : "text-slate-400"}>
-                        {item.icon}
-                      </span>
-                      <span className="text-sm">{item.label}</span>
-                    </Link>
-                  );
-                })}
+                    const active = isActive(pathname, item.href);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={onClose}
+                        aria-current={active ? "page" : undefined}
+                        className={`group flex min-h-[40px] items-center gap-3 rounded-xl px-3.5 py-2 text-[14px] font-medium transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
+                          active
+                            ? "border border-[#E5E0DA] bg-white text-[#141416] shadow-[0_4px_14px_-6px_rgba(20,20,22,0.10)]"
+                            : "border border-transparent text-[#57534E] hover:bg-white/70 hover:text-[#141416]"
+                        }`}
+                      >
+                        <span
+                          className={`transition-colors ${
+                            active
+                              ? "text-[#141416]"
+                              : "text-[#787470] group-hover:text-[#141416]"
+                          }`}
+                        >
+                          {item.icon}
+                        </span>
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    );
+                  })}
               </div>
             </div>
           ))}
         </nav>
 
-        <div className="border-t border-slate-800 bg-[#071324] p-3">
+        <div className="border-t border-[#E4DFDA] p-4">
           <a
-            className="group flex items-center gap-3 rounded-xl border border-slate-700/50 bg-slate-800/80 p-2.5 transition hover:bg-slate-700/80"
+            className="group flex items-center gap-3 rounded-xl border border-[#E5E0DA] bg-white p-2.5 transition-all duration-150 hover:border-[#CFC8BF] hover:bg-[#FAF8F6]"
             href={process.env.NEXT_PUBLIC_STUDENT_URL || "http://localhost:3000"}
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-sky-500/30 bg-sky-500/15 text-sky-400">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F4F1EE] text-[#141416] transition-colors group-hover:bg-[#141416] group-hover:text-white">
               <svg
                 className="h-4 w-4"
                 fill="none"
@@ -231,15 +246,15 @@ export default function Sidebar({
                   d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
+                  strokeWidth={1.8}
                 />
               </svg>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-white transition group-hover:text-sky-300">
+              <p className="truncate text-[13px] font-semibold text-[#141416]">
                 Kembali ke Portal
               </p>
-              <p className="truncate text-[11px] font-medium text-slate-400">
+              <p className="truncate text-xs font-medium text-[#6E6A66]">
                 Portal Mahasiswa
               </p>
             </div>

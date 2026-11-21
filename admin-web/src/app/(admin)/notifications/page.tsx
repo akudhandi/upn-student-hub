@@ -109,30 +109,30 @@ export default function NotificationsAdminPage() {
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:p-8">
       <section>
-        <p className="text-[11px] font-medium tracking-wide text-slate-400 uppercase">
+        <p className="text-xs font-medium text-[#787470]">
           Sistem
         </p>
-        <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        <h2 className="mt-1 font-display text-2xl font-semibold tracking-tight text-[#141416] sm:text-3xl">
           Notifications &amp; Pengumuman
         </h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-[#6E6A66]">
           Kirim pengumuman resmi yang tampil di bel notifikasi mahasiswa serta kelola riwayat broadcast.
         </p>
       </section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <section className="h-fit rounded-xl bg-white p-6 shadow-sm lg:col-span-5">
-          <h3 className="text-base font-bold text-slate-900">
+        <section className="h-fit rounded-2xl border border-[#E5E0DA] bg-white p-6 lg:col-span-5">
+          <h3 className="font-display text-base font-semibold text-[#141416]">
             Buat Pengumuman Baru
           </h3>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-[#6E6A66]">
             Pesan akan langsung terbaca melalui menu notifikasi mahasiswa.
           </p>
 
           {formError && (
             <p
               role="alert"
-              className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700"
+              className="mt-4 rounded-xl border border-[#F3C6C6] bg-[#FDECEC] px-3 py-2 text-xs font-medium text-[#A62D2D]"
             >
               {formError}
             </p>
@@ -140,7 +140,7 @@ export default function NotificationsAdminPage() {
           {formSuccess && (
             <p
               role="status"
-              className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700"
+              className="mt-4 rounded-xl border border-[#C6E4D2] bg-[#E4F2EA] px-3 py-2 text-xs font-medium text-[#226A46]"
             >
               {formSuccess}
             </p>
@@ -150,7 +150,7 @@ export default function NotificationsAdminPage() {
             <div>
               <label
                 htmlFor="announcement-title"
-                className="mb-1.5 block text-xs font-semibold text-slate-600"
+                className="mb-1.5 block text-xs font-semibold text-[#57534E]"
               >
                 Judul Pengumuman
               </label>
@@ -162,14 +162,14 @@ export default function NotificationsAdminPage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Contoh: Pemeliharaan Sistem Malam Ini"
-                className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+                className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3.5 py-2.5 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
               />
             </div>
 
             <div>
               <label
                 htmlFor="announcement-target"
-                className="mb-1.5 block text-xs font-semibold text-slate-600"
+                className="mb-1.5 block text-xs font-semibold text-[#57534E]"
               >
                 Target Penerima
               </label>
@@ -180,7 +180,7 @@ export default function NotificationsAdminPage() {
                   onChange={(e) =>
                     setTargetRole(e.target.value as "all" | "student")
                   }
-                  className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white py-2 pr-9 pl-3.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+                  className="w-full cursor-pointer appearance-none rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] py-2.5 pr-9 pl-3.5 text-sm text-[#141416] outline-none transition focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
                 >
                   <option value="all">Semua Pengguna</option>
                   <option value="student">Khusus Mahasiswa</option>
@@ -191,7 +191,7 @@ export default function NotificationsAdminPage() {
             <div>
               <label
                 htmlFor="announcement-message"
-                className="mb-1.5 block text-xs font-semibold text-slate-600"
+                className="mb-1.5 block text-xs font-semibold text-[#57534E]"
               >
                 Isi Pesan
               </label>
@@ -203,7 +203,7 @@ export default function NotificationsAdminPage() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Tuliskan isi pengumuman secara ringkas dan jelas…"
-                className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+                className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3.5 py-2.5 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
               />
             </div>
 
@@ -211,7 +211,7 @@ export default function NotificationsAdminPage() {
               <button
                 type="submit"
                 disabled={sending}
-                className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                className="rounded-full bg-[#141416] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[#242428] disabled:opacity-60"
               >
                 {sending ? "Mengirim…" : "Kirim Broadcast"}
               </button>
@@ -219,9 +219,9 @@ export default function NotificationsAdminPage() {
           </form>
         </section>
 
-        <section className="overflow-hidden rounded-xl bg-white shadow-sm lg:col-span-7">
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-            <h3 className="text-base font-bold text-slate-900">
+        <section className="overflow-hidden rounded-2xl border border-[#E5E0DA] bg-white lg:col-span-7">
+          <div className="flex items-center justify-between border-b border-[#F2EEEA] px-5 py-4">
+            <h3 className="font-display text-base font-semibold text-[#141416]">
               Riwayat Broadcast
             </h3>
             {result && (
@@ -245,15 +245,15 @@ export default function NotificationsAdminPage() {
           >
             {result && (
               <>
-                <ul className="divide-y divide-slate-100">
+                <ul className="divide-y divide-[#F2EEEA]">
                   {result.data.map((item) => (
                     <li
                       key={item.id}
-                      className="flex items-start justify-between gap-4 px-5 py-4 transition hover:bg-slate-50"
+                      className="flex items-start justify-between gap-4 px-5 py-4 transition hover:bg-[#FAF8F6]"
                     >
                       <div className="min-w-0 space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-bold text-slate-900">
+                          <p className="text-sm font-semibold text-[#141416]">
                             {item.title}
                           </p>
                           <StatusBadge
@@ -267,10 +267,10 @@ export default function NotificationsAdminPage() {
                             }
                           />
                         </div>
-                        <p className="text-sm whitespace-pre-line text-slate-600">
+                        <p className="text-sm whitespace-pre-line text-[#57534E]">
                           {item.message}
                         </p>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-[#787470]">
                           {formatDateTime(item.created_at)}
                           {item.admin?.email ? ` · oleh ${item.admin.email}` : ""}
                         </p>
@@ -278,7 +278,7 @@ export default function NotificationsAdminPage() {
                       <button
                         type="button"
                         onClick={() => setConfirmDelete(item)}
-                        className="shrink-0 rounded-lg bg-rose-500/15 px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-500/25"
+                        className="shrink-0 rounded-full bg-[#FDECEC] px-3 py-1 text-xs font-semibold text-[#A62D2D] transition hover:bg-[#FADADA]"
                       >
                         Hapus
                       </button>

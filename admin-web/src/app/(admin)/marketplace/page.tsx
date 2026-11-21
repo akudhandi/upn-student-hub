@@ -84,8 +84,8 @@ function DetailDialog({
     <ModalShell ariaLabel={`Detail ${item.title}`} onClose={onClose}>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-base font-bold text-slate-900">{item.title}</h3>
-          <p className="mt-0.5 text-xs text-slate-400">
+          <h3 className="font-display text-base font-semibold text-[#141416]">{item.title}</h3>
+          <p className="mt-0.5 text-xs text-[#787470]">
             #{item.id} · {item.category?.name ?? "Tanpa kategori"}
             {item.condition ? ` · Kondisi: ${item.condition}` : ""}
           </p>
@@ -100,8 +100,8 @@ function DetailDialog({
               key={img.id}
               src={mediaUrl(img.file_path)}
               alt={item.title}
-              className="h-24 w-24 shrink-0 rounded-lg border border-slate-200 object-cover"
-              fallbackClassName="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-xs font-bold text-slate-300"
+              className="h-24 w-24 shrink-0 rounded-xl border border-[#E5E0DA] object-cover"
+              fallbackClassName="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl border border-[#E5E0DA] bg-[#EFECE8] text-xs font-bold text-[#787470]"
             />
           ))}
         </div>
@@ -109,32 +109,32 @@ function DetailDialog({
 
       <dl className="mt-4 space-y-2 text-sm">
         <div className="flex justify-between gap-4">
-          <dt className="text-slate-400">Harga</dt>
-          <dd className="font-bold text-slate-900">
+          <dt className="text-[#787470]">Harga</dt>
+          <dd className="font-semibold text-[#141416]">
             Rp {formatNumber(item.price)}
           </dd>
         </div>
         <div className="flex justify-between gap-4">
-          <dt className="text-slate-400">Penjual</dt>
-          <dd className="font-medium text-slate-800">
+          <dt className="text-[#787470]">Penjual</dt>
+          <dd className="font-medium text-[#141416]">
             {item.user?.name ?? `User #${item.user_id}`}
           </dd>
         </div>
         <div className="flex justify-between gap-4">
-          <dt className="text-slate-400">Dilaporkan</dt>
-          <dd className="font-medium text-slate-800">
+          <dt className="text-[#787470]">Dilaporkan</dt>
+          <dd className="font-medium text-[#141416]">
             {item.reports_count ?? 0} laporan
           </dd>
         </div>
         <div className="flex justify-between gap-4">
-          <dt className="text-slate-400">Diunggah</dt>
-          <dd className="font-medium text-slate-800">
+          <dt className="text-[#787470]">Diunggah</dt>
+          <dd className="font-medium text-[#141416]">
             {formatDate(item.created_at)}
           </dd>
         </div>
       </dl>
 
-      <p className="mt-4 rounded-lg bg-slate-50 p-3 text-sm whitespace-pre-line text-slate-600">
+      <p className="mt-4 rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] p-3.5 text-sm whitespace-pre-line text-[#57534E]">
         {item.description || "Tidak ada deskripsi."}
       </p>
 
@@ -142,7 +142,7 @@ function DetailDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+          className="rounded-full border border-[#DFD9D2] bg-white px-4 py-2 text-xs font-semibold text-[#141416] transition hover:border-[#CFC8BF] hover:bg-[#FAF8F6]"
         >
           Tutup
         </button>
@@ -249,13 +249,13 @@ export default function MarketplacePage() {
     <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:p-8">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[11px] font-medium tracking-wide text-slate-400 uppercase">
+          <p className="text-xs font-medium text-[#787470]">
             Katalog Mahasiswa
           </p>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h2 className="mt-1 font-display text-2xl font-semibold tracking-tight text-[#141416] sm:text-3xl">
             Manajemen Marketplace
           </h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-[#6E6A66]">
             Pantau, filter, dan kelola listing barang/produk jual-beli mahasiswa
             UPN.
           </p>
@@ -270,17 +270,17 @@ export default function MarketplacePage() {
       {actionError && (
         <p
           role="alert"
-          className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700"
+          className="rounded-xl border border-[#F3C6C6] bg-[#FDECEC] px-3.5 py-2.5 text-sm font-medium text-[#A62D2D]"
         >
           {actionError}
         </p>
       )}
 
-      <section className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+      <section className="flex flex-col gap-3 rounded-2xl border border-[#E5E0DA] bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full lg:w-96">
           <ActionIcon
             name="search"
-            className="absolute top-1/2 left-3.5 h-5 w-5 -translate-y-1/2 text-slate-400"
+            className="absolute top-1/2 left-3.5 h-5 w-5 -translate-y-1/2 text-[#787470]"
           />
           <input
             type="text"
@@ -288,11 +288,11 @@ export default function MarketplacePage() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari nama produk atau deskripsi…"
             aria-label="Cari listing"
-            className="w-full rounded-lg bg-slate-100 py-2 pr-4 pl-10 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-1 focus:ring-sky-500"
+            className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] py-2 pr-4 pl-10 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
           />
         </div>
         <div className="flex items-center gap-2.5">
-          <label htmlFor="status-filter" className="text-xs font-semibold text-slate-500">
+          <label htmlFor="status-filter" className="text-xs font-semibold text-[#57534E]">
             Status
           </label>
           <SelectWrapper>
@@ -303,7 +303,7 @@ export default function MarketplacePage() {
                 setStatus(e.target.value);
                 setPage(1);
               }}
-              className="cursor-pointer appearance-none rounded-lg bg-slate-100 py-2 pr-8 pl-3.5 text-sm text-slate-800 outline-none focus:ring-1 focus:ring-sky-500"
+              className="cursor-pointer appearance-none rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] py-2 pr-8 pl-3.5 text-sm text-[#141416] outline-none transition focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
             >
               <option value="">Semua Status</option>
               <option value="active">Aktif</option>
@@ -316,7 +316,7 @@ export default function MarketplacePage() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-xl bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-[#E5E0DA] bg-white">
         <TableState
           error={error}
           onRetry={() => {
@@ -334,7 +334,7 @@ export default function MarketplacePage() {
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left">
                   <thead>
-                    <tr className="bg-slate-50 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                    <tr className="border-b border-[#F2EEEA] bg-[#FAF8F6] text-xs font-semibold tracking-wider text-[#6E6A66] uppercase">
                       <th className="px-4 py-3.5 font-medium">Produk &amp; Kategori</th>
                       <th className="px-4 py-3.5 font-medium">Penjual</th>
                       <th className="px-4 py-3.5 font-medium">Harga</th>
@@ -343,39 +343,39 @@ export default function MarketplacePage() {
                       <th className="px-4 py-3.5 text-right font-medium">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-sm">
+                  <tbody className="divide-y divide-[#F2EEEA] text-sm">
                     {result.data.map((item) => {
                       const meta = statusMeta(item);
                       const thumb = mediaUrl(item.images?.[0]?.file_path);
                       const deleted = Boolean(item.deleted_at);
                       return (
-                        <tr key={item.id} className="transition hover:bg-slate-50">
+                        <tr key={item.id} className="transition hover:bg-[#FAF8F6]">
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                              <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-[#E5E0DA] bg-[#EFECE8]">
                                 <AdminImage
                                   src={thumb}
                                   alt=""
                                   loading="lazy"
                                   className="h-full w-full object-cover"
-                                  fallbackClassName="flex h-full w-full items-center justify-center text-xs font-bold text-slate-300"
+                                  fallbackClassName="flex h-full w-full items-center justify-center text-xs font-bold text-[#787470]"
                                 />
                               </div>
                               <div className="min-w-0">
                                 <button
                                   type="button"
                                   onClick={() => setDetail(item)}
-                                  className="block max-w-56 truncate text-left text-sm font-semibold text-slate-900 transition hover:text-sky-600"
+                                  className="block max-w-56 truncate text-left text-sm font-semibold text-[#141416] transition hover:text-[#57534E]"
                                   title={item.title}
                                 >
                                   {item.title}
                                 </button>
                                 <div className="mt-0.5 flex items-center gap-2">
-                                  <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium tracking-wide text-slate-500 uppercase">
+                                  <span className="rounded-full bg-[#EFECE8] px-2 py-0.5 text-[10px] font-medium tracking-wide text-[#57534E] uppercase">
                                     {item.category?.name ?? "Tanpa kategori"}
                                   </span>
                                   {(item.reports_count ?? 0) > 0 && (
-                                    <span className="rounded bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                                    <span className="rounded-full bg-[#FDECEC] px-2 py-0.5 text-[10px] font-semibold text-[#A62D2D]">
                                       {item.reports_count} laporan
                                     </span>
                                   )}
@@ -383,13 +383,13 @@ export default function MarketplacePage() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 font-medium whitespace-nowrap text-slate-800">
+                          <td className="px-4 py-4 font-medium whitespace-nowrap text-[#141416]">
                             {item.user?.name ?? `User #${item.user_id}`}
                           </td>
-                          <td className="px-4 py-4 font-bold whitespace-nowrap text-slate-900">
+                          <td className="px-4 py-4 font-semibold whitespace-nowrap text-[#141416]">
                             Rp {formatNumber(item.price)}
                           </td>
-                          <td className="px-4 py-4 text-xs whitespace-nowrap text-slate-400">
+                          <td className="px-4 py-4 text-xs whitespace-nowrap text-[#787470]">
                             {timeAgo(item.created_at)}
                           </td>
                           <td className="px-4 py-4">
@@ -402,7 +402,7 @@ export default function MarketplacePage() {
                                 onClick={() => setDetail(item)}
                                 title="Detail listing"
                                 aria-label={`Detail ${item.title}`}
-                                className="rounded p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                                className="rounded-lg p-1.5 text-[#787470] transition hover:bg-[#EFECE8] hover:text-[#141416]"
                               >
                                 <ActionIcon name="eye" />
                               </button>
@@ -412,7 +412,7 @@ export default function MarketplacePage() {
                                   onClick={() => setConfirm({ item, action: "restore" })}
                                   title="Pulihkan listing"
                                   aria-label={`Pulihkan ${item.title}`}
-                                  className="rounded p-1.5 text-emerald-600 transition hover:bg-emerald-500/15"
+                                  className="rounded-lg p-1.5 text-[#226A46] transition hover:bg-[#E4F2EA]"
                                 >
                                   <ActionIcon name="restore" />
                                 </button>
@@ -424,7 +424,7 @@ export default function MarketplacePage() {
                                       onClick={() => setConfirm({ item, action: "hide" })}
                                       title="Sembunyikan listing"
                                       aria-label={`Sembunyikan ${item.title}`}
-                                      className="rounded p-1.5 text-amber-600 transition hover:bg-amber-500/15"
+                                      className="rounded-lg p-1.5 text-[#8E581A] transition hover:bg-[#FBEAD8]"
                                     >
                                       <ActionIcon name="pause" />
                                     </button>
@@ -434,7 +434,7 @@ export default function MarketplacePage() {
                                       onClick={() => setConfirm({ item, action: "restore" })}
                                       title="Pulihkan listing"
                                       aria-label={`Pulihkan ${item.title}`}
-                                      className="rounded p-1.5 text-emerald-600 transition hover:bg-emerald-500/15"
+                                      className="rounded-lg p-1.5 text-[#226A46] transition hover:bg-[#E4F2EA]"
                                     >
                                       <ActionIcon name="restore" />
                                     </button>
@@ -444,7 +444,7 @@ export default function MarketplacePage() {
                                     onClick={() => setConfirm({ item, action: "delete" })}
                                     title="Hapus listing"
                                     aria-label={`Hapus ${item.title}`}
-                                    className="rounded p-1.5 text-rose-600 transition hover:bg-rose-500/15"
+                                    className="rounded-lg p-1.5 text-[#C53939] transition hover:bg-[#FDECEC]"
                                   >
                                     <ActionIcon name="trash" />
                                   </button>

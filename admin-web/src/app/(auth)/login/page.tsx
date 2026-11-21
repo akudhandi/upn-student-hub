@@ -43,34 +43,39 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen bg-brand-sidebar">
-      <div className="m-auto w-full max-w-md px-6 py-12">
+    <main className="flex min-h-screen bg-[#F4F1EE] text-[#141416]">
+      <div className="auth-shell-enter m-auto w-full max-w-md px-5 py-12">
         <div className="mb-8 flex items-center justify-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-xl font-extrabold text-white shadow-md shadow-sky-500/20 ring-1 ring-white/20">
-            U
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#141416] text-white">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M8 1.5L9.8 6.2L14.5 8L9.8 9.8L8 14.5L6.2 9.8L1.5 8L6.2 6.2L8 1.5Z"
+                fill="currentColor"
+              />
+            </svg>
           </div>
           <div className="leading-tight">
-            <p className="text-[15px] font-bold tracking-tight text-white">
+            <p className="font-display text-[15px] font-semibold tracking-tight text-[#141416]">
               UPN Student Hub
             </p>
-            <p className="text-xs font-medium tracking-wide text-slate-400">
-              Admin Portal
+            <p className="text-xs font-medium text-[#6E6A66]">
+              Portal Administrasi
             </p>
           </div>
         </div>
 
-        <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs sm:p-8">
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+        <section className="rounded-[24px] border border-[#E5E0DA] bg-white p-6 shadow-[0_24px_60px_-36px_rgba(20,20,22,0.18)] sm:p-8">
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-[#141416]">
             Masuk Admin
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Gunakan kredensial admin lokal untuk mengelola platform.
+          <p className="mt-1 text-sm text-[#6E6A66]">
+            Gunakan kredensial administrator untuk mengelola ekosistem kampus.
           </p>
 
           {error && (
             <p
               role="alert"
-              className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700"
+              className="mt-4 rounded-xl border border-[#F3C6C6] bg-[#FDECEC] px-3.5 py-2.5 text-sm font-medium text-[#A62D2D]"
             >
               {error}
             </p>
@@ -80,7 +85,7 @@ export default function AdminLoginPage() {
             <div>
               <label
                 htmlFor="email"
-                className="mb-1.5 block text-sm font-semibold text-slate-700"
+                className="mb-1.5 block text-xs font-semibold text-[#57534E]"
               >
                 Email
               </label>
@@ -92,14 +97,14 @@ export default function AdminLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@upnjatim.ac.id"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+                className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3.5 py-2.5 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
               />
             </div>
 
             <div>
               <label
                 htmlFor="password"
-                className="mb-1.5 block text-sm font-semibold text-slate-700"
+                className="mb-1.5 block text-xs font-semibold text-[#57534E]"
               >
                 Kata sandi
               </label>
@@ -112,12 +117,12 @@ export default function AdminLoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 pr-16 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+                  className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3.5 py-2.5 pr-20 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute top-1/2 right-3 -translate-y-1/2 text-xs font-semibold text-slate-500 transition hover:text-slate-800"
+                  className="absolute top-1/2 right-3.5 -translate-y-1/2 text-xs font-semibold text-[#6E6A66] transition-colors hover:text-[#141416]"
                 >
                   {showPassword ? "Sembunyi" : "Tampil"}
                 </button>
@@ -127,15 +132,15 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-2 h-11 w-full rounded-full bg-[#141416] px-5 text-sm font-semibold text-white transition-all duration-150 hover:-translate-y-[1px] hover:bg-[#242428] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Memeriksa…" : "Masuk"}
+              {loading ? "Memeriksa…" : "Masuk ke Portal Admin"}
             </button>
           </form>
         </section>
 
-        <p className="mt-6 text-center text-xs text-slate-500">
-          © 2026 UPN &quot;Veteran&quot; — Student Hub Management System
+        <p className="mt-6 text-center text-xs text-[#787470]">
+          © 2026 UPN &quot;Veteran&quot; Jawa Timur — Student Hub Management System
         </p>
       </div>
     </main>

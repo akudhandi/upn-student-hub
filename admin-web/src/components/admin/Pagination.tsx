@@ -10,8 +10,8 @@ export default function Pagination({
   onPage: (page: number) => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-100 bg-white px-5 py-3 sm:flex-row">
-      <p className="text-xs text-slate-500">
+    <div className="flex flex-col items-center justify-between gap-3 border-t border-[#F2EEEA] bg-white px-5 py-3.5 sm:flex-row">
+      <p className="text-xs text-[#6E6A66]">
         Halaman {page} dari {lastPage} · {total} data
       </p>
       <div className="flex items-center gap-2">
@@ -19,7 +19,7 @@ export default function Pagination({
           type="button"
           onClick={() => onPage(page - 1)}
           disabled={page <= 1}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-full border border-[#DFD9D2] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#141416] transition hover:border-[#CFC8BF] hover:bg-[#FAF8F6] disabled:cursor-not-allowed disabled:opacity-50"
         >
           Sebelumnya
         </button>
@@ -27,7 +27,7 @@ export default function Pagination({
           type="button"
           onClick={() => onPage(page + 1)}
           disabled={page >= lastPage}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-full border border-[#DFD9D2] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#141416] transition hover:border-[#CFC8BF] hover:bg-[#FAF8F6] disabled:cursor-not-allowed disabled:opacity-50"
         >
           Berikutnya
         </button>

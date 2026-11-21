@@ -74,20 +74,20 @@ export default function EventCreatePage() {
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:p-8">
       <section>
         <nav aria-label="Breadcrumb">
-          <ol className="flex items-center gap-1.5 text-xs text-slate-400">
+          <ol className="flex items-center gap-1.5 text-xs text-[#787470]">
             <li>
-              <Link href="/events" className="hover:text-slate-700 hover:underline">
+              <Link href="/events" className="transition-colors hover:text-[#141416] hover:underline">
                 Event &amp; Informasi
               </Link>
             </li>
             <li aria-hidden="true">/</li>
-            <li className="font-semibold text-slate-600">Buat Event</li>
+            <li className="font-semibold text-[#141416]">Buat Event</li>
           </ol>
         </nav>
-        <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight text-[#141416] sm:text-3xl">
           Buat Event &amp; Informasi
         </h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-[#6E6A66]">
           Tambahkan kegiatan, pengumuman, atau informasi resmi baru untuk mahasiswa UPN.
         </p>
       </section>

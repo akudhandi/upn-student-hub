@@ -63,8 +63,8 @@ function DetailDialog({
     <ModalShell ariaLabel={`Detail ${item.title}`} onClose={onClose}>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-base font-bold text-slate-900">{item.title}</h3>
-          <p className="mt-0.5 text-xs text-slate-400">
+          <h3 className="font-display text-base font-semibold text-[#141416]">{item.title}</h3>
+          <p className="mt-0.5 text-xs text-[#787470]">
             {item.event_code ?? `#${item.id}`} ·{" "}
             {item.category?.name ?? "Tanpa kategori"}
           </p>
@@ -79,8 +79,8 @@ function DetailDialog({
               key={img.id}
               src={mediaUrl(img.file_path)}
               alt={item.title}
-              className="h-24 w-24 shrink-0 rounded-lg border border-slate-200 object-cover"
-              fallbackClassName="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-xs font-bold text-slate-300"
+              className="h-24 w-24 shrink-0 rounded-xl border border-[#E5E0DA] object-cover"
+              fallbackClassName="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl border border-[#E5E0DA] bg-[#EFECE8] text-xs font-bold text-[#787470]"
             />
           ))}
         </div>
@@ -88,37 +88,37 @@ function DetailDialog({
 
       <dl className="mt-4 space-y-2 text-sm">
         <div className="flex justify-between gap-4">
-          <dt className="text-slate-400">Penyelenggara</dt>
-          <dd className="font-medium text-right text-slate-800">
+          <dt className="text-[#787470]">Penyelenggara</dt>
+          <dd className="font-medium text-right text-[#141416]">
             {item.organizer_name}
           </dd>
         </div>
         <div className="flex justify-between gap-4">
-          <dt className="text-slate-400">Jadwal</dt>
-          <dd className="font-medium text-right text-slate-800">
+          <dt className="text-[#787470]">Jadwal</dt>
+          <dd className="font-medium text-right text-[#141416]">
             {formatDate(item.event_date)}
             {item.event_time ? ` · ${item.event_time}` : ""}
           </dd>
         </div>
         <div className="flex justify-between gap-4">
-          <dt className="text-slate-400">Lokasi</dt>
-          <dd className="font-medium text-right text-slate-800">{item.location}</dd>
+          <dt className="text-[#787470]">Lokasi</dt>
+          <dd className="font-medium text-right text-[#141416]">{item.location}</dd>
         </div>
         {item.registration_link && (
           <div className="flex justify-between gap-4">
-            <dt className="text-slate-400">Pendaftaran</dt>
+            <dt className="text-[#787470]">Pendaftaran</dt>
             <dd className="truncate font-medium">
               {safeRegistrationHref ? (
                 <a
                   href={safeRegistrationHref}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sky-600 hover:underline"
+                  className="text-[#35518C] hover:underline"
                 >
                   {item.registration_link}
                 </a>
               ) : (
-                <span className="text-slate-700">
+                <span className="text-[#57534E]">
                   {item.registration_link}
                 </span>
               )}
@@ -127,21 +127,21 @@ function DetailDialog({
         )}
       </dl>
 
-      <p className="mt-4 rounded-lg bg-slate-50 p-3 text-sm whitespace-pre-line text-slate-600">
+      <p className="mt-4 rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] p-3.5 text-sm whitespace-pre-line text-[#57534E]">
         {item.description || "Tidak ada deskripsi."}
       </p>
 
       <div className="mt-5 flex justify-end gap-2">
         <Link
           href={`/events/${item.id}/edit`}
-          className="rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+          className="rounded-full bg-[#141416] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#242428]"
         >
           Edit Event
         </Link>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+          className="rounded-full border border-[#DFD9D2] bg-white px-4 py-2 text-xs font-semibold text-[#141416] transition hover:border-[#CFC8BF] hover:bg-[#FAF8F6]"
         >
           Tutup
         </button>
@@ -249,13 +249,13 @@ export default function EventsAdminPage() {
     <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:p-8">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[11px] font-medium tracking-wide text-slate-400 uppercase">
+          <p className="text-xs font-medium text-[#787470]">
             Informasi Kampus
           </p>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h2 className="mt-1 font-display text-2xl font-semibold tracking-tight text-[#141416] sm:text-3xl">
             Manajemen Event &amp; Informasi
           </h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-[#6E6A66]">
             Buat, ubah, publikasikan, arsipkan, atau hapus agenda dan informasi kegiatan mahasiswa.
           </p>
         </div>
@@ -263,7 +263,7 @@ export default function EventsAdminPage() {
           <ExportCsvButton exporting={exporting} onClick={handleExport} />
           <Link
             href="/events/create"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white shadow-2xs transition hover:bg-slate-800"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#141416] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#242428]"
           >
             <span aria-hidden="true" className="text-sm leading-none">
               +
@@ -276,17 +276,17 @@ export default function EventsAdminPage() {
       {actionError && (
         <p
           role="alert"
-          className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700"
+          className="rounded-xl border border-[#F3C6C6] bg-[#FDECEC] px-3.5 py-2.5 text-sm font-medium text-[#A62D2D]"
         >
           {actionError}
         </p>
       )}
 
-      <section className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+      <section className="flex flex-col gap-3 rounded-2xl border border-[#E5E0DA] bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full lg:w-96">
           <ActionIcon
             name="search"
-            className="absolute top-1/2 left-3.5 h-5 w-5 -translate-y-1/2 text-slate-400"
+            className="absolute top-1/2 left-3.5 h-5 w-5 -translate-y-1/2 text-[#787470]"
           />
           <input
             type="text"
@@ -294,11 +294,11 @@ export default function EventsAdminPage() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari judul event atau penyelenggara…"
             aria-label="Cari event"
-            className="w-full rounded-lg bg-slate-100 py-2 pr-4 pl-10 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-1 focus:ring-sky-500"
+            className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] py-2 pr-4 pl-10 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
           />
         </div>
         <div className="flex items-center gap-2.5">
-          <label htmlFor="event-status-filter" className="text-xs font-semibold text-slate-500">
+          <label htmlFor="event-status-filter" className="text-xs font-semibold text-[#57534E]">
             Status
           </label>
           <SelectWrapper>
@@ -309,7 +309,7 @@ export default function EventsAdminPage() {
                 setStatus(e.target.value);
                 setPage(1);
               }}
-              className="cursor-pointer appearance-none rounded-lg bg-slate-100 py-2 pr-8 pl-3.5 text-sm text-slate-800 outline-none focus:ring-1 focus:ring-sky-500"
+              className="cursor-pointer appearance-none rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] py-2 pr-8 pl-3.5 text-sm text-[#141416] outline-none transition focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
             >
               <option value="">Semua Status</option>
               <option value="published">Published</option>
@@ -322,7 +322,7 @@ export default function EventsAdminPage() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-xl bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-[#E5E0DA] bg-white">
         <TableState
           error={error}
           onRetry={() => {
@@ -340,7 +340,7 @@ export default function EventsAdminPage() {
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left">
                   <thead>
-                    <tr className="bg-slate-50 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                    <tr className="border-b border-[#F2EEEA] bg-[#FAF8F6] text-xs font-semibold tracking-wider text-[#6E6A66] uppercase">
                       <th className="px-4 py-3.5 font-medium">Judul &amp; Kategori</th>
                       <th className="px-4 py-3.5 font-medium">Penyelenggara</th>
                       <th className="px-4 py-3.5 font-medium">Jadwal</th>
@@ -349,36 +349,36 @@ export default function EventsAdminPage() {
                       <th className="px-4 py-3.5 text-right font-medium">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-sm">
+                  <tbody className="divide-y divide-[#F2EEEA] text-sm">
                     {result.data.map((item) => {
                       const meta = statusMeta(item.status);
                       return (
-                        <tr key={item.id} className="transition hover:bg-slate-50">
+                        <tr key={item.id} className="transition hover:bg-[#FAF8F6]">
                           <td className="px-4 py-4">
                             <button
                               type="button"
                               onClick={() => setDetail(item)}
-                              className="block max-w-60 truncate text-left text-sm font-semibold text-slate-900 transition hover:text-sky-600"
+                              className="block max-w-60 truncate text-left text-sm font-semibold text-[#141416] transition hover:text-[#57534E]"
                               title={item.title}
                             >
                               {item.title}
                             </button>
-                            <span className="mt-0.5 inline-block rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium tracking-wide text-slate-500 uppercase">
+                            <span className="mt-0.5 inline-block rounded-full bg-[#EFECE8] px-2 py-0.5 text-[10px] font-medium tracking-wide text-[#57534E] uppercase">
                               {item.category?.name ?? "Tanpa kategori"}
                             </span>
                           </td>
-                          <td className="max-w-44 truncate px-4 py-4 font-medium text-slate-800">
+                          <td className="max-w-44 truncate px-4 py-4 font-medium text-[#141416]">
                             {item.organizer_name}
                           </td>
-                          <td className="px-4 py-4 text-xs whitespace-nowrap text-slate-600">
-                            <p className="font-semibold text-slate-800">
+                          <td className="px-4 py-4 text-xs whitespace-nowrap text-[#57534E]">
+                            <p className="font-semibold text-[#141416]">
                               {formatDate(item.event_date)}
                             </p>
                             {item.event_time && (
-                              <p className="text-slate-400">{item.event_time}</p>
+                              <p className="text-[#787470]">{item.event_time}</p>
                             )}
                           </td>
-                          <td className="max-w-44 truncate px-4 py-4 text-slate-600" title={item.location}>
+                          <td className="max-w-44 truncate px-4 py-4 text-[#57534E]" title={item.location}>
                             {item.location}
                           </td>
                           <td className="px-4 py-4">
@@ -391,7 +391,7 @@ export default function EventsAdminPage() {
                                 onClick={() => setDetail(item)}
                                 title="Detail event"
                                 aria-label={`Detail ${item.title}`}
-                                className="rounded p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                                className="rounded-lg p-1.5 text-[#787470] transition hover:bg-[#EFECE8] hover:text-[#141416]"
                               >
                                 <ActionIcon name="eye" />
                               </button>
@@ -399,7 +399,7 @@ export default function EventsAdminPage() {
                                 href={`/events/${item.id}/edit`}
                                 title="Ubah event"
                                 aria-label={`Ubah ${item.title}`}
-                                className="rounded p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+                                className="rounded-lg p-1.5 text-[#57534E] transition hover:bg-[#EFECE8] hover:text-[#141416]"
                               >
                                 <ActionIcon name="edit" />
                               </Link>
@@ -415,7 +415,7 @@ export default function EventsAdminPage() {
                                   }
                                   title="Publikasikan event"
                                   aria-label={`Publikasikan ${item.title}`}
-                                  className="rounded p-1.5 text-emerald-600 transition hover:bg-emerald-500/15"
+                                  className="rounded-lg p-1.5 text-[#226A46] transition hover:bg-[#E4F2EA]"
                                 >
                                   <ActionIcon name="check" />
                                 </button>
@@ -432,7 +432,7 @@ export default function EventsAdminPage() {
                                   }
                                   title="Arsipkan event"
                                   aria-label={`Arsipkan ${item.title}`}
-                                  className="rounded p-1.5 text-amber-600 transition hover:bg-amber-500/15"
+                                  className="rounded-lg p-1.5 text-[#8E581A] transition hover:bg-[#FBEAD8]"
                                 >
                                   <ActionIcon name="archive" />
                                 </button>
@@ -442,7 +442,7 @@ export default function EventsAdminPage() {
                                 onClick={() => setConfirm({ kind: "delete", item })}
                                 title="Hapus event"
                                 aria-label={`Hapus ${item.title}`}
-                                className="rounded p-1.5 text-rose-600 transition hover:bg-rose-500/15"
+                                className="rounded-lg p-1.5 text-[#C53939] transition hover:bg-[#FDECEC]"
                               >
                                 <ActionIcon name="trash" />
                               </button>

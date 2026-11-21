@@ -135,12 +135,12 @@ export default function EventForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-5 rounded-xl bg-white p-6 shadow-sm"
+      className="space-y-5 rounded-2xl border border-[#E5E0DA] bg-white p-6"
     >
       {displayError && (
         <p
           role="alert"
-          className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm font-medium text-rose-700"
+          className="rounded-xl border border-[#F3C6C6] bg-[#FDECEC] px-3.5 py-2.5 text-sm font-medium text-[#A62D2D]"
         >
           {displayError}
         </p>
@@ -149,9 +149,9 @@ export default function EventForm({
       <div>
         <label
           htmlFor="event-title"
-          className="mb-1.5 block text-xs font-semibold text-slate-600"
+          className="mb-1.5 block text-xs font-semibold text-[#57534E]"
         >
-          Judul Event / Informasi <span className="text-rose-600">*</span>
+          Judul Event / Informasi <span className="text-[#C53939]">*</span>
         </label>
         <input
           id="event-title"
@@ -161,7 +161,7 @@ export default function EventForm({
           value={values.title}
           onChange={(e) => setField("title", e.target.value)}
           placeholder="Contoh: Seminar Nasional Teknologi Informasi UPN 2026"
-          className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+          className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3.5 py-2.5 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
         />
       </div>
 
@@ -169,9 +169,9 @@ export default function EventForm({
         <div>
           <label
             htmlFor="event-organizer"
-            className="mb-1.5 block text-xs font-semibold text-slate-600"
+            className="mb-1.5 block text-xs font-semibold text-[#57534E]"
           >
-            Penyelenggara <span className="text-rose-600">*</span>
+            Penyelenggara <span className="text-[#C53939]">*</span>
           </label>
           <input
             id="event-organizer"
@@ -181,14 +181,14 @@ export default function EventForm({
             value={values.organizer_name}
             onChange={(e) => setField("organizer_name", e.target.value)}
             placeholder="Contoh: BEM Fasilkom UPN"
-            className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+            className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3.5 py-2.5 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
           />
         </div>
 
         <div>
           <label
             htmlFor="event-category"
-            className="mb-1.5 block text-xs font-semibold text-slate-600"
+            className="mb-1.5 block text-xs font-semibold text-[#57534E]"
           >
             Kategori
           </label>
@@ -197,7 +197,7 @@ export default function EventForm({
               id="event-category"
               value={values.category_id}
               onChange={(e) => setField("category_id", e.target.value)}
-              className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white py-2 pr-9 pl-3.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+              className="w-full cursor-pointer appearance-none rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] py-2.5 pr-9 pl-3.5 text-sm text-[#141416] outline-none transition focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
             >
               <option value="">Pilih kategori (opsional)</option>
               {categories.map((cat) => (
@@ -214,9 +214,9 @@ export default function EventForm({
         <div>
           <label
             htmlFor="event-date"
-            className="mb-1.5 block text-xs font-semibold text-slate-600"
+            className="mb-1.5 block text-xs font-semibold text-[#57534E]"
           >
-            Tanggal Acara <span className="text-rose-600">*</span>
+            Tanggal Acara <span className="text-[#C53939]">*</span>
           </label>
           <input
             id="event-date"
@@ -224,14 +224,14 @@ export default function EventForm({
             required
             value={values.event_date}
             onChange={(e) => setField("event_date", e.target.value)}
-            className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+            className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3.5 py-2.5 text-sm text-[#141416] outline-none transition focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
           />
         </div>
 
         <div>
           <label
             htmlFor="event-time"
-            className="mb-1.5 block text-xs font-semibold text-slate-600"
+            className="mb-1.5 block text-xs font-semibold text-[#57534E]"
           >
             Waktu Pelaksanaan
           </label>
@@ -242,14 +242,14 @@ export default function EventForm({
             value={values.event_time}
             onChange={(e) => setField("event_time", e.target.value)}
             placeholder="09:00 – 12:00 WIB"
-            className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+            className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3.5 py-2.5 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
           />
         </div>
 
         <div>
           <label
             htmlFor="event-status"
-            className="mb-1.5 block text-xs font-semibold text-slate-600"
+            className="mb-1.5 block text-xs font-semibold text-[#57534E]"
           >
             Status Publikasi
           </label>
@@ -258,7 +258,7 @@ export default function EventForm({
               id="event-status"
               value={values.status}
               onChange={(e) => setField("status", e.target.value as EventStatus)}
-              className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white py-2 pr-9 pl-3.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+              className="w-full cursor-pointer appearance-none rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] py-2.5 pr-9 pl-3.5 text-sm text-[#141416] outline-none transition focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
             >
               <option value="published">Published (Tayang)</option>
               <option value="draft">Draft</option>
@@ -274,9 +274,9 @@ export default function EventForm({
         <div>
           <label
             htmlFor="event-location"
-            className="mb-1.5 block text-xs font-semibold text-slate-600"
+            className="mb-1.5 block text-xs font-semibold text-[#57534E]"
           >
-            Lokasi <span className="text-rose-600">*</span>
+            Lokasi <span className="text-[#C53939]">*</span>
           </label>
           <input
             id="event-location"
@@ -286,14 +286,14 @@ export default function EventForm({
             value={values.location}
             onChange={(e) => setField("location", e.target.value)}
             placeholder="Contoh: Gedung Giri Loka UPN / Zoom Meeting"
-            className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+            className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3.5 py-2.5 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
           />
         </div>
 
         <div>
           <label
             htmlFor="event-link"
-            className="mb-1.5 block text-xs font-semibold text-slate-600"
+            className="mb-1.5 block text-xs font-semibold text-[#57534E]"
           >
             Tautan Pendaftaran (Opsional)
           </label>
@@ -304,7 +304,7 @@ export default function EventForm({
             value={values.registration_link}
             onChange={(e) => setField("registration_link", e.target.value)}
             placeholder="https://..."
-            className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+            className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3.5 py-2.5 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
           />
         </div>
       </div>
@@ -313,21 +313,21 @@ export default function EventForm({
       <div>
         <label
           htmlFor="event-poster"
-          className="mb-1.5 block text-xs font-semibold text-slate-600"
+          className="mb-1.5 block text-xs font-semibold text-[#57534E]"
         >
           Poster / Gambar Event (Opsional)
         </label>
-        <div className="flex flex-col gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50/70 p-4 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-3 rounded-xl border border-dashed border-[#D5cec6] bg-[#FAF8F6] p-4 sm:flex-row sm:items-center">
           {activePosterPreview ? (
             <AdminImage
               src={activePosterPreview}
               alt="Preview poster event"
-              className="h-28 w-44 shrink-0 rounded-lg border border-slate-200 bg-white object-cover"
-              fallbackClassName="flex h-28 w-44 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white px-2 text-center text-xs text-slate-400"
+              className="h-28 w-44 shrink-0 rounded-xl border border-[#E5E0DA] bg-white object-cover"
+              fallbackClassName="flex h-28 w-44 shrink-0 items-center justify-center rounded-xl border border-[#E5E0DA] bg-white px-2 text-center text-xs text-[#787470]"
               fallbackLabel="Poster tidak dapat dimuat"
             />
           ) : (
-            <div className="flex h-28 w-44 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs text-slate-400">
+            <div className="flex h-28 w-44 shrink-0 items-center justify-center rounded-xl border border-[#E5E0DA] bg-white text-xs text-[#787470]">
               Belum ada poster
             </div>
           )}
@@ -338,9 +338,9 @@ export default function EventForm({
               accept="image/jpeg,image/png,image/webp"
               disabled={submitting}
               onChange={handlePosterChange}
-              className="block w-full text-xs text-slate-600 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-slate-800"
+              className="block w-full text-xs text-[#57534E] file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-[#141416] file:px-3.5 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-[#242428]"
             />
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[#787470]">
               Format JPG, PNG, atau WebP. Ukuran maksimal 5 MB.
             </p>
             {activePosterPreview && (
@@ -348,7 +348,7 @@ export default function EventForm({
                 type="button"
                 disabled={submitting}
                 onClick={handleRemovePoster}
-                className="text-xs font-semibold text-rose-600 hover:underline disabled:opacity-50"
+                className="text-xs font-semibold text-[#C53939] hover:underline disabled:opacity-50"
               >
                 Hapus Poster
               </button>
@@ -360,9 +360,9 @@ export default function EventForm({
       <div>
         <label
           htmlFor="event-description"
-          className="mb-1.5 block text-xs font-semibold text-slate-600"
+          className="mb-1.5 block text-xs font-semibold text-[#57534E]"
         >
-          Deskripsi Lengkap <span className="text-rose-600">*</span>
+          Deskripsi Lengkap <span className="text-[#C53939]">*</span>
         </label>
         <textarea
           id="event-description"
@@ -371,21 +371,21 @@ export default function EventForm({
           value={values.description}
           onChange={(e) => setField("description", e.target.value)}
           placeholder="Tuliskan rincian agenda, persyaratan peserta, dan informasi penting lainnya…"
-          className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+          className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3.5 py-2.5 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
         />
       </div>
 
-      <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+      <div className="flex items-center justify-end gap-3 border-t border-[#F2EEEA] pt-4">
         <Link
           href="/events"
-          className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+          className="rounded-full border border-[#DFD9D2] bg-white px-4 py-2 text-xs font-semibold text-[#141416] transition hover:border-[#CFC8BF] hover:bg-[#FAF8F6]"
         >
           Batal
         </Link>
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+          className="rounded-full bg-[#141416] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[#242428] disabled:opacity-60"
         >
           {submitting ? "Menyimpan…" : submitLabel}
         </button>

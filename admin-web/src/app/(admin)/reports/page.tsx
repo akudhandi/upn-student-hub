@@ -94,10 +94,10 @@ function ResolveDialog({
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-base font-bold text-slate-900">
+          <h3 className="font-display text-base font-semibold text-[#141416]">
             Laporan #{report.id} · {moduleLabel(report.reportable_type)}
           </h3>
-          <p className="mt-0.5 text-xs text-slate-400">
+          <p className="mt-0.5 text-xs text-[#787470]">
             Pelapor: {report.reporter?.name ?? `User #${report.reporter_id}`}
           </p>
         </div>
@@ -106,21 +106,21 @@ function ResolveDialog({
 
       <dl className="mt-4 space-y-2 text-sm">
         <div className="flex justify-between gap-4">
-          <dt className="text-slate-400">Target Terlapor</dt>
-          <dd className="font-semibold text-right text-slate-900">
+          <dt className="text-[#787470]">Target Terlapor</dt>
+          <dd className="font-semibold text-right text-[#141416]">
             {targetDisplay(report)}
           </dd>
         </div>
         <div className="flex justify-between gap-4">
-          <dt className="text-slate-400">Kategori Alasan</dt>
-          <dd className="font-medium text-slate-800">
+          <dt className="text-[#787470]">Kategori Alasan</dt>
+          <dd className="font-medium text-[#141416]">
             {REASON_LABELS[report.reason] ?? report.reason}
           </dd>
         </div>
       </dl>
 
       {report.description && (
-        <p className="mt-3 rounded-lg bg-slate-50 p-3 text-sm whitespace-pre-line text-slate-600">
+        <p className="mt-3 rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] p-3.5 text-sm whitespace-pre-line text-[#57534E]">
           {report.description}
         </p>
       )}
@@ -130,12 +130,12 @@ function ResolveDialog({
           e.preventDefault();
           onSubmit(nextStatus, targetAction);
         }}
-        className="mt-5 space-y-4 border-t border-slate-100 pt-4"
+        className="mt-5 space-y-4 border-t border-[#F2EEEA] pt-4"
       >
         <div>
           <label
             htmlFor="resolve-status"
-            className="mb-1.5 block text-xs font-semibold text-slate-600"
+            className="mb-1.5 block text-xs font-semibold text-[#57534E]"
           >
             Status Laporan
           </label>
@@ -146,7 +146,7 @@ function ResolveDialog({
               onChange={(e) =>
                 setNextStatus(e.target.value as Exclude<ReportStatus, "pending">)
               }
-              className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white py-2 pr-9 pl-3.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+              className="w-full cursor-pointer appearance-none rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] py-2 pr-9 pl-3.5 text-sm text-[#141416] outline-none transition focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
             >
               <option value="resolved">Resolved (Diselesaikan)</option>
               <option value="reviewing">Reviewing (Sedang Ditinjau)</option>
@@ -159,7 +159,7 @@ function ResolveDialog({
         <div>
           <label
             htmlFor="resolve-action"
-            className="mb-1.5 block text-xs font-semibold text-slate-600"
+            className="mb-1.5 block text-xs font-semibold text-[#57534E]"
           >
             Tindakan Moderasi pada Target
           </label>
@@ -170,7 +170,7 @@ function ResolveDialog({
               onChange={(e) =>
                 setTargetAction(e.target.value as ReportTargetAction)
               }
-              className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white py-2 pr-9 pl-3.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+              className="w-full cursor-pointer appearance-none rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] py-2 pr-9 pl-3.5 text-sm text-[#141416] outline-none transition focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
             >
               <option value="none">Tanpa tindakan tambahan pada target</option>
               <option value="hide_content">Nonaktifkan / Sembunyikan Konten</option>
@@ -186,14 +186,14 @@ function ResolveDialog({
             type="button"
             onClick={onClose}
             disabled={busy}
-            className="rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-full border border-[#DFD9D2] bg-white px-4 py-2 text-xs font-semibold text-[#141416] transition hover:border-[#CFC8BF] hover:bg-[#FAF8F6] disabled:opacity-50"
           >
             Batal
           </button>
           <button
             type="submit"
             disabled={busy}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-full bg-[#141416] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[#242428] disabled:opacity-60"
           >
             {busy ? "Memproses…" : "Simpan Keputusan"}
           </button>
@@ -299,13 +299,13 @@ export default function ReportsAdminPage() {
     <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:p-8">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[11px] font-medium tracking-wide text-slate-400 uppercase">
+          <p className="text-xs font-medium text-[#787470]">
             Komunitas
           </p>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h2 className="mt-1 font-display text-2xl font-semibold tracking-tight text-[#141416] sm:text-3xl">
             Reports &amp; Moderasi
           </h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-[#6E6A66]">
             Tinjau laporan pelanggaran dari mahasiswa dan terapkan tindakan moderasi pada konten atau akun.
           </p>
         </div>
@@ -319,17 +319,17 @@ export default function ReportsAdminPage() {
       {actionError && (
         <p
           role="alert"
-          className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700"
+          className="rounded-xl border border-[#F3C6C6] bg-[#FDECEC] px-3.5 py-2.5 text-sm font-medium text-[#A62D2D]"
         >
           {actionError}
         </p>
       )}
 
-      <section className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+      <section className="flex flex-col gap-3 rounded-2xl border border-[#E5E0DA] bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full lg:w-96">
           <ActionIcon
             name="search"
-            className="absolute top-1/2 left-3.5 h-5 w-5 -translate-y-1/2 text-slate-400"
+            className="absolute top-1/2 left-3.5 h-5 w-5 -translate-y-1/2 text-[#787470]"
           />
           <input
             type="text"
@@ -337,11 +337,11 @@ export default function ReportsAdminPage() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari alasan, deskripsi, atau nama pelapor…"
             aria-label="Cari laporan"
-            className="w-full rounded-lg bg-slate-100 py-2 pr-4 pl-10 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-1 focus:ring-sky-500"
+            className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] py-2 pr-4 pl-10 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
           />
         </div>
         <div className="flex items-center gap-2.5">
-          <label htmlFor="report-status-filter" className="text-xs font-semibold text-slate-500">
+          <label htmlFor="report-status-filter" className="text-xs font-semibold text-[#57534E]">
             Status
           </label>
           <SelectWrapper>
@@ -352,7 +352,7 @@ export default function ReportsAdminPage() {
                 setStatus(e.target.value);
                 setPage(1);
               }}
-              className="cursor-pointer appearance-none rounded-lg bg-slate-100 py-2 pr-8 pl-3.5 text-sm text-slate-800 outline-none focus:ring-1 focus:ring-sky-500"
+              className="cursor-pointer appearance-none rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] py-2 pr-8 pl-3.5 text-sm text-[#141416] outline-none transition focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
             >
               <option value="">Semua Status</option>
               <option value="pending">Pending</option>
@@ -365,7 +365,7 @@ export default function ReportsAdminPage() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-xl bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-[#E5E0DA] bg-white">
         <TableState
           error={error}
           onRetry={() => {
@@ -383,7 +383,7 @@ export default function ReportsAdminPage() {
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left">
                   <thead>
-                    <tr className="bg-slate-50 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                    <tr className="border-b border-[#F2EEEA] bg-[#FAF8F6] text-xs font-semibold tracking-wider text-[#6E6A66] uppercase">
                       <th className="px-4 py-3.5 font-medium">Objek Terlapor</th>
                       <th className="px-4 py-3.5 font-medium">Alasan</th>
                       <th className="px-4 py-3.5 font-medium">Pelapor</th>
@@ -392,33 +392,33 @@ export default function ReportsAdminPage() {
                       <th className="px-4 py-3.5 text-right font-medium">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-sm">
+                  <tbody className="divide-y divide-[#F2EEEA] text-sm">
                     {result.data.map((item) => {
                       const meta = statusMeta(item.status);
                       return (
-                        <tr key={item.id} className="transition hover:bg-slate-50">
+                        <tr key={item.id} className="transition hover:bg-[#FAF8F6]">
                           <td className="px-4 py-4">
-                            <p className="max-w-60 truncate font-semibold text-slate-900">
+                            <p className="max-w-60 truncate font-semibold text-[#141416]">
                               {targetDisplay(item)}
                             </p>
-                            <span className="mt-0.5 inline-block rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium tracking-wide text-slate-500 uppercase">
+                            <span className="mt-0.5 inline-block rounded-full bg-[#EFECE8] px-2 py-0.5 text-[10px] font-medium tracking-wide text-[#57534E] uppercase">
                               {moduleLabel(item.reportable_type)} · #{item.reportable_id}
                             </span>
                           </td>
                           <td className="max-w-60 px-4 py-4">
-                            <p className="font-medium text-slate-800">
+                            <p className="font-medium text-[#141416]">
                               {REASON_LABELS[item.reason] ?? item.reason}
                             </p>
                             {item.description && (
-                              <p className="mt-0.5 truncate text-xs text-slate-400">
+                              <p className="mt-0.5 truncate text-xs text-[#787470]">
                                 {item.description}
                               </p>
                             )}
                           </td>
-                          <td className="px-4 py-4 font-medium whitespace-nowrap text-slate-700">
+                          <td className="px-4 py-4 font-medium whitespace-nowrap text-[#57534E]">
                             {item.reporter?.name ?? `User #${item.reporter_id}`}
                           </td>
-                          <td className="px-4 py-4 text-xs whitespace-nowrap text-slate-400">
+                          <td className="px-4 py-4 text-xs whitespace-nowrap text-[#787470]">
                             {timeAgo(item.created_at)}
                           </td>
                           <td className="px-4 py-4">
@@ -428,7 +428,7 @@ export default function ReportsAdminPage() {
                             <button
                               type="button"
                               onClick={() => setSelected(item)}
-                              className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800"
+                              className="rounded-full bg-[#141416] px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[#242428]"
                             >
                               Proses
                             </button>

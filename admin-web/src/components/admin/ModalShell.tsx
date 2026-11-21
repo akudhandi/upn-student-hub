@@ -30,7 +30,7 @@ export default function ModalShell({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#141416]/35 p-4 backdrop-blur-[1px]"
       onClick={() => {
         if (!busy) onClose();
       }}
@@ -39,7 +39,7 @@ export default function ModalShell({
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
-        className={`w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-lg ${SIZE_CLASSES[size]}`}
+        className={`w-full rounded-[24px] border border-[#E5E0DA] bg-white p-6 shadow-[0_28px_60px_-28px_rgba(20,20,22,0.28)] ${SIZE_CLASSES[size]}`}
         onClick={(e) => e.stopPropagation()}
       >
         {children}

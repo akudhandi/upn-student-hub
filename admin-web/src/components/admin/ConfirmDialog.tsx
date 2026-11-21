@@ -35,7 +35,7 @@ export default function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#141416]/35 p-4 backdrop-blur-[1px]"
       onClick={() => {
         if (!busy) onCancel();
       }}
@@ -44,18 +44,20 @@ export default function ConfirmDialog({
         role="alertdialog"
         aria-modal="true"
         aria-label={title}
-        className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-lg"
+        className="w-full max-w-sm rounded-[24px] border border-[#E5E0DA] bg-white p-6 shadow-[0_28px_60px_-28px_rgba(20,20,22,0.28)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-base font-bold text-slate-900">{title}</h3>
-        <p className="mt-2 text-sm text-slate-500">{message}</p>
-        <div className="mt-5 flex justify-end gap-2">
+        <h3 className="font-display text-base font-semibold text-[#141416]">
+          {title}
+        </h3>
+        <p className="mt-2 text-sm text-[#6E6A66]">{message}</p>
+        <div className="mt-6 flex justify-end gap-2">
           <button
             ref={cancelRef}
             type="button"
             onClick={onCancel}
             disabled={busy}
-            className="rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-full border border-[#DFD9D2] bg-white px-4 py-2 text-xs font-semibold text-[#141416] transition hover:border-[#CFC8BF] hover:bg-[#FAF8F6] disabled:opacity-50"
           >
             Batal
           </button>
@@ -63,10 +65,10 @@ export default function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             disabled={busy}
-            className={`rounded-lg px-3.5 py-2 text-sm font-semibold text-white transition disabled:opacity-60 ${
+            className={`rounded-full px-4 py-2 text-xs font-semibold text-white transition disabled:opacity-60 ${
               danger
-                ? "bg-rose-600 hover:bg-rose-700"
-                : "bg-slate-900 hover:bg-slate-800"
+                ? "bg-[#C53939] hover:bg-[#A62D2D]"
+                : "bg-[#141416] hover:bg-[#242428]"
             }`}
           >
             {busy ? "Memproses…" : confirmLabel}

@@ -26,13 +26,13 @@ export default function TableState({
   if (error) {
     return (
       <div className="flex flex-col items-center gap-3 px-5 py-12">
-        <p role="alert" className="text-sm font-medium text-rose-700">
+        <p role="alert" className="text-sm font-medium text-[#A62D2D]">
           {error}
         </p>
         <button
           type="button"
           onClick={onRetry}
-          className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800"
+          className="rounded-full bg-[#141416] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[#242428]"
         >
           Coba lagi
         </button>
@@ -46,7 +46,7 @@ export default function TableState({
         {Array.from({ length: skeletonRows }).map((_, i) => (
           <div
             key={i}
-            className={`${skeletonHeightClass} animate-pulse rounded-lg bg-slate-100`}
+            className={`${skeletonHeightClass} animate-pulse rounded-xl bg-[#EFECE8]`}
           />
         ))}
       </div>

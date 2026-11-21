@@ -12,7 +12,7 @@ export default function SelectWrapper({
       {children}
       <ActionIcon
         name="chevron-down"
-        className="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 text-slate-400"
+        className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-[#787470]"
       />
     </div>
   );

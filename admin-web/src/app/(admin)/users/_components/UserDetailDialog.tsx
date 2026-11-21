@@ -96,23 +96,23 @@ export default function UserDetailDialog({
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#141416] text-sm font-semibold text-white">
             {initialsOf(displayName)}
           </div>
           <div>
-            <h3 className="flex items-center gap-1.5 text-base font-bold text-slate-900">
+            <h3 className="flex items-center gap-1.5 font-display text-base font-semibold text-[#141416]">
               <span>{displayName}</span>
               {typeMeta.isOfficial && <VerifiedCheckIcon />}
             </h3>
-            <p className="text-xs text-slate-500">{user.email}</p>
+            <p className="text-xs text-[#6E6A66]">{user.email}</p>
           </div>
         </div>
         <StatusBadge label={meta.label} tone={meta.tone} />
       </div>
 
-      <dl className="mt-5 space-y-2 border-t border-slate-100 pt-4 text-sm">
+      <dl className="mt-5 space-y-2 border-t border-[#F2EEEA] pt-4 text-sm">
         <div className="flex justify-between gap-4">
-          <dt className="text-slate-400">Tipe Akun</dt>
+          <dt className="text-[#787470]">Tipe Akun</dt>
           <dd>
             <span
               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${typeMeta.pillClass}`}
@@ -123,33 +123,33 @@ export default function UserDetailDialog({
           </dd>
         </div>
         <div className="flex justify-between gap-4">
-          <dt className="text-slate-400">NIM</dt>
-          <dd className="font-mono font-semibold text-slate-800">
+          <dt className="text-[#787470]">NIM</dt>
+          <dd className="font-mono font-semibold text-[#141416]">
             {user.profile?.nim || "-"}
           </dd>
         </div>
         <div className="flex justify-between gap-4">
-          <dt className="text-slate-400">Fakultas</dt>
-          <dd className="text-right font-medium text-slate-800">
+          <dt className="text-[#787470]">Fakultas</dt>
+          <dd className="text-right font-medium text-[#141416]">
             {user.profile?.faculty || "-"}
           </dd>
         </div>
         <div className="flex justify-between gap-4">
-          <dt className="text-slate-400">Total Konten / Listing</dt>
-          <dd className="font-bold text-slate-900">
+          <dt className="text-[#787470]">Total Konten / Listing</dt>
+          <dd className="font-semibold text-[#141416]">
             {detail ? `${detail.listings_count} item` : "…"}
           </dd>
         </div>
         <div className="flex justify-between gap-4">
-          <dt className="text-slate-400">Terdaftar</dt>
-          <dd className="font-medium text-slate-800">
+          <dt className="text-[#787470]">Terdaftar</dt>
+          <dd className="font-medium text-[#141416]">
             {formatDate(user.created_at)}
           </dd>
         </div>
       </dl>
 
       {user.profile?.bio && (
-        <p className="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+        <p className="mt-4 rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] p-3 text-sm text-[#57534E]">
           {user.profile.bio}
         </p>
       )}
@@ -157,16 +157,16 @@ export default function UserDetailDialog({
       {/* Role & Credentials Provisioning */}
       <form
         onSubmit={handleSaveRole}
-        className="mt-5 space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4"
+        className="mt-5 space-y-3 rounded-2xl border border-[#E5E0DA] bg-[#FAF8F6] p-4"
       >
-        <h4 className="text-xs font-semibold tracking-wider text-slate-700 uppercase">
+        <h4 className="text-xs font-semibold tracking-wider text-[#57534E] uppercase">
           Pengaturan Tipe Akun &amp; Kredensial
         </h4>
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           <div>
             <label
               htmlFor="detail-account-type"
-              className="block text-[11px] font-semibold text-slate-600"
+              className="block text-[11px] font-semibold text-[#57534E]"
             >
               Tipe Akun
             </label>
@@ -177,7 +177,7 @@ export default function UserDetailDialog({
                 setNextAccountType(e.target.value as UserAccountType)
               }
               disabled={savingRole}
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="mt-1 w-full rounded-xl border border-[#E5E0DA] bg-white px-2.5 py-1.5 text-xs text-[#141416] focus:border-[#141416] focus:ring-2 focus:ring-[#141416]/10 focus:outline-none"
             >
               {ACCOUNT_TYPE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -189,7 +189,7 @@ export default function UserDetailDialog({
           <div>
             <label
               htmlFor="detail-reset-password"
-              className="block text-[11px] font-semibold text-slate-600"
+              className="block text-[11px] font-semibold text-[#57534E]"
             >
               Reset Password (Opsional)
             </label>
@@ -203,7 +203,7 @@ export default function UserDetailDialog({
                 onChange={(e) => setResetPassword(e.target.value)}
                 disabled={savingRole}
                 placeholder="Kosongkan jika tetap"
-                className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 pr-16 text-xs text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none"
+                className="w-full rounded-xl border border-[#E5E0DA] bg-white px-2.5 py-1.5 pr-16 text-xs text-[#141416] placeholder:text-[#8C8782] focus:border-[#141416] focus:ring-2 focus:ring-[#141416]/10 focus:outline-none"
               />
               <button
                 type="button"
@@ -214,7 +214,7 @@ export default function UserDetailDialog({
                     ? "Sembunyikan password"
                     : "Tampilkan password"
                 }
-                className="absolute top-1/2 right-2.5 -translate-y-1/2 text-[11px] font-semibold text-slate-500 transition hover:text-slate-800 disabled:opacity-50"
+                className="absolute top-1/2 right-2.5 -translate-y-1/2 text-[11px] font-semibold text-[#6E6A66] transition hover:text-[#141416] disabled:opacity-50"
               >
                 {showResetPassword ? "Sembunyi" : "Tampil"}
               </button>
@@ -222,29 +222,29 @@ export default function UserDetailDialog({
           </div>
         </div>
         {roleNotice && (
-          <p className="text-xs font-medium text-emerald-700">{roleNotice}</p>
+          <p className="text-xs font-medium text-[#226A46]">{roleNotice}</p>
         )}
         <div className="flex justify-end">
           <button
             type="submit"
             disabled={savingRole}
-            className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-full bg-[#141416] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[#242428] disabled:opacity-60"
           >
             {savingRole ? "Menyimpan…" : "Simpan Pengaturan"}
           </button>
         </div>
       </form>
 
-      <div className="mt-5 border-t border-slate-100 pt-4">
-        <h4 className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+      <div className="mt-5 border-t border-[#F2EEEA] pt-4">
+        <h4 className="text-xs font-semibold tracking-wider text-[#6E6A66] uppercase">
           Riwayat Laporan Terkait
         </h4>
         {error ? (
-          <p className="mt-2 text-xs text-rose-600">{error}</p>
+          <p className="mt-2 text-xs text-[#A62D2D]">{error}</p>
         ) : !detail ? (
-          <div className="mt-2 h-14 animate-pulse rounded-lg bg-slate-100" />
+          <div className="mt-2 h-14 animate-pulse rounded-xl bg-[#EFECE8]" />
         ) : detail.reports_history.length === 0 ? (
-          <p className="mt-2 text-xs text-slate-400">
+          <p className="mt-2 text-xs text-[#787470]">
             Tidak ada catatan pelaporan pada akun ini.
           </p>
         ) : (
@@ -252,18 +252,18 @@ export default function UserDetailDialog({
             {detail.reports_history.map((rep) => (
               <li
                 key={rep.id}
-                className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs"
+                className="rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3 py-2 text-xs"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold text-slate-800">
+                  <span className="font-semibold text-[#141416]">
                     {shortReportableType(rep.reportable_type)} #
                     {rep.reportable_id}
                   </span>
-                  <span className="rounded bg-slate-200/70 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 uppercase">
+                  <span className="rounded-full bg-[#EFECE8] px-2 py-0.5 text-[10px] font-semibold text-[#57534E] uppercase">
                     {rep.status}
                   </span>
                 </div>
-                <p className="mt-0.5 text-slate-600">{rep.reason}</p>
+                <p className="mt-0.5 text-[#57534E]">{rep.reason}</p>
               </li>
             ))}
           </ul>
@@ -275,7 +275,7 @@ export default function UserDetailDialog({
           type="button"
           onClick={onClose}
           disabled={savingRole}
-          className="rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+          className="rounded-full border border-[#DFD9D2] bg-white px-4 py-2 text-xs font-semibold text-[#141416] transition hover:border-[#CFC8BF] hover:bg-[#FAF8F6] disabled:opacity-50"
         >
           Tutup
         </button>

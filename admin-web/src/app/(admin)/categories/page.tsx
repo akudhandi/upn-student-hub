@@ -55,17 +55,17 @@ function CategoryFormModal({
       busy={saving}
       size="md"
     >
-      <h3 className="text-base font-bold text-slate-900">
+      <h3 className="font-display text-base font-semibold text-[#141416]">
         {editing ? "Ubah Kategori" : "Tambah Kategori Baru"}
       </h3>
-      <p className="mt-1 text-xs text-slate-500">
-        Modul: <span className="font-semibold text-slate-700">{moduleLabel}</span>
+      <p className="mt-1 text-xs text-[#6E6A66]">
+        Modul: <span className="font-semibold text-[#141416]">{moduleLabel}</span>
       </p>
 
       {error && (
         <p
           role="alert"
-          className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700"
+          className="mt-3 rounded-xl border border-[#F3C6C6] bg-[#FDECEC] px-3 py-2 text-xs font-medium text-[#A62D2D]"
         >
           {error}
         </p>
@@ -81,7 +81,7 @@ function CategoryFormModal({
         <div>
           <label
             htmlFor="category-name"
-            className="mb-1.5 block text-xs font-semibold text-slate-600"
+            className="mb-1.5 block text-xs font-semibold text-[#57534E]"
           >
             Nama Kategori
           </label>
@@ -94,7 +94,7 @@ function CategoryFormModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Contoh: Elektronik & Gadget"
-            className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+            className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3.5 py-2.5 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
           />
         </div>
 
@@ -103,14 +103,14 @@ function CategoryFormModal({
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-full border border-[#DFD9D2] bg-white px-4 py-2 text-xs font-semibold text-[#141416] transition hover:border-[#CFC8BF] hover:bg-[#FAF8F6] disabled:opacity-50"
           >
             Batal
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-full bg-[#141416] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[#242428] disabled:opacity-60"
           >
             {saving ? "Menyimpan…" : "Simpan"}
           </button>
@@ -239,13 +239,13 @@ export default function CategoriesAdminPage() {
     <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:p-8">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[11px] font-medium tracking-wide text-slate-400 uppercase">
+          <p className="text-xs font-medium text-[#787470]">
             Sistem
           </p>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h2 className="mt-1 font-display text-2xl font-semibold tracking-tight text-[#141416] sm:text-3xl">
             Master Data Categories
           </h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-[#6E6A66]">
             Kelola taksonomi kategori per modul: tambah, ubah nama, aktif/nonaktifkan, atau hapus.
           </p>
         </div>
@@ -256,7 +256,7 @@ export default function CategoriesAdminPage() {
             setModalError(null);
             setModalOpen(true);
           }}
-          className="inline-flex items-center gap-1.5 self-start rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white shadow-2xs transition hover:bg-slate-800 sm:self-auto"
+          className="inline-flex items-center gap-1.5 self-start rounded-full bg-[#141416] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#242428] sm:self-auto"
         >
           <span aria-hidden="true" className="text-sm leading-none">
             +
@@ -268,13 +268,13 @@ export default function CategoriesAdminPage() {
       {actionError && (
         <p
           role="alert"
-          className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700"
+          className="rounded-xl border border-[#F3C6C6] bg-[#FDECEC] px-3.5 py-2.5 text-sm font-medium text-[#A62D2D]"
         >
           {actionError}
         </p>
       )}
 
-      <section className="rounded-xl bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border border-[#E5E0DA] bg-white p-4">
         <div
           role="tablist"
           aria-label="Filter modul kategori"
@@ -292,10 +292,10 @@ export default function CategoriesAdminPage() {
                   setTab(t.value);
                   setPage(1);
                 }}
-                className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
+                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
                   active
-                    ? "bg-slate-900 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200/70"
+                    ? "bg-[#141416] text-white"
+                    : "bg-[#EFECE8] text-[#57534E] hover:bg-[#E5E0DA] hover:text-[#141416]"
                 }`}
               >
                 {t.label}
@@ -305,7 +305,7 @@ export default function CategoriesAdminPage() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-xl bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-[#E5E0DA] bg-white">
         <TableState
           error={error}
           onRetry={() => {
@@ -325,7 +325,7 @@ export default function CategoriesAdminPage() {
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left">
                   <thead>
-                    <tr className="bg-slate-50 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                    <tr className="border-b border-[#F2EEEA] bg-[#FAF8F6] text-xs font-semibold tracking-wider text-[#6E6A66] uppercase">
                       <th className="px-4 py-3.5 font-medium">Nama Kategori</th>
                       <th className="px-4 py-3.5 font-medium">Slug</th>
                       <th className="px-4 py-3.5 font-medium">Modul</th>
@@ -333,17 +333,17 @@ export default function CategoriesAdminPage() {
                       <th className="px-4 py-3.5 text-right font-medium">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-sm">
+                  <tbody className="divide-y divide-[#F2EEEA] text-sm">
                     {result.data.map((cat) => (
-                      <tr key={cat.id} className="transition hover:bg-slate-50">
-                        <td className="px-4 py-4 font-semibold text-slate-900">
+                      <tr key={cat.id} className="transition hover:bg-[#FAF8F6]">
+                        <td className="px-4 py-4 font-semibold text-[#141416]">
                           {cat.name}
                         </td>
-                        <td className="px-4 py-4 font-mono text-xs text-slate-500">
+                        <td className="px-4 py-4 font-mono text-xs text-[#6E6A66]">
                           {cat.slug}
                         </td>
                         <td className="px-4 py-4">
-                          <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                          <span className="rounded-full bg-[#EFECE8] px-2.5 py-0.5 text-xs font-semibold text-[#57534E]">
                             {MODULE_TABS.find((t) => t.value === cat.type)?.label ??
                               cat.type}
                           </span>
@@ -364,7 +364,7 @@ export default function CategoriesAdminPage() {
                                 setModalError(null);
                                 setModalOpen(true);
                               }}
-                              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                              className="rounded-full border border-[#DFD9D2] bg-white px-3 py-1 text-xs font-semibold text-[#141416] transition hover:border-[#CFC8BF] hover:bg-[#FAF8F6] disabled:opacity-50"
                             >
                               Edit
                             </button>
@@ -372,7 +372,7 @@ export default function CategoriesAdminPage() {
                               type="button"
                               disabled={busyId === cat.id}
                               onClick={() => handleToggle(cat)}
-                              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                              className="rounded-full border border-[#DFD9D2] bg-white px-3 py-1 text-xs font-semibold text-[#141416] transition hover:border-[#CFC8BF] hover:bg-[#FAF8F6] disabled:opacity-50"
                             >
                               {cat.is_active ? "Nonaktifkan" : "Aktifkan"}
                             </button>
@@ -380,7 +380,7 @@ export default function CategoriesAdminPage() {
                               type="button"
                               disabled={busyId === cat.id}
                               onClick={() => setConfirmDelete(cat)}
-                              className="rounded-lg bg-rose-500/15 px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-500/25 disabled:opacity-50"
+                              className="rounded-full bg-[#FDECEC] px-3 py-1 text-xs font-semibold text-[#A62D2D] transition hover:bg-[#FADADA] disabled:opacity-50"
                             >
                               Hapus
                             </button>

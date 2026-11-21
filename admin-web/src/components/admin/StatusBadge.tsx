@@ -1,19 +1,19 @@
 export type BadgeTone = "green" | "amber" | "blue" | "slate" | "rose";
 
 const TONE_CLASSES: Record<BadgeTone, string> = {
-  green: "bg-emerald-500/15 text-emerald-700",
-  amber: "bg-amber-500/15 text-amber-700",
-  blue: "bg-sky-500/15 text-sky-700",
-  slate: "bg-slate-500/15 text-slate-600",
-  rose: "bg-rose-500/15 text-rose-700",
+  green: "bg-[#E4F2EA] text-[#226A46]",
+  amber: "bg-[#FBEAD8] text-[#8E581A]",
+  blue: "bg-[#E7EEF9] text-[#35518C]",
+  slate: "bg-[#EFECE8] text-[#57534E]",
+  rose: "bg-[#FDECEC] text-[#A62D2D]",
 };
 
 const DOT_CLASSES: Record<BadgeTone, string> = {
-  green: "bg-emerald-500",
-  amber: "bg-amber-500",
-  blue: "bg-sky-500",
-  slate: "bg-slate-400",
-  rose: "bg-rose-500",
+  green: "bg-[#226A46]",
+  amber: "bg-[#B45309]",
+  blue: "bg-[#35518C]",
+  slate: "bg-[#787470]",
+  rose: "bg-[#C53939]",
 };
 
 export default function StatusBadge({
@@ -25,7 +25,7 @@ export default function StatusBadge({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium ${TONE_CLASSES[tone]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${TONE_CLASSES[tone]}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${DOT_CLASSES[tone]}`} />
       {label}

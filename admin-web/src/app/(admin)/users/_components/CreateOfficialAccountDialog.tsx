@@ -59,10 +59,10 @@ export default function CreateOfficialAccountDialog({
       onClose={onClose}
       busy={saving}
     >
-      <h3 className="text-lg font-bold text-slate-900">
+      <h3 className="font-display text-lg font-semibold text-[#141416]">
         Buat Akun Resmi Portal Mahasiswa
       </h3>
-      <p className="mt-1 text-xs text-slate-500">
+      <p className="mt-1 text-xs text-[#6E6A66]">
         Akun HIMA, Ormawa, atau Fakultas dapat langsung login di Portal Mahasiswa
         menggunakan email &amp; password ini untuk mengajukan event
         terverifikasi.
@@ -73,7 +73,7 @@ export default function CreateOfficialAccountDialog({
           <div>
             <label
               htmlFor="org-type"
-              className="block text-xs font-semibold text-slate-700"
+              className="block text-xs font-semibold text-[#57534E]"
             >
               Tipe Akun
             </label>
@@ -82,7 +82,7 @@ export default function CreateOfficialAccountDialog({
               value={accountType}
               onChange={(e) => setAccountType(e.target.value as UserAccountType)}
               disabled={saving}
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-slate-900 focus:bg-white focus:outline-none"
+              className="mt-1 w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3 py-2 text-sm text-[#141416] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10 focus:outline-none"
             >
               {ACCOUNT_TYPE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -95,7 +95,7 @@ export default function CreateOfficialAccountDialog({
           <div>
             <label
               htmlFor="org-faculty"
-              className="block text-xs font-semibold text-slate-700"
+              className="block text-xs font-semibold text-[#57534E]"
             >
               Fakultas / Lingkup
             </label>
@@ -106,7 +106,7 @@ export default function CreateOfficialAccountDialog({
               onChange={(e) => setFaculty(e.target.value)}
               disabled={saving}
               placeholder="Mis. Fakultas Ilmu Komputer"
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
+              className="mt-1 w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3 py-2 text-sm text-[#141416] placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10 focus:outline-none"
             />
           </div>
         </div>
@@ -114,7 +114,7 @@ export default function CreateOfficialAccountDialog({
         <div>
           <label
             htmlFor="org-name"
-            className="block text-xs font-semibold text-slate-700"
+            className="block text-xs font-semibold text-[#57534E]"
           >
             Nama Organisasi / Fakultas / Akun *
           </label>
@@ -126,7 +126,7 @@ export default function CreateOfficialAccountDialog({
             onChange={(e) => setName(e.target.value)}
             disabled={saving}
             placeholder="Mis. HIMA Informatika UPN"
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
+            className="mt-1 w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3 py-2 text-sm text-[#141416] placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10 focus:outline-none"
           />
         </div>
 
@@ -134,7 +134,7 @@ export default function CreateOfficialAccountDialog({
           <div>
             <label
               htmlFor="org-email"
-              className="block text-xs font-semibold text-slate-700"
+              className="block text-xs font-semibold text-[#57534E]"
             >
               Email Login *
             </label>
@@ -146,14 +146,14 @@ export default function CreateOfficialAccountDialog({
               onChange={(e) => setEmail(e.target.value)}
               disabled={saving}
               placeholder="himatif@upnjatim.ac.id"
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
+              className="mt-1 w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3 py-2 text-sm text-[#141416] placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10 focus:outline-none"
             />
           </div>
 
           <div>
             <label
               htmlFor="org-password"
-              className="block text-xs font-semibold text-slate-700"
+              className="block text-xs font-semibold text-[#57534E]"
             >
               Password Awal *
             </label>
@@ -168,7 +168,7 @@ export default function CreateOfficialAccountDialog({
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={saving}
                 placeholder="Minimal 8 karakter"
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
+                className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3 py-2 pr-16 text-sm text-[#141416] placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10 focus:outline-none"
               />
               <button
                 type="button"
@@ -177,7 +177,7 @@ export default function CreateOfficialAccountDialog({
                 aria-label={
                   showPassword ? "Sembunyikan password" : "Tampilkan password"
                 }
-                className="absolute top-1/2 right-3 -translate-y-1/2 text-xs font-semibold text-slate-500 transition hover:text-slate-800 disabled:opacity-50"
+                className="absolute top-1/2 right-3 -translate-y-1/2 text-xs font-semibold text-[#6E6A66] transition hover:text-[#141416] disabled:opacity-50"
               >
                 {showPassword ? "Sembunyi" : "Tampil"}
               </button>
@@ -188,7 +188,7 @@ export default function CreateOfficialAccountDialog({
         <div>
           <label
             htmlFor="org-bio"
-            className="block text-xs font-semibold text-slate-700"
+            className="block text-xs font-semibold text-[#57534E]"
           >
             Deskripsi Singkat (Opsional)
           </label>
@@ -199,14 +199,14 @@ export default function CreateOfficialAccountDialog({
             onChange={(e) => setBio(e.target.value)}
             disabled={saving}
             placeholder="Akun resmi penyelenggara kegiatan…"
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
+            className="mt-1 w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3 py-2 text-sm text-[#141416] placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10 focus:outline-none"
           />
         </div>
 
         {error && (
           <p
             role="alert"
-            className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700"
+            className="rounded-xl border border-[#F3C6C6] bg-[#FDECEC] px-3 py-2 text-xs font-medium text-[#A62D2D]"
           >
             {error}
           </p>
@@ -217,14 +217,14 @@ export default function CreateOfficialAccountDialog({
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-full border border-[#DFD9D2] bg-white px-4 py-2 text-xs font-semibold text-[#141416] transition hover:border-[#CFC8BF] hover:bg-[#FAF8F6] disabled:opacity-50"
           >
             Batal
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-full bg-[#141416] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[#242428] disabled:opacity-60"
           >
             {saving ? "Menyimpan…" : "Buat Akun"}
           </button>

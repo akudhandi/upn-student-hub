@@ -130,20 +130,20 @@ export default function AdminsPage() {
     return (
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:p-8">
         <section>
-          <p className="text-[11px] font-medium tracking-wide text-slate-400 uppercase">
+          <p className="text-xs font-medium text-[#787470]">
             Sistem
           </p>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h2 className="mt-1 font-display text-2xl font-semibold tracking-tight text-[#141416] sm:text-3xl">
             Kelola Admin
           </h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-[#6E6A66]">
             Tambah dan hapus akun administrator portal. Khusus superadmin.
           </p>
         </section>
 
         <section
           role="alert"
-          className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm font-medium text-amber-900"
+          className="rounded-2xl border border-[#E6CFAF] bg-[#FBEAD8] p-5 text-sm font-medium text-[#8E581A]"
         >
           Akses ditolak. Hanya superadmin yang dapat melihat dan mengelola akun
           administrator.
@@ -155,13 +155,13 @@ export default function AdminsPage() {
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:p-8">
       <section>
-        <p className="text-[11px] font-medium tracking-wide text-slate-400 uppercase">
+        <p className="text-xs font-medium text-[#787470]">
           Sistem
         </p>
-        <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        <h2 className="mt-1 font-display text-2xl font-semibold tracking-tight text-[#141416] sm:text-3xl">
           Kelola Admin
         </h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-[#6E6A66]">
           Tambah dan hapus akun administrator portal. Khusus superadmin.
         </p>
       </section>
@@ -169,19 +169,19 @@ export default function AdminsPage() {
       {actionError && (
         <p
           role="alert"
-          className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700"
+          className="rounded-xl border border-[#F3C6C6] bg-[#FDECEC] px-3.5 py-2.5 text-sm font-medium text-[#A62D2D]"
         >
           {actionError}
         </p>
       )}
 
       {isSuperadmin && (
-        <section className="rounded-xl bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-900">Tambah Admin</h3>
+        <section className="rounded-2xl border border-[#E5E0DA] bg-white p-5">
+          <h3 className="font-display text-sm font-semibold text-[#141416]">Tambah Admin</h3>
           {formError && (
             <p
               role="alert"
-              className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700"
+              className="mt-3 rounded-xl border border-[#F3C6C6] bg-[#FDECEC] px-3 py-2 text-sm font-medium text-[#A62D2D]"
             >
               {formError}
             </p>
@@ -193,7 +193,7 @@ export default function AdminsPage() {
             <div>
               <label
                 htmlFor="admin-email"
-                className="mb-1.5 block text-xs font-semibold text-slate-600"
+                className="mb-1.5 block text-xs font-semibold text-[#57534E]"
               >
                 Email
               </label>
@@ -204,13 +204,13 @@ export default function AdminsPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nama@upnjatim.ac.id"
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+                className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3 py-2 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
               />
             </div>
             <div>
               <label
                 htmlFor="admin-password"
-                className="mb-1.5 block text-xs font-semibold text-slate-600"
+                className="mb-1.5 block text-xs font-semibold text-[#57534E]"
               >
                 Kata sandi (min. 8)
               </label>
@@ -223,13 +223,13 @@ export default function AdminsPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+                className="w-full rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] px-3 py-2 text-sm text-[#141416] outline-none transition placeholder:text-[#8C8782] focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
               />
             </div>
             <div>
               <label
                 htmlFor="admin-role"
-                className="mb-1.5 block text-xs font-semibold text-slate-600"
+                className="mb-1.5 block text-xs font-semibold text-[#57534E]"
               >
                 Peran
               </label>
@@ -238,7 +238,7 @@ export default function AdminsPage() {
                   id="admin-role"
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white py-2 pr-9 pl-3 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+                  className="w-full cursor-pointer appearance-none rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] py-2 pr-9 pl-3 text-sm text-[#141416] outline-none transition focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
                 >
                   <option value="admin">Admin</option>
                   <option value="superadmin">Superadmin</option>
@@ -249,7 +249,7 @@ export default function AdminsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60 sm:w-auto"
+                className="w-full rounded-full bg-[#141416] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[#242428] disabled:opacity-60 sm:w-auto"
               >
                 {saving ? "Menyimpan…" : "Tambah"}
               </button>
@@ -258,7 +258,7 @@ export default function AdminsPage() {
         </section>
       )}
 
-      <section className="overflow-hidden rounded-xl bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-[#E5E0DA] bg-white">
         <TableState
           error={error}
           onRetry={() => {
@@ -277,7 +277,7 @@ export default function AdminsPage() {
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left">
                 <thead>
-                  <tr className="bg-slate-50 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  <tr className="border-b border-[#F2EEEA] bg-[#FAF8F6] text-xs font-semibold tracking-wider text-[#6E6A66] uppercase">
                     <th className="px-4 py-3.5 font-medium">Email</th>
                     <th className="px-4 py-3.5 font-medium">Peran</th>
                     <th className="px-4 py-3.5 font-medium">Terdaftar</th>
@@ -286,10 +286,10 @@ export default function AdminsPage() {
                     )}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-sm">
+                <tbody className="divide-y divide-[#F2EEEA] text-sm">
                   {admins.map((admin) => (
-                    <tr key={admin.id} className="transition hover:bg-slate-50">
-                      <td className="px-4 py-4 font-medium text-slate-900">
+                    <tr key={admin.id} className="transition hover:bg-[#FAF8F6]">
+                      <td className="px-4 py-4 font-medium text-[#141416]">
                         {admin.email}
                       </td>
                       <td className="px-4 py-4">
@@ -300,7 +300,7 @@ export default function AdminsPage() {
                           tone={admin.role === "superadmin" ? "blue" : "slate"}
                         />
                       </td>
-                      <td className="px-4 py-4 text-xs whitespace-nowrap text-slate-400">
+                      <td className="px-4 py-4 text-xs whitespace-nowrap text-[#787470]">
                         {formatDate(admin.created_at)}
                       </td>
                       {isSuperadmin && (
@@ -310,7 +310,7 @@ export default function AdminsPage() {
                             onClick={() => setConfirm(admin)}
                             title="Hapus admin"
                             aria-label={`Hapus ${admin.email}`}
-                            className="rounded p-1.5 text-rose-600 transition hover:bg-rose-500/15"
+                            className="rounded-lg p-1.5 text-[#C53939] transition hover:bg-[#FDECEC]"
                           >
                             <ActionIcon name="trash" />
                           </button>

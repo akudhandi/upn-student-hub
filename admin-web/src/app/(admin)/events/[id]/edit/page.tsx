@@ -109,27 +109,27 @@ export default function EventEditPage({
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:p-8">
       <section>
         <nav aria-label="Breadcrumb">
-          <ol className="flex items-center gap-1.5 text-xs text-slate-400">
+          <ol className="flex items-center gap-1.5 text-xs text-[#787470]">
             <li>
-              <Link href="/events" className="hover:text-slate-700 hover:underline">
+              <Link href="/events" className="transition-colors hover:text-[#141416] hover:underline">
                 Event &amp; Informasi
               </Link>
             </li>
             <li aria-hidden="true">/</li>
-            <li className="font-semibold text-slate-600">Ubah Event</li>
+            <li className="font-semibold text-[#141416]">Ubah Event</li>
           </ol>
         </nav>
-        <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight text-[#141416] sm:text-3xl">
           Ubah Event &amp; Informasi
         </h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-[#6E6A66]">
           Perbarui rincian kegiatan atau ubah status publikasinya.
         </p>
       </section>
 
       {loadError ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl bg-white px-5 py-12 shadow-sm">
-          <p role="alert" className="text-sm font-medium text-rose-700">
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-[#E5E0DA] bg-white px-5 py-12">
+          <p role="alert" className="text-sm font-medium text-[#A62D2D]">
             {loadError}
           </p>
           <button
@@ -138,7 +138,7 @@ export default function EventEditPage({
               setLoadError(null);
               setRetryKey((k) => k + 1);
             }}
-            className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800"
+            className="rounded-full bg-[#141416] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[#242428]"
           >
             Coba lagi
           </button>
@@ -146,11 +146,11 @@ export default function EventEditPage({
       ) : !initial ? (
         <div
           aria-label="Memuat detail event"
-          className="space-y-4 rounded-xl bg-white p-6 shadow-sm"
+          className="space-y-4 rounded-2xl border border-[#E5E0DA] bg-white p-6"
         >
-          <div className="h-10 animate-pulse rounded-lg bg-slate-100" />
-          <div className="h-10 animate-pulse rounded-lg bg-slate-100" />
-          <div className="h-36 animate-pulse rounded-lg bg-slate-100" />
+          <div className="h-10 animate-pulse rounded-xl bg-[#EFECE8]" />
+          <div className="h-10 animate-pulse rounded-xl bg-[#EFECE8]" />
+          <div className="h-36 animate-pulse rounded-xl bg-[#EFECE8]" />
         </div>
       ) : (
         <EventForm
