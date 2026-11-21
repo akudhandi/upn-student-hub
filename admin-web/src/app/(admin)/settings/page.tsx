@@ -35,6 +35,7 @@ export default function SettingsAdminPage() {
     ]).then(
       ([prof, sys]) => {
         if (cancelled) return;
+        setLoadError(null);
         if (prof) setProfile(prof);
         setSystem(sys);
       },

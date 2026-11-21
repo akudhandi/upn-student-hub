@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import EmptyState from "@/components/admin/EmptyState";
@@ -15,6 +15,7 @@ import {
   type EventStatus,
   type Paginated,
 } from "@/lib/admin-api";
+import { safeHttpUrl } from "@/lib/format";
 import { mediaUrl } from "@/lib/media";
 
 const LOAD_ERROR =
@@ -91,6 +92,7 @@ function DetailDialog({
 
   const images = (item.images ?? []).filter((img) => mediaUrl(img.file_path));
   const meta = statusMeta(item.status);
+  const safeRegistrationHref = safeHttpUrl(item.registration_link);
 
   return (
     <div
@@ -150,15 +152,21 @@ function DetailDialog({
           {item.registration_link && (
             <div className="flex justify-between gap-4">
               <dt className="text-slate-400">Pendaftaran</dt>
-              <dd className="truncate font-medium text-sky-600">
-                <a
-                  href={item.registration_link}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:underline"
-                >
-                  {item.registration_link}
-                </a>
+              <dd className="truncate font-medium">
+                {safeRegistrationHref ? (
+                  <a
+                    href={safeRegistrationHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sky-600 hover:underline"
+                  >
+                    {item.registration_link}
+                  </a>
+                ) : (
+                  <span className="text-slate-700">
+                    {item.registration_link}
+                  </span>
+                )}
               </dd>
             </div>
           )}
@@ -205,10 +213,14 @@ export default function EventsAdminPage() {
   const [exporting, setExporting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [detail, setDetail] = useState<AdminEventItem | null>(null);
+  const prevSearchRef = useRef("");
 
   useEffect(() => {
+    const trimmed = search.trim();
+    if (prevSearchRef.current === trimmed) return;
     const t = window.setTimeout(() => {
-      setDebouncedSearch(search.trim());
+      prevSearchRef.current = trimmed;
+      setDebouncedSearch(trimmed);
       setPage(1);
     }, 400);
     return () => window.clearTimeout(t);
@@ -227,6 +239,7 @@ export default function EventsAdminPage() {
           setPage(data.current_page - 1);
           return;
         }
+        setError(null);
         setResult(data);
       },
       () => {

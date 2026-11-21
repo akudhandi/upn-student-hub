@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import EmptyState from "@/components/admin/EmptyState";
 import Pagination from "@/components/admin/Pagination";
@@ -152,6 +152,7 @@ function CreateOfficialAccountDialog({
   const [password, setPassword] = useState("");
   const [faculty, setFaculty] = useState("");
   const [bio, setBio] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -306,17 +307,31 @@ function CreateOfficialAccountDialog({
               >
                 Password Awal *
               </label>
-              <input
-                id="org-password"
-                type="text"
-                required
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={saving}
-                placeholder="Minimal 8 karakter"
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
-              />
+              <div className="relative mt-1">
+                <input
+                  id="org-password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={saving}
+                  placeholder="Minimal 8 karakter"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  disabled={saving}
+                  aria-label={
+                    showPassword ? "Sembunyikan password" : "Tampilkan password"
+                  }
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-xs font-semibold text-slate-500 transition hover:text-slate-800 disabled:opacity-50"
+                >
+                  {showPassword ? "Sembunyi" : "Tampil"}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -387,22 +402,24 @@ function UserDetailDialog({
     fallbackUser.account_type ?? "student",
   );
   const [resetPassword, setResetPassword] = useState("");
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [savingRole, setSavingRole] = useState(false);
   const [roleNotice, setRoleNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && !savingRole) onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, savingRole]);
 
   useEffect(() => {
     let cancelled = false;
     getAdminUserDetail(userId).then(
       (data) => {
         if (!cancelled) {
+          setError(null);
           setDetail(data);
           setNextAccountType(data.user.account_type ?? "student");
         }
@@ -445,7 +462,9 @@ function UserDetailDialog({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
-      onClick={onClose}
+      onClick={() => {
+        if (!savingRole) onClose();
+      }}
     >
       <div
         role="dialog"
@@ -557,16 +576,32 @@ function UserDetailDialog({
               >
                 Reset Password (Opsional)
               </label>
-              <input
-                id="detail-reset-password"
-                type="text"
-                minLength={8}
-                value={resetPassword}
-                onChange={(e) => setResetPassword(e.target.value)}
-                disabled={savingRole}
-                placeholder="Kosongkan jika tetap"
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none"
-              />
+              <div className="relative mt-1">
+                <input
+                  id="detail-reset-password"
+                  type={showResetPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  minLength={8}
+                  value={resetPassword}
+                  onChange={(e) => setResetPassword(e.target.value)}
+                  disabled={savingRole}
+                  placeholder="Kosongkan jika tetap"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 pr-16 text-xs text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowResetPassword((v) => !v)}
+                  disabled={savingRole}
+                  aria-label={
+                    showResetPassword
+                      ? "Sembunyikan password"
+                      : "Tampilkan password"
+                  }
+                  className="absolute top-1/2 right-2.5 -translate-y-1/2 text-[11px] font-semibold text-slate-500 transition hover:text-slate-800 disabled:opacity-50"
+                >
+                  {showResetPassword ? "Sembunyi" : "Tampil"}
+                </button>
+              </div>
             </div>
           </div>
           {roleNotice && (
@@ -650,10 +685,20 @@ export default function UsersAdminPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [detailUser, setDetailUser] = useState<AdminUserItem | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const prevFiltersRef = useRef({ search: "", faculty: "" });
 
   useEffect(() => {
+    const trimmedSearch = search.trim();
+    const trimmedFaculty = faculty.trim();
+    if (
+      prevFiltersRef.current.search === trimmedSearch &&
+      prevFiltersRef.current.faculty === trimmedFaculty
+    ) {
+      return;
+    }
     const t = window.setTimeout(() => {
-      setDebounced({ search: search.trim(), faculty: faculty.trim() });
+      prevFiltersRef.current = { search: trimmedSearch, faculty: trimmedFaculty };
+      setDebounced({ search: trimmedSearch, faculty: trimmedFaculty });
       setPage(1);
     }, 400);
     return () => window.clearTimeout(t);
@@ -674,6 +719,7 @@ export default function UsersAdminPage() {
           setPage(data.current_page - 1);
           return;
         }
+        setError(null);
         setResult(data);
       },
       () => {

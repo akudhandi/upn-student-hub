@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { CategoryItem, EventStatus } from "@/lib/admin-api";
 import { mediaUrl } from "@/lib/media";
@@ -53,17 +53,24 @@ export default function EventForm({
 }) {
   const [values, setValues] = useState<EventFormValues>(initial);
   const [validationError, setValidationError] = useState<string | null>(null);
-
-  const localPreviewUrl = useMemo(
-    () => (values.posterFile ? URL.createObjectURL(values.posterFile) : null),
-    [values.posterFile],
-  );
+  const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
+  const localPreviewUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
-      if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
+      if (localPreviewUrlRef.current) {
+        URL.revokeObjectURL(localPreviewUrlRef.current);
+      }
     };
-  }, [localPreviewUrl]);
+  }, []);
+
+  function updateLocalPreview(nextUrl: string | null) {
+    if (localPreviewUrlRef.current) {
+      URL.revokeObjectURL(localPreviewUrlRef.current);
+    }
+    localPreviewUrlRef.current = nextUrl;
+    setLocalPreviewUrl(nextUrl);
+  }
 
   const activePosterPreview =
     localPreviewUrl ?? mediaUrl(values.existingPosterPath);
@@ -90,10 +97,12 @@ export default function EventForm({
     }
 
     setValidationError(null);
+    updateLocalPreview(URL.createObjectURL(file));
     setValues((prev) => ({ ...prev, posterFile: file }));
   }
 
   function handleRemovePoster() {
+    updateLocalPreview(null);
     setValues((prev) => ({
       ...prev,
       posterFile: null,

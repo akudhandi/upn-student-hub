@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import axios from "axios";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import EmptyState from "@/components/admin/EmptyState";
@@ -11,7 +11,12 @@ import {
   getAdmins,
   type AdminAccount,
 } from "@/lib/admin-api";
-import { getStoredAdmin } from "@/lib/auth";
+import {
+  getAdminSessionSnapshot,
+  getServerAdminSessionSnapshot,
+  parseAdminSession,
+  subscribeAdminSession,
+} from "@/lib/auth";
 
 const LOAD_ERROR =
   "Gagal memuat daftar admin. Pastikan backend berjalan lalu coba lagi.";
@@ -45,22 +50,34 @@ export default function AdminsPage() {
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const isSuperadmin = getStoredAdmin()?.role === "superadmin";
+  const sessionSnapshot = useSyncExternalStore(
+    subscribeAdminSession,
+    getAdminSessionSnapshot,
+    getServerAdminSessionSnapshot,
+  );
+  const currentAdmin = parseAdminSession(sessionSnapshot)?.admin ?? null;
+  const isSuperadmin = currentAdmin?.role === "superadmin";
 
   const load = useCallback(async () => {
+    if (!isSuperadmin) return;
     try {
       const result = await getAdmins();
+      setError(null);
       setAdmins(result.data);
     } catch (err) {
       setError(errorMessage(err, LOAD_ERROR));
     }
-  }, []);
+  }, [isSuperadmin]);
 
   useEffect(() => {
+    if (!isSuperadmin) return;
     let cancelled = false;
     getAdmins().then(
       (result) => {
-        if (!cancelled) setAdmins(result.data);
+        if (!cancelled) {
+          setError(null);
+          setAdmins(result.data);
+        }
       },
       (err: unknown) => {
         if (!cancelled) setError(errorMessage(err, LOAD_ERROR));
@@ -69,7 +86,7 @@ export default function AdminsPage() {
     return () => {
       cancelled = true;
     };
-  }, [retryKey]);
+  }, [isSuperadmin, retryKey]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -101,6 +118,32 @@ export default function AdminsPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (!isSuperadmin) {
+    return (
+      <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:p-8">
+        <section>
+          <p className="text-[11px] font-medium tracking-wide text-slate-400 uppercase">
+            Sistem
+          </p>
+          <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            Kelola Admin
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Tambah dan hapus akun administrator portal. Khusus superadmin.
+          </p>
+        </section>
+
+        <section
+          role="alert"
+          className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm font-medium text-amber-900"
+        >
+          Akses ditolak. Hanya superadmin yang dapat melihat dan mengelola akun
+          administrator.
+        </section>
+      </main>
+    );
   }
 
   return (

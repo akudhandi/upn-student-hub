@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import EmptyState from "@/components/admin/EmptyState";
 import Pagination from "@/components/admin/Pagination";
@@ -198,11 +198,15 @@ export default function MarketplacePage() {
   const [exporting, setExporting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [detail, setDetail] = useState<MarketplaceListingItem | null>(null);
+  const prevSearchRef = useRef("");
 
   // Debounce kata kunci pencarian.
   useEffect(() => {
+    const trimmed = search.trim();
+    if (prevSearchRef.current === trimmed) return;
     const t = window.setTimeout(() => {
-      setDebouncedSearch(search.trim());
+      prevSearchRef.current = trimmed;
+      setDebouncedSearch(trimmed);
       setPage(1);
     }, 400);
     return () => window.clearTimeout(t);
@@ -224,6 +228,7 @@ export default function MarketplacePage() {
           setPage(data.current_page - 1);
           return;
         }
+        setError(null);
         setResult(data);
       },
       () => {

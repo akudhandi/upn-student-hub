@@ -23,17 +23,22 @@ export default function ConfirmDialog({
 
   useEffect(() => {
     cancelRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
+      if (e.key === "Escape" && !busy) onCancel();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onCancel]);
+  }, [busy, onCancel]);
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
-      onClick={onCancel}
+      onClick={() => {
+        if (!busy) onCancel();
+      }}
     >
       <div
         role="alertdialog"

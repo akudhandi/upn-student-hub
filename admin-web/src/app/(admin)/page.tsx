@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import StatCard from "@/components/admin/StatCard";
 import {
@@ -119,6 +119,7 @@ export default function DashboardPage() {
     getAdminStats().then(
       (data) => {
         if (cancelled) return;
+        setError(null);
         setStats(data);
         setLoading(false);
       },
@@ -132,6 +133,8 @@ export default function DashboardPage() {
       cancelled = true;
     };
   }, []);
+
+  const feed = useMemo(() => (stats ? buildFeed(stats) : []), [stats]);
 
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 space-y-8 p-4 sm:p-8">
@@ -346,13 +349,13 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="p-4">
-                {buildFeed(stats).length === 0 ? (
+                {feed.length === 0 ? (
                   <p className="py-6 text-center text-sm text-slate-400">
                     Belum ada aktivitas tercatat.
                   </p>
                 ) : (
                   <div className="space-y-3 divide-y divide-slate-100">
-                    {buildFeed(stats).map((item) => (
+                    {feed.map((item) => (
                       <div
                         key={item.key}
                         className="flex items-center justify-between pt-1 text-xs first:pt-0"

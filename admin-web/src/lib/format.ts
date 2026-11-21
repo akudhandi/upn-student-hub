@@ -26,3 +26,17 @@ export function shortReportableType(type: string): string {
   const parts = type.split("\\");
   return parts[parts.length - 1] ?? type;
 }
+
+/** Memvalidasi URL eksternal agar hanya skema http/https yang diizinkan di atribut href. */
+export function safeHttpUrl(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  try {
+    const parsed = new URL(raw.trim());
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.href;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}

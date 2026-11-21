@@ -157,6 +157,7 @@ export default function CategoriesAdminPage() {
           setPage(data.current_page - 1);
           return;
         }
+        setError(null);
         setResult(data);
       },
       () => {
@@ -174,6 +175,7 @@ export default function CategoriesAdminPage() {
     if (data.data.length === 0 && data.current_page > 1) {
       setPage(data.current_page - 1);
     } else {
+      setError(null);
       setResult(data);
     }
   }

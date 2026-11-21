@@ -8,14 +8,11 @@ import Topbar from "@/components/admin/Topbar";
 import {
   clearAdminSession,
   getAdminSessionSnapshot,
+  getServerAdminSessionSnapshot,
   parseAdminSession,
   subscribeAdminSession,
 } from "@/lib/auth";
 import { adminLogout } from "@/lib/admin-api";
-
-function getServerSessionSnapshot(): string {
-  return "";
-}
 
 export default function AdminLayout({
   children,
@@ -27,7 +24,7 @@ export default function AdminLayout({
   const snapshot = useSyncExternalStore(
     subscribeAdminSession,
     getAdminSessionSnapshot,
-    getServerSessionSnapshot,
+    getServerAdminSessionSnapshot,
   );
   const session = parseAdminSession(snapshot);
   const loggedOut = session === null;

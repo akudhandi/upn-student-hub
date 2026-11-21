@@ -41,6 +41,7 @@ export default function NotificationsAdminPage() {
           setPage(data.current_page - 1);
           return;
         }
+        setError(null);
         setResult(data);
       },
       () => {

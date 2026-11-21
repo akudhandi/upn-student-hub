@@ -59,9 +59,28 @@ function emitAdminSessionChange(): void {
 
 export function subscribeAdminSession(listener: SessionListener): () => void {
   sessionListeners.add(listener);
+  const onStorage = (event: StorageEvent) => {
+    if (
+      event.key === null ||
+      event.key === TOKEN_KEY ||
+      event.key === ADMIN_KEY
+    ) {
+      listener();
+    }
+  };
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', onStorage);
+  }
   return () => {
     sessionListeners.delete(listener);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('storage', onStorage);
+    }
   };
+}
+
+export function getServerAdminSessionSnapshot(): string {
+  return '';
 }
 
 export function getAdminSessionSnapshot(): string {

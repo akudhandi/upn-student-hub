@@ -52,6 +52,7 @@ export default function EventEditPage({
     ]).then(
       ([detail, catRes]) => {
         if (cancelled) return;
+        setLoadError(null);
         setInitial(toFormValues(detail));
         if (catRes) setCategories(catRes.data);
       },
