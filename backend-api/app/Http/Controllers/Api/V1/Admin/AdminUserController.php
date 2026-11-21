@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Concerns\ExportsCsv;
 use App\Http\Controllers\Controller;
 use App\Models\Report;
 use App\Models\StudentProfile;
@@ -19,6 +20,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminUserController extends Controller
 {
+    use ExportsCsv;
+
     public function index(Request $request): JsonResponse
     {
         $users = $this->filteredQuery($this->validateFilters($request))->paginate(15);
@@ -121,24 +124,21 @@ class AdminUserController extends Controller
 
         $filename = 'users-'.now()->format('Ymd-His').'.csv';
 
-        return response()->streamDownload(function () use ($rows) {
-            $handle = fopen('php://output', 'w');
-            fwrite($handle, "\xEF\xBB\xBF");
-            fputcsv($handle, ['ID', 'Nama', 'Email', 'Tipe Akun', 'NIM', 'Fakultas', 'Status', 'Terdaftar']);
-            foreach ($rows as $row) {
-                fputcsv($handle, [
-                    $row->id,
-                    $row->profile->name ?? $row->name,
-                    $row->email,
-                    $row->account_type ?? 'student',
-                    $row->profile->nim ?? '',
-                    $row->profile->faculty ?? '',
-                    $row->status,
-                    $row->created_at,
-                ]);
-            }
-            fclose($handle);
-        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+        return $this->streamCsv(
+            $filename,
+            ['ID', 'Nama', 'Email', 'Tipe Akun', 'NIM', 'Fakultas', 'Status', 'Terdaftar'],
+            $rows,
+            static fn ($row): array => [
+                $row->id,
+                $row->profile->name ?? $row->name,
+                $row->email,
+                $row->account_type ?? 'student',
+                $row->profile->nim ?? '',
+                $row->profile->faculty ?? '',
+                $row->status,
+                $row->created_at,
+            ],
+        );
     }
 
     /**

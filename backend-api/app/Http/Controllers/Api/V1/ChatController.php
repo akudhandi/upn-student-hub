@@ -13,6 +13,7 @@ use App\Models\ChatRoom;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ChatController extends Controller
 {
@@ -122,7 +123,7 @@ class ChatController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'recipient_id' => 'required|integer|min:1|exists:users,id',
+            'recipient_id' => ['required', 'integer', 'min:1', Rule::exists('users', 'id')->where('status', 'active')],
             'listing_type' => 'nullable|string',
             'listing_id' => 'nullable|integer|min:1',
             'message' => 'nullable|string|max:2000',

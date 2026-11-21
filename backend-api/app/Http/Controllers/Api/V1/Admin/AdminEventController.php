@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Concerns\ExportsCsv;
 use App\Http\Controllers\Api\V1\Concerns\SyncsListingImages;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
@@ -13,13 +14,14 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminEventController extends Controller
 {
-    use SyncsListingImages;
+    use ExportsCsv, SyncsListingImages;
+
     public function index(Request $request): JsonResponse
     {
         $query = $this->filteredQuery($this->validateFilters($request));
@@ -38,24 +40,21 @@ class AdminEventController extends Controller
 
         $filename = 'event-'.now()->format('Ymd-His').'.csv';
 
-        return response()->streamDownload(function () use ($rows) {
-            $handle = fopen('php://output', 'w');
-            fwrite($handle, "\xEF\xBB\xBF");
-            fputcsv($handle, ['ID', 'Judul', 'Kategori', 'Penyelenggara', 'Tanggal Acara', 'Lokasi', 'Status', 'Diunggah']);
-            foreach ($rows as $row) {
-                fputcsv($handle, [
-                    $row->id,
-                    $row->title,
-                    $row->category->name ?? '',
-                    $row->organizer_name,
-                    $row->event_date,
-                    $row->location,
-                    $row->status,
-                    $row->created_at,
-                ]);
-            }
-            fclose($handle);
-        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+        return $this->streamCsv(
+            $filename,
+            ['ID', 'Judul', 'Kategori', 'Penyelenggara', 'Tanggal Acara', 'Lokasi', 'Status', 'Diunggah'],
+            $rows,
+            static fn ($row): array => [
+                $row->id,
+                $row->title,
+                $row->category->name ?? '',
+                $row->organizer_name,
+                $row->event_date,
+                $row->location,
+                $row->status,
+                $row->created_at,
+            ],
+        );
     }
 
     /**
@@ -125,13 +124,15 @@ class AdminEventController extends Controller
             : (User::query()
                 ->whereIn('account_type', User::OFFICIAL_ACCOUNT_TYPES)
                 ->value('id')
-                ?? User::query()->create([
-                    'name' => 'UPN Kemahasiswaan',
-                    'email' => 'kemahasiswaan@upnjatim.ac.id',
-                    'password' => Hash::make(Str::random(32)),
-                    'status' => 'active',
-                    'account_type' => 'faculty',
-                ])->id);
+                ?? User::query()->firstOrCreate(
+                    ['email' => 'kemahasiswaan@upnjatim.ac.id'],
+                    [
+                        'name' => 'UPN Kemahasiswaan',
+                        'password' => Hash::make(Str::random(32)),
+                        'status' => 'active',
+                        'account_type' => 'faculty',
+                    ]
+                )->id);
 
         $event = Event::create([
             ...$validated,
@@ -186,7 +187,7 @@ class AdminEventController extends Controller
             ], 404);
         }
 
-        $validated = $this->validatePayload($request, true);
+        $validated = $this->validatePayload($request, true, $event);
         $hasImages = array_key_exists('image_paths', $validated);
         $imagePaths = $validated['image_paths'] ?? [];
         unset($validated['image_paths']);
@@ -248,16 +249,6 @@ class AdminEventController extends Controller
 
         $event->status = $validated['status'];
 
-        // Persist rejection_reason only when the column exists, keeping
-        // the endpoint forward-compatible without requiring a migration.
-        if (
-            array_key_exists('rejection_reason', $validated)
-            && $validated['rejection_reason'] !== null
-            && Schema::hasColumn('events', 'rejection_reason')
-        ) {
-            $event->setAttribute('rejection_reason', $validated['rejection_reason']);
-        }
-
         $event->save();
         $event->load([
             'user:id,name',
@@ -273,18 +264,28 @@ class AdminEventController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function validatePayload(Request $request, bool $isUpdate): array
+    private function validatePayload(Request $request, bool $isUpdate, ?Event $existingEvent = null): array
     {
         $required = $isUpdate ? 'sometimes|required' : 'required';
 
         return $request->validate([
             'title' => "{$required}|string|max:255",
-            'category_id' => 'nullable|exists:categories,id',
+            'category_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('categories', 'id')
+                    ->where('type', 'event')
+                    ->when(
+                        $request->filled('category_id')
+                            && ($existingEvent === null || (int) $request->input('category_id') !== (int) $existingEvent->category_id),
+                        fn ($q) => $q->where('is_active', true)
+                    ),
+            ],
             'organizer_name' => "{$required}|string|max:255",
             'event_date' => "{$required}|date",
             'event_time' => 'nullable|string|max:50',
             'location' => "{$required}|string|max:255",
-            'registration_link' => 'nullable|url|max:2048',
+            'registration_link' => 'nullable|url:http,https|max:2048',
             'speakers' => 'nullable|array',
             'benefits' => 'nullable|array',
             'benefits.*' => 'string|max:255',

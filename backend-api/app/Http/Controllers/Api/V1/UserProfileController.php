@@ -124,7 +124,38 @@ class UserProfileController extends Controller
             'avatar' => 'nullable|string|max:500',
         ]);
 
-        DB::transaction(function () use ($user, $validated) {
+        $avatarUpdate = ['provided' => false, 'value' => null];
+        if (array_key_exists('avatar', $validated)) {
+            $avatarUpdate['provided'] = true;
+            $avatar = $validated['avatar'];
+            if ($avatar === null) {
+                $avatarUpdate['value'] = null;
+            } elseif (is_string($avatar)) {
+                $raw = trim($avatar);
+                if ($raw === '') {
+                    $avatarUpdate['value'] = null;
+                } else {
+                    $normalized = ltrim($raw, '/');
+                    $trimmed = preg_replace('#^storage/#', '', $normalized) ?? $normalized;
+                    if (
+                        preg_match('/^[a-z][a-z0-9+\-.]*:/i', $trimmed) === 1
+                        || str_contains($trimmed, '..')
+                        || str_contains($trimmed, '\\')
+                        || preg_match('/[\x00-\x1F\x7F]/', $trimmed) === 1
+                        || ! str_starts_with($trimmed, 'avatars/')
+                        || strlen($trimmed) <= strlen('avatars/')
+                    ) {
+                        return response()->json([
+                            'message' => 'Path avatar tidak valid.',
+                            'errors' => ['avatar' => ['Path avatar harus merujuk ke folder avatars/ yang valid.']],
+                        ], 422);
+                    }
+                    $avatarUpdate['value'] = $trimmed;
+                }
+            }
+        }
+
+        DB::transaction(function () use ($user, $validated, $avatarUpdate) {
             $user->update(['name' => $validated['name']]);
 
             $profilePayload = [
@@ -134,17 +165,8 @@ class UserProfileController extends Controller
                 'bio' => $validated['bio'] ?? null,
             ];
 
-            if (array_key_exists('avatar', $validated)) {
-                $avatar = $validated['avatar'];
-                if (is_string($avatar)) {
-                    $trimmed = ltrim(trim($avatar), '/');
-                    $trimmed = preg_replace('#^storage/#', '', $trimmed) ?? $trimmed;
-                    if ($trimmed !== '' && ! str_contains($trimmed, '..')) {
-                        $profilePayload['avatar'] = $trimmed;
-                    }
-                } elseif ($avatar === null) {
-                    $profilePayload['avatar'] = null;
-                }
+            if ($avatarUpdate['provided']) {
+                $profilePayload['avatar'] = $avatarUpdate['value'];
             }
 
             StudentProfile::updateOrCreate(

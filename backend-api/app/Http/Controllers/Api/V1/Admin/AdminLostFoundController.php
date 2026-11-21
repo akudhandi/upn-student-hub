@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Concerns\ExportsCsv;
 use App\Http\Controllers\Controller;
 use App\Models\LostFoundReport;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,6 +16,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminLostFoundController extends Controller
 {
+    use ExportsCsv;
+
     public function index(Request $request): JsonResponse
     {
         $query = $this->filteredQuery($this->validateFilters($request));
@@ -33,25 +36,22 @@ class AdminLostFoundController extends Controller
 
         $filename = 'lost-found-'.now()->format('Ymd-His').'.csv';
 
-        return response()->streamDownload(function () use ($rows) {
-            $handle = fopen('php://output', 'w');
-            fwrite($handle, "\xEF\xBB\xBF");
-            fputcsv($handle, ['ID', 'Judul', 'Tipe', 'Kategori', 'Lokasi', 'Pelapor', 'Status', 'Laporan', 'Diunggah']);
-            foreach ($rows as $row) {
-                fputcsv($handle, [
-                    $row->id,
-                    $row->title,
-                    $row->type,
-                    $row->category->name ?? '',
-                    $row->location,
-                    $row->user->name ?? '',
-                    $row->deleted_at ? 'deleted' : $row->status,
-                    $row->reports_count ?? 0,
-                    $row->created_at,
-                ]);
-            }
-            fclose($handle);
-        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+        return $this->streamCsv(
+            $filename,
+            ['ID', 'Judul', 'Tipe', 'Kategori', 'Lokasi', 'Pelapor', 'Status', 'Laporan', 'Diunggah'],
+            $rows,
+            static fn ($row): array => [
+                $row->id,
+                $row->title,
+                $row->type,
+                $row->category->name ?? '',
+                $row->location,
+                $row->user->name ?? '',
+                $row->deleted_at ? 'deleted' : $row->status,
+                $row->reports_count ?? 0,
+                $row->created_at,
+            ],
+        );
     }
 
     /**

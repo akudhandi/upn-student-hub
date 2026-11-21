@@ -66,6 +66,11 @@ class AdminSettingsController extends Controller
 
         $admin->update(['password' => $validated['password']]);
 
+        $currentTokenId = $request->user()?->currentAccessToken()?->id;
+        $admin->tokens()
+            ->when($currentTokenId !== null, fn ($q) => $q->where('id', '!=', $currentTokenId))
+            ->delete();
+
         return response()->json([
             'message' => 'Password admin berhasil diperbarui',
             'data' => null,

@@ -11,6 +11,7 @@ use App\Models\LostFoundReport;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class LostFoundController extends Controller
 {
@@ -21,7 +22,7 @@ class LostFoundController extends Controller
         $validated = $request->validate([
             'type' => 'required|in:lost,found',
             'title' => 'required|string|max:255',
-            'category_id' => 'nullable|exists:categories,id',
+            'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('type', 'lost_found')->where('is_active', true)],
             'location' => 'required|string|max:255',
             'date_event' => 'nullable|date',
             'description' => 'required|string',
@@ -147,7 +148,16 @@ class LostFoundController extends Controller
         $validated = $request->validate([
             'type' => 'sometimes|required|in:lost,found',
             'title' => 'sometimes|required|string|max:255',
-            'category_id' => 'nullable|exists:categories,id',
+            'category_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('categories', 'id')
+                    ->where('type', 'lost_found')
+                    ->when(
+                        $request->filled('category_id') && (int) $request->input('category_id') !== (int) $report->category_id,
+                        fn ($q) => $q->where('is_active', true)
+                    ),
+            ],
             'location' => 'sometimes|required|string|max:255',
             'date_event' => 'nullable|date',
             'description' => 'sometimes|required|string',

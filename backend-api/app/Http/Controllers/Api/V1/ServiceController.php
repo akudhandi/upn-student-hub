@@ -11,6 +11,7 @@ use App\Models\ServiceListing;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ServiceController extends Controller
 {
@@ -20,7 +21,7 @@ class ServiceController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'category_id' => 'required|exists:categories,id',
+            'category_id' => ['required', 'integer', Rule::exists('categories', 'id')->where('type', 'service')->where('is_active', true)],
             'price_min' => 'required|numeric|min:0',
             'price_max' => 'nullable|numeric|min:0|gte:price_min',
             'pricing_type' => 'nullable|in:fixed,per_hour,starting_from,negotiable',
@@ -159,7 +160,17 @@ class ServiceController extends Controller
 
         $validated = $request->validate([
             'title' => 'sometimes|required|string|max:255',
-            'category_id' => 'sometimes|required|exists:categories,id',
+            'category_id' => [
+                'sometimes',
+                'required',
+                'integer',
+                Rule::exists('categories', 'id')
+                    ->where('type', 'service')
+                    ->when(
+                        (int) $request->input('category_id') !== (int) $listing->category_id,
+                        fn ($q) => $q->where('is_active', true)
+                    ),
+            ],
             'price_min' => 'sometimes|required|numeric|min:0',
             'price_max' => 'nullable|numeric|min:0',
             'pricing_type' => 'nullable|in:fixed,per_hour,starting_from,negotiable',
@@ -176,11 +187,11 @@ class ServiceController extends Controller
         $effectiveMin = array_key_exists('price_min', $validated)
             ? (float) $validated['price_min']
             : (float) $listing->price_min;
-        if (
-            array_key_exists('price_max', $validated)
-            && $validated['price_max'] !== null
-            && (float) $validated['price_max'] < $effectiveMin
-        ) {
+        $effectiveMax = array_key_exists('price_max', $validated)
+            ? ($validated['price_max'] !== null ? (float) $validated['price_max'] : null)
+            : ($listing->price_max !== null ? (float) $listing->price_max : null);
+
+        if ($effectiveMax !== null && $effectiveMax < $effectiveMin) {
             return response()->json([
                 'message' => 'Harga maksimum tidak boleh lebih kecil dari harga minimum.',
                 'errors' => ['price_max' => ['Harga maksimum harus lebih besar atau sama dengan harga minimum.']],

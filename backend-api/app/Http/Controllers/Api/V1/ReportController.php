@@ -40,8 +40,31 @@ class ReportController extends Controller
             ], 404);
         }
 
+        $reporterId = $this->resolveStudentUserId($request);
+
+        if (isset($target->user_id) && (int) $target->user_id === $reporterId) {
+            return response()->json([
+                'message' => 'Tidak dapat melaporkan konten milik sendiri.',
+                'data' => null,
+            ], 422);
+        }
+
+        $alreadyReported = Report::query()
+            ->where('reporter_id', $reporterId)
+            ->where('reportable_type', $class)
+            ->where('reportable_id', $target->id)
+            ->where('status', 'pending')
+            ->exists();
+
+        if ($alreadyReported) {
+            return response()->json([
+                'message' => 'Anda sudah mengirim laporan yang sedang ditinjau untuk konten ini.',
+                'data' => null,
+            ], 422);
+        }
+
         $report = Report::create([
-            'reporter_id' => $this->resolveStudentUserId($request),
+            'reporter_id' => $reporterId,
             'reportable_type' => $class,
             'reportable_id' => $target->id,
             'reason' => $validated['reason'],

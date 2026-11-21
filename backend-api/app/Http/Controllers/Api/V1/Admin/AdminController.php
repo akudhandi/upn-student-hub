@@ -36,6 +36,12 @@ class AdminController extends Controller
             return $denied;
         }
 
+        if (is_string($request->input('email'))) {
+            $request->merge([
+                'email' => strtolower(trim($request->input('email'))),
+            ]);
+        }
+
         $validated = $request->validate([
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('admins', 'email')],
             'password' => ['required', 'string', 'min:8'],

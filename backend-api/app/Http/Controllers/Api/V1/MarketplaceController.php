@@ -11,6 +11,7 @@ use App\Models\MarketplaceListing;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class MarketplaceController extends Controller
 {
@@ -23,7 +24,7 @@ class MarketplaceController extends Controller
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
             'condition' => 'required|in:new,like-new,good,fair',
-            'category_id' => 'required|exists:categories,id',
+            'category_id' => ['required', 'integer', Rule::exists('categories', 'id')->where('type', 'marketplace')->where('is_active', true)],
             'image_paths' => 'nullable|array|max:6',
             'image_paths.*' => 'string|max:500',
         ]);
@@ -153,7 +154,17 @@ class MarketplaceController extends Controller
             'description' => 'sometimes|required|string',
             'price' => 'sometimes|required|numeric|min:0',
             'condition' => 'sometimes|required|in:new,like-new,good,fair',
-            'category_id' => 'sometimes|required|exists:categories,id',
+            'category_id' => [
+                'sometimes',
+                'required',
+                'integer',
+                Rule::exists('categories', 'id')
+                    ->where('type', 'marketplace')
+                    ->when(
+                        (int) $request->input('category_id') !== (int) $listing->category_id,
+                        fn ($q) => $q->where('is_active', true)
+                    ),
+            ],
             'image_paths' => 'nullable|array|max:6',
             'image_paths.*' => 'string|max:500',
         ]);

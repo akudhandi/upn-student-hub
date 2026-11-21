@@ -67,6 +67,16 @@ class AdminCategoryController extends Controller
             'type' => 'sometimes|required|in:marketplace,service,lost_found,event',
         ]);
 
+        if (isset($validated['type']) && $validated['type'] !== $category->type) {
+            $usageCount = $this->categoryUsageCount($category);
+            if ($usageCount > 0) {
+                return response()->json([
+                    'message' => "Tipe kategori tidak dapat diubah karena masih digunakan oleh {$usageCount} data.",
+                    'data' => ['usage_count' => $usageCount],
+                ], 422);
+            }
+        }
+
         if (isset($validated['name']) && $validated['name'] !== $category->name) {
             $validated['slug'] = $this->uniqueSlug($validated['name'], $category->id);
         }
@@ -90,10 +100,7 @@ class AdminCategoryController extends Controller
             ], 404);
         }
 
-        $usageCount = $category->marketplaceListings()->withTrashed()->count()
-            + $category->serviceListings()->withTrashed()->count()
-            + $category->lostFoundReports()->withTrashed()->count()
-            + $category->events()->withTrashed()->count();
+        $usageCount = $this->categoryUsageCount($category);
 
         if ($usageCount > 0) {
             return response()->json([
@@ -127,6 +134,14 @@ class AdminCategoryController extends Controller
             'message' => 'Status kategori berhasil diperbarui',
             'data' => $category,
         ]);
+    }
+
+    private function categoryUsageCount(Category $category): int
+    {
+        return $category->marketplaceListings()->withTrashed()->count()
+            + $category->serviceListings()->withTrashed()->count()
+            + $category->lostFoundReports()->withTrashed()->count()
+            + $category->events()->withTrashed()->count();
     }
 
     private function uniqueSlug(string $name, ?int $ignoreId = null): string

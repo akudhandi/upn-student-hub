@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class EventController extends Controller
 {
@@ -29,12 +30,12 @@ class EventController extends Controller
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'category_id' => 'nullable|exists:categories,id',
+            'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('type', 'event')->where('is_active', true)],
             'organizer_name' => 'required|string|max:255',
             'event_date' => 'required|date',
             'event_time' => 'nullable|string|max:50',
             'location' => 'required|string|max:255',
-            'registration_link' => 'nullable|url|max:2048',
+            'registration_link' => 'nullable|url:http,https|max:2048',
             'speakers' => 'nullable|array',
             'speakers.*.name' => 'required|string|max:255',
             'speakers.*.role' => 'nullable|string|max:50',
@@ -60,7 +61,7 @@ class EventController extends Controller
         $event = Event::create([
             ...$validated,
             'user_id' => $studentUser->id,
-            'slug' => Str::slug($request->title).'-'.Str::lower(Str::random(5)),
+            'slug' => Str::slug($validated['title']).'-'.Str::lower(Str::random(5)),
             'status' => 'pending',
             'is_verified' => true,
         ]);

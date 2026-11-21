@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Concerns\ExportsCsv;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\LostFoundReport;
@@ -21,6 +22,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminReportController extends Controller
 {
+    use ExportsCsv;
+
     public function index(Request $request): JsonResponse
     {
         $reports = $this->filteredQuery($this->validateFilters($request))->paginate(15);
@@ -39,24 +42,21 @@ class AdminReportController extends Controller
 
         $filename = 'reports-'.now()->format('Ymd-His').'.csv';
 
-        return response()->streamDownload(function () use ($rows) {
-            $handle = fopen('php://output', 'w');
-            fwrite($handle, "\xEF\xBB\xBF");
-            fputcsv($handle, ['ID', 'Tipe Objek', 'ID Objek', 'Alasan', 'Pelapor', 'Status', 'Diselesaikan Oleh', 'Dilaporkan']);
-            foreach ($rows as $row) {
-                fputcsv($handle, [
-                    $row->id,
-                    $row->reportable_type,
-                    $row->reportable_id,
-                    $row->reason,
-                    $row->reporter->name ?? '',
-                    $row->status,
-                    $row->resolved_by,
-                    $row->created_at,
-                ]);
-            }
-            fclose($handle);
-        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+        return $this->streamCsv(
+            $filename,
+            ['ID', 'Tipe Objek', 'ID Objek', 'Alasan', 'Pelapor', 'Status', 'Diselesaikan Oleh', 'Dilaporkan'],
+            $rows,
+            static fn ($row): array => [
+                $row->id,
+                $row->reportable_type,
+                $row->reportable_id,
+                $row->reason,
+                $row->reporter->name ?? '',
+                $row->status,
+                $row->resolved_by,
+                $row->created_at,
+            ],
+        );
     }
 
     /**
@@ -133,12 +133,22 @@ class AdminReportController extends Controller
             ], 404);
         }
 
-        $report->status = $validated['status'];
+        $targetAction = $validated['target_action'] ?? 'none';
+
+        if (
+            in_array($targetAction, ['delete', 'delete_content'], true)
+            && $report->reportable instanceof User
+        ) {
+            return response()->json([
+                'message' => 'Aksi hapus permanen tidak didukung untuk target pengguna. Gunakan suspend_user atau ban_user.',
+                'data' => null,
+            ], 422);
+        }
 
         $this->applyResolution(
             $report,
             $validated['status'],
-            $validated['target_action'] ?? 'none',
+            $targetAction,
             $request->user()?->id
         );
 
@@ -175,6 +185,16 @@ class AdminReportController extends Controller
 
         $adminId = $request->user()?->id;
         $targetAction = $validated['target_action'] ?? 'none';
+
+        if (
+            in_array($targetAction, ['delete', 'delete_content'], true)
+            && Report::whereIn('id', $ids)->where('reportable_type', User::class)->exists()
+        ) {
+            return response()->json([
+                'message' => 'Aksi hapus permanen tidak didukung untuk target pengguna. Gunakan suspend_user atau ban_user.',
+                'data' => null,
+            ], 422);
+        }
 
         DB::transaction(function () use ($ids, $validated, $targetAction, $adminId) {
             $reports = Report::with(['reportable' => $this->reportableWithTrashedLoader()])
@@ -226,6 +246,10 @@ class AdminReportController extends Controller
         }
 
         if ($action === 'delete') {
+            if ($target instanceof User) {
+                return;
+            }
+
             $target->delete();
 
             return;
