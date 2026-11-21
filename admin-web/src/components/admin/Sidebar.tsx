@@ -168,7 +168,7 @@ export default function Sidebar({
         <Link
           href="/"
           onClick={onClose}
-          className="group flex h-[72px] items-center gap-3 px-5 focus-visible:outline-none"
+          className="group flex h-[72px] items-center gap-3 px-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#141416]"
         >
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#141416] text-white transition-transform duration-150 ease-[cubic-bezier(.2,.8,.2,1)] group-hover:-translate-y-[1px]">
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -191,7 +191,7 @@ export default function Sidebar({
         <nav className="sidebar-scroll flex-1 space-y-5 overflow-y-auto px-3.5 py-2">
           {NAV_GROUPS.map((group) => (
             <div key={group.title}>
-              <p className="px-3.5 pb-1.5 text-[12px] font-medium text-[#787470]">
+              <p className="px-3.5 pb-1.5 text-[13px] font-medium text-[#6E6A66]">
                 {group.title}
               </p>
               <div className="space-y-1">
@@ -205,9 +205,9 @@ export default function Sidebar({
                         href={item.href}
                         onClick={onClose}
                         aria-current={active ? "page" : undefined}
-                        className={`group flex min-h-[40px] items-center gap-3 rounded-xl px-3.5 py-2 text-[14px] font-medium transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
+                        className={`group flex min-h-[40px] items-center gap-3 rounded-xl px-3.5 py-2 text-[14px] font-medium transition-[background-color,border-color,color] duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] ${
                           active
-                            ? "border border-[#E5E0DA] bg-white text-[#141416] shadow-[0_4px_14px_-6px_rgba(20,20,22,0.10)]"
+                            ? "border border-[#D5CEC6] bg-white font-semibold text-[#141416]"
                             : "border border-transparent text-[#57534E] hover:bg-white/70 hover:text-[#141416]"
                         }`}
                       >
@@ -215,7 +215,7 @@ export default function Sidebar({
                           className={`transition-colors ${
                             active
                               ? "text-[#141416]"
-                              : "text-[#787470] group-hover:text-[#141416]"
+                              : "text-[#6E6A66] group-hover:text-[#141416]"
                           }`}
                         >
                           {item.icon}
@@ -231,7 +231,7 @@ export default function Sidebar({
 
         <div className="border-t border-[#E4DFDA] p-4">
           <a
-            className="group flex items-center gap-3 rounded-xl border border-[#E5E0DA] bg-white p-2.5 transition-all duration-150 hover:border-[#CFC8BF] hover:bg-[#FAF8F6]"
+            className="group flex items-center gap-3 rounded-xl border border-[#E5E0DA] bg-white p-2.5 transition-[background-color,border-color] duration-150 hover:border-[#CFC8BF] hover:bg-[#FAF8F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
             href={process.env.NEXT_PUBLIC_STUDENT_URL || "http://localhost:3000"}
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F4F1EE] text-[#141416] transition-colors group-hover:bg-[#141416] group-hover:text-white">
@@ -254,7 +254,7 @@ export default function Sidebar({
               <p className="truncate text-[13px] font-semibold text-[#141416]">
                 Kembali ke Portal
               </p>
-              <p className="truncate text-xs font-medium text-[#6E6A66]">
+              <p className="truncate text-[13px] font-medium text-[#6E6A66]">
                 Portal Mahasiswa
               </p>
             </div>

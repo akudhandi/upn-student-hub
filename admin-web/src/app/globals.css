@@ -27,6 +27,8 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  caret-color: #141416;
+  text-underline-offset: 3px;
 }
 
 h1,
@@ -119,5 +121,11 @@ h4,
   .animate-pulse,
   .auth-shell-enter {
     animation: none;
+  }
+
+  .card-transition,
+  .card-transition:hover {
+    transition: none;
+    transform: none;
   }
 }
