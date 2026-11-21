@@ -11,6 +11,29 @@ use Illuminate\Http\Request;
 
 trait ResolvesStudentUser
 {
+    public static function resolveFromDevHeader(Request $request, bool $requireActive = false): ?User
+    {
+        if (! app()->environment('local')) {
+            return null;
+        }
+
+        $devId = $request->header('X-Dev-User-Id');
+        if ($devId === null || ! ctype_digit((string) $devId)) {
+            return null;
+        }
+
+        $user = User::find((int) $devId);
+        if ($user === null) {
+            return null;
+        }
+
+        if ($requireActive && ($user->status ?? 'active') !== 'active') {
+            return null;
+        }
+
+        return $user;
+    }
+
     protected function resolveStudentUser(Request $request): ?User
     {
         $resolved = $request->user();
@@ -23,14 +46,7 @@ trait ResolvesStudentUser
             return $sanctumUser;
         }
 
-        if (app()->environment('local')) {
-            $devId = $request->header('X-Dev-User-Id');
-            if ($devId !== null && ctype_digit((string) $devId)) {
-                return User::find((int) $devId);
-            }
-        }
-
-        return null;
+        return self::resolveFromDevHeader($request, true);
     }
 
     /**

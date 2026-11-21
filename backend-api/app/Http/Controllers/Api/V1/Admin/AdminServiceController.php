@@ -5,19 +5,17 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Api\V1\Concerns\ExportsCsv;
+use App\Http\Controllers\Api\V1\Concerns\ModeratesAdminListings;
 use App\Http\Controllers\Controller;
 use App\Models\ServiceListing;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminServiceController extends Controller
 {
-    use ExportsCsv;
+    use ExportsCsv, ModeratesAdminListings;
 
     public function index(Request $request): JsonResponse
     {
@@ -81,13 +79,7 @@ class AdminServiceController extends Controller
             ->withCount('reports')
             ->latest();
 
-        if (($validated['status'] ?? null) === 'deleted') {
-            $query->onlyTrashed();
-        } elseif (! empty($validated['status'])) {
-            $query->where('status', $validated['status']);
-        } else {
-            $query->withTrashed();
-        }
+        $this->applySoftDeleteStatusFilter($query, $validated['status'] ?? null);
 
         if (! empty($validated['search'])) {
             $keyword = (string) $validated['search'];
@@ -97,17 +89,7 @@ class AdminServiceController extends Controller
             });
         }
 
-        if (! empty($validated['category_id'])) {
-            $query->where('category_id', $validated['category_id']);
-        }
-
-        if (! empty($validated['date_from'])) {
-            $query->where('created_at', '>=', Carbon::parse((string) $validated['date_from'])->startOfDay());
-        }
-
-        if (! empty($validated['date_to'])) {
-            $query->where('created_at', '<=', Carbon::parse((string) $validated['date_to'])->endOfDay());
-        }
+        $this->applyCategoryAndDateFilters($query, $validated);
 
         return $query;
     }
@@ -118,24 +100,14 @@ class AdminServiceController extends Controller
             'action' => 'required|in:hide,restore,delete',
         ]);
 
-        try {
-            $listing = ServiceListing::withTrashed()->where('id', $id)->firstOrFail();
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'message' => 'Data jasa tidak ditemukan',
-                'data' => null,
-            ], 404);
-        }
-
-        $this->applyAction($listing, $validated['action']);
-
-        $listing->load(['user:id,name', 'category:id,name,slug', 'images']);
-        $listing->loadCount('reports');
-
-        return response()->json([
-            'message' => 'Status jasa berhasil diperbarui',
-            'data' => $listing,
-        ]);
+        return $this->updateSingleModerationStatus(
+            ServiceListing::class,
+            $id,
+            $validated['action'],
+            'active',
+            'Data jasa tidak ditemukan',
+            'Status jasa berhasil diperbarui',
+        );
     }
 
     public function bulkStatus(Request $request): JsonResponse
@@ -146,41 +118,13 @@ class AdminServiceController extends Controller
             'action' => 'required|in:hide,restore,delete',
         ]);
 
-        $ids = array_values(array_unique($validated['ids']));
-
-        $found = ServiceListing::withTrashed()->whereIn('id', $ids)->pluck('id')->all();
-        $missing = array_values(array_diff($ids, $found));
-        if ($missing !== []) {
-            return response()->json([
-                'message' => 'Sebagian data jasa tidak ditemukan',
-                'data' => ['missing_ids' => $missing],
-            ], 422);
-        }
-
-        DB::transaction(function () use ($ids, $validated) {
-            $listings = ServiceListing::withTrashed()->whereIn('id', $ids)->get();
-            foreach ($listings as $listing) {
-                $this->applyAction($listing, $validated['action']);
-            }
-        });
-
-        return response()->json([
-            'message' => 'Status jasa berhasil diperbarui',
-            'data' => ['updated' => count($ids)],
-        ]);
-    }
-
-    private function applyAction(ServiceListing $listing, string $action): void
-    {
-        if ($action === 'hide') {
-            $listing->update(['status' => 'hidden']);
-        } elseif ($action === 'delete') {
-            $listing->delete();
-        } else {
-            if ($listing->trashed()) {
-                $listing->restore();
-            }
-            $listing->update(['status' => 'active']);
-        }
+        return $this->updateBulkModerationStatus(
+            ServiceListing::class,
+            $validated['ids'],
+            $validated['action'],
+            'active',
+            'Sebagian data jasa tidak ditemukan',
+            'Status jasa berhasil diperbarui',
+        );
     }
 }

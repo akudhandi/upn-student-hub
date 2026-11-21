@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Http\Controllers\Api\V1\Concerns\ResolvesStudentUser;
 use App\Models\Admin;
 use App\Models\User;
 use Closure;
@@ -14,14 +15,7 @@ class EnsureAuthenticatedUploader
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $actor = $request->user('sanctum');
-
-        if ($actor === null && app()->environment('local')) {
-            $devId = $request->header('X-Dev-User-Id');
-            if ($devId !== null && ctype_digit((string) $devId)) {
-                $actor = User::find((int) $devId);
-            }
-        }
+        $actor = $request->user('sanctum') ?? ResolvesStudentUser::resolveFromDevHeader($request);
 
         if ($actor === null) {
             return response()->json([
