@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import Pagination from "@/components/admin/Pagination";
+import SelectWrapper from "@/components/admin/SelectWrapper";
 import StatusBadge from "@/components/admin/StatusBadge";
 import TableState from "@/components/admin/TableState";
 import {
@@ -172,17 +173,19 @@ export default function NotificationsAdminPage() {
               >
                 Target Penerima
               </label>
-              <select
-                id="announcement-target"
-                value={targetRole}
-                onChange={(e) =>
-                  setTargetRole(e.target.value as "all" | "student")
-                }
-                className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
-              >
-                <option value="all">Semua Pengguna</option>
-                <option value="student">Khusus Mahasiswa</option>
-              </select>
+              <SelectWrapper>
+                <select
+                  id="announcement-target"
+                  value={targetRole}
+                  onChange={(e) =>
+                    setTargetRole(e.target.value as "all" | "student")
+                  }
+                  className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white py-2 pr-9 pl-3.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+                >
+                  <option value="all">Semua Pengguna</option>
+                  <option value="student">Khusus Mahasiswa</option>
+                </select>
+              </SelectWrapper>
             </div>
 
             <div>

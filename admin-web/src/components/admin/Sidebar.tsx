@@ -219,15 +219,28 @@ export default function Sidebar({
             className="group flex items-center gap-3 rounded-xl border border-slate-700/50 bg-slate-800/80 p-2.5 transition hover:bg-slate-700/80"
             href={process.env.NEXT_PUBLIC_STUDENT_URL || "http://localhost:3000"}
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-600/30 font-bold text-emerald-400">
-              N
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-sky-500/30 bg-sky-500/15 text-sky-400">
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                />
+              </svg>
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-semibold text-white transition group-hover:text-sky-300">
                 Kembali ke Portal
               </p>
               <p className="truncate text-[11px] font-medium text-slate-400">
-                Mahasiswa Active
+                Portal Mahasiswa
               </p>
             </div>
           </a>

@@ -5,6 +5,7 @@ import { ActionIcon } from "@/components/admin/ActionIcons";
 import ExportCsvButton from "@/components/admin/ExportCsvButton";
 import ModalShell from "@/components/admin/ModalShell";
 import Pagination from "@/components/admin/Pagination";
+import SelectWrapper from "@/components/admin/SelectWrapper";
 import StatusBadge, { type BadgeTone } from "@/components/admin/StatusBadge";
 import TableState from "@/components/admin/TableState";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -138,19 +139,21 @@ function ResolveDialog({
           >
             Status Laporan
           </label>
-          <select
-            id="resolve-status"
-            value={nextStatus}
-            onChange={(e) =>
-              setNextStatus(e.target.value as Exclude<ReportStatus, "pending">)
-            }
-            className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
-          >
-            <option value="resolved">Resolved (Diselesaikan)</option>
-            <option value="reviewing">Reviewing (Sedang Ditinjau)</option>
-            <option value="rejected">Rejected (Laporan Ditolak)</option>
-            <option value="dismissed">Dismissed (Diabaikan)</option>
-          </select>
+          <SelectWrapper>
+            <select
+              id="resolve-status"
+              value={nextStatus}
+              onChange={(e) =>
+                setNextStatus(e.target.value as Exclude<ReportStatus, "pending">)
+              }
+              className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white py-2 pr-9 pl-3.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+            >
+              <option value="resolved">Resolved (Diselesaikan)</option>
+              <option value="reviewing">Reviewing (Sedang Ditinjau)</option>
+              <option value="rejected">Rejected (Laporan Ditolak)</option>
+              <option value="dismissed">Dismissed (Diabaikan)</option>
+            </select>
+          </SelectWrapper>
         </div>
 
         <div>
@@ -160,20 +163,22 @@ function ResolveDialog({
           >
             Tindakan Moderasi pada Target
           </label>
-          <select
-            id="resolve-action"
-            value={targetAction}
-            onChange={(e) =>
-              setTargetAction(e.target.value as ReportTargetAction)
-            }
-            className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
-          >
-            <option value="none">Tanpa tindakan tambahan pada target</option>
-            <option value="hide_content">Nonaktifkan / Sembunyikan Konten</option>
-            <option value="delete_content">Hapus Konten (Soft Delete)</option>
-            <option value="suspend_user">Suspend Akun Pemilik</option>
-            <option value="ban_user">Ban Akun Pemilik</option>
-          </select>
+          <SelectWrapper>
+            <select
+              id="resolve-action"
+              value={targetAction}
+              onChange={(e) =>
+                setTargetAction(e.target.value as ReportTargetAction)
+              }
+              className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white py-2 pr-9 pl-3.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+            >
+              <option value="none">Tanpa tindakan tambahan pada target</option>
+              <option value="hide_content">Nonaktifkan / Sembunyikan Konten</option>
+              <option value="delete_content">Hapus Konten (Soft Delete)</option>
+              <option value="suspend_user">Suspend Akun Pemilik</option>
+              <option value="ban_user">Ban Akun Pemilik</option>
+            </select>
+          </SelectWrapper>
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
@@ -339,22 +344,24 @@ export default function ReportsAdminPage() {
           <label htmlFor="report-status-filter" className="text-xs font-semibold text-slate-500">
             Status
           </label>
-          <select
-            id="report-status-filter"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
-            className="cursor-pointer appearance-none rounded-lg bg-slate-100 py-2 pr-8 pl-3.5 text-sm text-slate-800 outline-none focus:ring-1 focus:ring-sky-500"
-          >
-            <option value="">Semua Status</option>
-            <option value="pending">Pending</option>
-            <option value="reviewing">Ditinjau</option>
-            <option value="resolved">Selesai</option>
-            <option value="rejected">Ditolak</option>
-            <option value="dismissed">Diabaikan</option>
-          </select>
+          <SelectWrapper>
+            <select
+              id="report-status-filter"
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+              className="cursor-pointer appearance-none rounded-lg bg-slate-100 py-2 pr-8 pl-3.5 text-sm text-slate-800 outline-none focus:ring-1 focus:ring-sky-500"
+            >
+              <option value="">Semua Status</option>
+              <option value="pending">Pending</option>
+              <option value="reviewing">Ditinjau</option>
+              <option value="resolved">Selesai</option>
+              <option value="rejected">Ditolak</option>
+              <option value="dismissed">Diabaikan</option>
+            </select>
+          </SelectWrapper>
         </div>
       </section>
 

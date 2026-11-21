@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { ActionIcon } from "@/components/admin/ActionIcons";
+import AdminImage from "@/components/admin/AdminImage";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import ExportCsvButton from "@/components/admin/ExportCsvButton";
 import ModalShell from "@/components/admin/ModalShell";
 import Pagination from "@/components/admin/Pagination";
+import SelectWrapper from "@/components/admin/SelectWrapper";
 import StatusBadge, { type BadgeTone } from "@/components/admin/StatusBadge";
 import TableState from "@/components/admin/TableState";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -94,12 +96,12 @@ function DetailDialog({
       {images.length > 0 && (
         <div className="mt-4 flex gap-2 overflow-x-auto">
           {images.map((img) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <AdminImage
               key={img.id}
-              src={mediaUrl(img.file_path) ?? ""}
+              src={mediaUrl(img.file_path)}
               alt={item.title}
               className="h-24 w-24 shrink-0 rounded-lg border border-slate-200 object-cover"
+              fallbackClassName="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-xs font-bold text-slate-300"
             />
           ))}
         </div>
@@ -293,22 +295,24 @@ export default function MarketplacePage() {
           <label htmlFor="status-filter" className="text-xs font-semibold text-slate-500">
             Status
           </label>
-          <select
-            id="status-filter"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
-            className="cursor-pointer appearance-none rounded-lg bg-slate-100 py-2 pr-8 pl-3.5 text-sm text-slate-800 outline-none focus:ring-1 focus:ring-sky-500"
-          >
-            <option value="">Semua Status</option>
-            <option value="active">Aktif</option>
-            <option value="hidden">Tersembunyi</option>
-            <option value="sold">Terjual</option>
-            <option value="inactive">Nonaktif</option>
-            <option value="deleted">Dihapus</option>
-          </select>
+          <SelectWrapper>
+            <select
+              id="status-filter"
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+              className="cursor-pointer appearance-none rounded-lg bg-slate-100 py-2 pr-8 pl-3.5 text-sm text-slate-800 outline-none focus:ring-1 focus:ring-sky-500"
+            >
+              <option value="">Semua Status</option>
+              <option value="active">Aktif</option>
+              <option value="hidden">Tersembunyi</option>
+              <option value="sold">Terjual</option>
+              <option value="inactive">Nonaktif</option>
+              <option value="deleted">Dihapus</option>
+            </select>
+          </SelectWrapper>
         </div>
       </section>
 
@@ -349,19 +353,13 @@ export default function MarketplacePage() {
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
                               <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-slate-100">
-                                {thumb ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={thumb}
-                                    alt=""
-                                    className="h-full w-full object-cover"
-                                    loading="lazy"
-                                  />
-                                ) : (
-                                  <div className="flex h-full w-full items-center justify-center text-xs font-bold text-slate-300">
-                                    N/A
-                                  </div>
-                                )}
+                                <AdminImage
+                                  src={thumb}
+                                  alt=""
+                                  loading="lazy"
+                                  className="h-full w-full object-cover"
+                                  fallbackClassName="flex h-full w-full items-center justify-center text-xs font-bold text-slate-300"
+                                />
                               </div>
                               <div className="min-w-0">
                                 <button

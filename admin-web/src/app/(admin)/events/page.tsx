@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ActionIcon } from "@/components/admin/ActionIcons";
+import AdminImage from "@/components/admin/AdminImage";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import ExportCsvButton from "@/components/admin/ExportCsvButton";
 import ModalShell from "@/components/admin/ModalShell";
 import Pagination from "@/components/admin/Pagination";
+import SelectWrapper from "@/components/admin/SelectWrapper";
 import StatusBadge, { type BadgeTone } from "@/components/admin/StatusBadge";
 import TableState from "@/components/admin/TableState";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -73,12 +75,12 @@ function DetailDialog({
       {images.length > 0 && (
         <div className="mt-4 flex gap-2 overflow-x-auto">
           {images.map((img) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <AdminImage
               key={img.id}
-              src={mediaUrl(img.file_path) ?? ""}
+              src={mediaUrl(img.file_path)}
               alt={item.title}
               className="h-24 w-24 shrink-0 rounded-lg border border-slate-200 object-cover"
+              fallbackClassName="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-xs font-bold text-slate-300"
             />
           ))}
         </div>
@@ -299,22 +301,24 @@ export default function EventsAdminPage() {
           <label htmlFor="event-status-filter" className="text-xs font-semibold text-slate-500">
             Status
           </label>
-          <select
-            id="event-status-filter"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
-            className="cursor-pointer appearance-none rounded-lg bg-slate-100 py-2 pr-8 pl-3.5 text-sm text-slate-800 outline-none focus:ring-1 focus:ring-sky-500"
-          >
-            <option value="">Semua Status</option>
-            <option value="published">Published</option>
-            <option value="pending">Pending</option>
-            <option value="draft">Draft</option>
-            <option value="archived">Archived</option>
-            <option value="rejected">Ditolak</option>
-          </select>
+          <SelectWrapper>
+            <select
+              id="event-status-filter"
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+              className="cursor-pointer appearance-none rounded-lg bg-slate-100 py-2 pr-8 pl-3.5 text-sm text-slate-800 outline-none focus:ring-1 focus:ring-sky-500"
+            >
+              <option value="">Semua Status</option>
+              <option value="published">Published</option>
+              <option value="pending">Pending</option>
+              <option value="draft">Draft</option>
+              <option value="archived">Archived</option>
+              <option value="rejected">Ditolak</option>
+            </select>
+          </SelectWrapper>
         </div>
       </section>
 

@@ -7,7 +7,8 @@ export type ActionIconName =
   | "edit"
   | "archive"
   | "search"
-  | "download";
+  | "download"
+  | "chevron-down";
 
 const ICON_PATHS: Record<ActionIconName, string> = {
   eye: "M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z",
@@ -22,6 +23,7 @@ const ICON_PATHS: Record<ActionIconName, string> = {
     "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4",
   search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
   download: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3",
+  "chevron-down": "M19 9l-7 7-7-7",
 };
 
 export function ActionIcon({

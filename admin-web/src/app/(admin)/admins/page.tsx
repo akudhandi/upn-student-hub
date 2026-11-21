@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { ActionIcon } from "@/components/admin/ActionIcons";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
+import SelectWrapper from "@/components/admin/SelectWrapper";
 import StatusBadge from "@/components/admin/StatusBadge";
 import TableState from "@/components/admin/TableState";
 import {
@@ -232,15 +233,17 @@ export default function AdminsPage() {
               >
                 Peran
               </label>
-              <select
-                id="admin-role"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
-              >
-                <option value="admin">Admin</option>
-                <option value="superadmin">Superadmin</option>
-              </select>
+              <SelectWrapper>
+                <select
+                  id="admin-role"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white py-2 pr-9 pl-3 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+                >
+                  <option value="admin">Admin</option>
+                  <option value="superadmin">Superadmin</option>
+                </select>
+              </SelectWrapper>
             </div>
             <div className="flex items-end">
               <button

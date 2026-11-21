@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import AdminImage from "@/components/admin/AdminImage";
+import SelectWrapper from "@/components/admin/SelectWrapper";
 import type { CategoryItem, EventStatus } from "@/lib/admin-api";
 import { mediaUrl } from "@/lib/media";
 
@@ -190,19 +192,21 @@ export default function EventForm({
           >
             Kategori
           </label>
-          <select
-            id="event-category"
-            value={values.category_id}
-            onChange={(e) => setField("category_id", e.target.value)}
-            className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
-          >
-            <option value="">Pilih kategori (opsional)</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={String(cat.id)}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
+          <SelectWrapper>
+            <select
+              id="event-category"
+              value={values.category_id}
+              onChange={(e) => setField("category_id", e.target.value)}
+              className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white py-2 pr-9 pl-3.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+            >
+              <option value="">Pilih kategori (opsional)</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={String(cat.id)}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </SelectWrapper>
         </div>
       </div>
 
@@ -249,18 +253,20 @@ export default function EventForm({
           >
             Status Publikasi
           </label>
-          <select
-            id="event-status"
-            value={values.status}
-            onChange={(e) => setField("status", e.target.value as EventStatus)}
-            className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
-          >
-            <option value="published">Published (Tayang)</option>
-            <option value="draft">Draft</option>
-            <option value="pending">Pending Kurasi</option>
-            <option value="archived">Archived (Arsip)</option>
-            <option value="rejected">Rejected (Ditolak)</option>
-          </select>
+          <SelectWrapper>
+            <select
+              id="event-status"
+              value={values.status}
+              onChange={(e) => setField("status", e.target.value as EventStatus)}
+              className="w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-white py-2 pr-9 pl-3.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+            >
+              <option value="published">Published (Tayang)</option>
+              <option value="draft">Draft</option>
+              <option value="pending">Pending Kurasi</option>
+              <option value="archived">Archived (Arsip)</option>
+              <option value="rejected">Rejected (Ditolak)</option>
+            </select>
+          </SelectWrapper>
         </div>
       </div>
 
@@ -313,11 +319,12 @@ export default function EventForm({
         </label>
         <div className="flex flex-col gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50/70 p-4 sm:flex-row sm:items-center">
           {activePosterPreview ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <AdminImage
               src={activePosterPreview}
               alt="Preview poster event"
               className="h-28 w-44 shrink-0 rounded-lg border border-slate-200 bg-white object-cover"
+              fallbackClassName="flex h-28 w-44 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white px-2 text-center text-xs text-slate-400"
+              fallbackLabel="Poster tidak dapat dimuat"
             />
           ) : (
             <div className="flex h-28 w-44 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs text-slate-400">
