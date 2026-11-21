@@ -231,6 +231,17 @@ export async function updateMarketplaceStatus(
   return data.data;
 }
 
+export async function bulkUpdateMarketplaceStatus(
+  ids: number[],
+  action: ListingAction,
+): Promise<{ updated: number }> {
+  const { data } = await api.post<{
+    message: string;
+    data: { updated: number };
+  }>('/admin/marketplace/bulk-status', { ids, action });
+  return data.data;
+}
+
 // ---------------------------------------------------------------------------
 // Services (Jasa Mahasiswa)
 // ---------------------------------------------------------------------------

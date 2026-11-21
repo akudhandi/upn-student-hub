@@ -1,3 +1,6 @@
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: warm-alabaster (DESIGN.md) · redesign: full · v2.0.0 */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R4 V5 · weakest: R, split workbench adds an inspector pane; replaced desktop modal ping-pong with one hairline catalog ledger and sticky preview */
+/* Hallmark · dropped setDetail, onClose, setSearch, setStatus, setPage, setError, setConfirm({ item · replaced DetailDialog modal and local filter state with sticky ListingInspectorContent drawer, URL-synced query handlers, and bulk-capable ConfirmState */
 @import "tailwindcss";
 
 @theme inline {
@@ -11,23 +14,50 @@
   --color-hub-sidebar: #efece8;
   --color-hub-surface: #ffffff;
   --color-hub-subtle: #faf8f6;
+  --color-hub-surface-tint: #f6f4f1;
+  --color-hub-surface-active: #ebe6e0;
   --color-hub-border: #e5e0da;
   --color-hub-border-strong: #d5cec6;
+  --color-hub-rule: #f2eeea;
   --color-hub-ink: #141416;
+  --color-hub-ink-hover: #26262a;
   --color-hub-ink-muted: #57534e;
   --color-hub-ink-subtle: #6e6a66;
+  --color-hub-focus: #141416;
+  --color-hub-accent: #0284c7;
+  --color-hub-accent-soft: #e0f2fe;
+  --color-hub-accent-ink: #0369a1;
+  --color-hub-success-bg: #e4f2ea;
+  --color-hub-success-ink: #1d5c3b;
+  --color-hub-warning-bg: #fbead8;
+  --color-hub-warning-ink: #824b12;
+  --color-hub-danger-bg: #fdecec;
+  --color-hub-danger-border: #f3c6c6;
+  --color-hub-danger-ink: #9b2222;
+  --color-hub-danger-solid: #c53939;
+  --color-hub-danger-solid-hover: #a62d2d;
 }
 
 :root {
   --background: #f4f1ee;
   --foreground: #141416;
+  --hub-scroll-thumb: #d6cfc7;
+  --hub-scroll-thumb-hover: #b5aca2;
+  --hub-card-hover-shadow: 0 14px 28px -18px rgba(20, 20, 22, 0.16);
+  --hub-shadow-xs: 0 1px 2px 0 rgba(20, 20, 22, 0.05);
+  --hub-shadow-2xs: 0 1px 2px 0 rgba(20, 20, 22, 0.04);
+}
+
+html,
+body {
+  overflow-x: clip;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
-  caret-color: #141416;
+  caret-color: var(--foreground);
   text-underline-offset: 3px;
 }
 
@@ -37,6 +67,13 @@ h3,
 h4,
 .font-display {
   font-family: var(--font-display);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
 }
 
 @layer base {
@@ -70,17 +107,17 @@ h4,
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d6cfc7;
+  background: var(--hub-scroll-thumb);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #b5aca2;
+  background: var(--hub-scroll-thumb-hover);
 }
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: #d6cfc7;
+  background: var(--hub-scroll-thumb);
 }
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: #b5aca2;
+  background: var(--hub-scroll-thumb-hover);
 }
 
 /* Subtle editorial hover lift on metric cards */
@@ -91,15 +128,15 @@ h4,
 }
 .card-transition:hover {
   transform: translateY(-2px);
-  border-color: #d5cec6;
-  box-shadow: 0 14px 28px -18px rgba(20, 20, 22, 0.16);
+  border-color: var(--color-hub-border-strong);
+  box-shadow: var(--hub-card-hover-shadow);
 }
 
 .shadow-xs {
-  box-shadow: 0 1px 2px 0 rgba(20, 20, 22, 0.05);
+  box-shadow: var(--hub-shadow-xs);
 }
 .shadow-2xs {
-  box-shadow: 0 1px 2px 0 rgba(20, 20, 22, 0.04);
+  box-shadow: var(--hub-shadow-2xs);
 }
 
 @keyframes auth-shell-in {
