@@ -79,8 +79,10 @@ export function subscribeAdminSession(listener: SessionListener): () => void {
   };
 }
 
+export const SSR_ADMIN_SESSION_SNAPSHOT = '__SSR__';
+
 export function getServerAdminSessionSnapshot(): string {
-  return '';
+  return SSR_ADMIN_SESSION_SNAPSHOT;
 }
 
 export function getAdminSessionSnapshot(): string {
@@ -95,7 +97,7 @@ export function parseAdminSession(snapshot: string): {
   token: string;
   admin: AdminUser | null;
 } | null {
-  if (!snapshot) return null;
+  if (!snapshot || snapshot === SSR_ADMIN_SESSION_SNAPSHOT) return null;
   const sep = snapshot.indexOf('::');
   const token = sep === -1 ? snapshot : snapshot.slice(0, sep);
   const raw = sep === -1 ? '' : snapshot.slice(sep + 2);

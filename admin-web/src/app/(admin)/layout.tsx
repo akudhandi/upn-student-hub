@@ -8,8 +8,10 @@ import Topbar from "@/components/admin/Topbar";
 import {
   clearAdminSession,
   getAdminSessionSnapshot,
+  getAdminToken,
   getServerAdminSessionSnapshot,
   parseAdminSession,
+  SSR_ADMIN_SESSION_SNAPSHOT,
   subscribeAdminSession,
 } from "@/lib/auth";
 import { adminLogout } from "@/lib/admin-api";
@@ -26,15 +28,16 @@ export default function AdminLayout({
     getAdminSessionSnapshot,
     getServerAdminSessionSnapshot,
   );
-  const session = parseAdminSession(snapshot);
-  const loggedOut = session === null;
+  const hydrating = snapshot === SSR_ADMIN_SESSION_SNAPSHOT;
+  const session = hydrating ? null : parseAdminSession(snapshot);
+  const loggedOut = !hydrating && session === null;
   const adminName =
     session?.admin?.name || session?.admin?.email || "Administrator";
 
-  // Guard: tanpa token kembali ke login. Tanpa setState sehingga tidak
-  // memicu cascading render.
+  // Guard: tunggu hydration selesai dan pastikan token benar-benar tidak ada
+  // sebelum mengarahkan ke login (mencegah bounce /subpage -> /login -> / saat refresh).
   useEffect(() => {
-    if (loggedOut) {
+    if (loggedOut && !getAdminToken()) {
       router.replace("/login");
     }
   }, [loggedOut, router]);
@@ -50,7 +53,7 @@ export default function AdminLayout({
     }
   }, [router]);
 
-  if (loggedOut) {
+  if (hydrating || loggedOut) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#F4F1EE]">
         <p className="text-sm font-medium text-[#6E6A66]">Memuat…</p>
