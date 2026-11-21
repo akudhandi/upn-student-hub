@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -36,16 +37,13 @@ class AdminReportController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
-        $rows = $this->filteredQuery($this->validateFilters($request))
-            ->limit(5000)
-            ->get();
-
+        $query = $this->filteredQuery($this->validateFilters($request));
         $filename = 'reports-'.now()->format('Ymd-His').'.csv';
 
         return $this->streamCsv(
             $filename,
             ['ID', 'Tipe Objek', 'ID Objek', 'Alasan', 'Pelapor', 'Status', 'Diselesaikan Oleh', 'Dilaporkan'],
-            $rows,
+            $this->chunkedExportRows($query),
             static fn ($row): array => [
                 $row->id,
                 $row->reportable_type,
@@ -105,11 +103,11 @@ class AdminReportController extends Controller
         }
 
         if (! empty($validated['date_from'])) {
-            $query->whereDate('created_at', '>=', $validated['date_from']);
+            $query->where('created_at', '>=', Carbon::parse((string) $validated['date_from'])->startOfDay());
         }
 
         if (! empty($validated['date_to'])) {
-            $query->whereDate('created_at', '<=', $validated['date_to']);
+            $query->where('created_at', '<=', Carbon::parse((string) $validated['date_to'])->endOfDay());
         }
 
         return $query;
@@ -145,12 +143,16 @@ class AdminReportController extends Controller
             ], 422);
         }
 
-        $this->applyResolution(
-            $report,
-            $validated['status'],
-            $targetAction,
-            $request->user()?->id
-        );
+        $adminId = $request->user()?->id;
+
+        DB::transaction(function () use ($report, $validated, $targetAction, $adminId): void {
+            $this->applyResolution(
+                $report,
+                $validated['status'],
+                $targetAction,
+                $adminId
+            );
+        });
 
         $report->load([
             'reporter:id,name,email',

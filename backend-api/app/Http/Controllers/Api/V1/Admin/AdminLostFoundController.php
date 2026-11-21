@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -30,16 +31,13 @@ class AdminLostFoundController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
-        $rows = $this->filteredQuery($this->validateFilters($request))
-            ->limit(5000)
-            ->get();
-
+        $query = $this->filteredQuery($this->validateFilters($request), false);
         $filename = 'lost-found-'.now()->format('Ymd-His').'.csv';
 
         return $this->streamCsv(
             $filename,
             ['ID', 'Judul', 'Tipe', 'Kategori', 'Lokasi', 'Pelapor', 'Status', 'Laporan', 'Diunggah'],
-            $rows,
+            $this->chunkedExportRows($query),
             static fn ($row): array => [
                 $row->id,
                 $row->title,
@@ -72,10 +70,15 @@ class AdminLostFoundController extends Controller
     /**
      * @param array<string, mixed> $validated
      */
-    private function filteredQuery(array $validated): Builder
+    private function filteredQuery(array $validated, bool $withImages = true): Builder
     {
+        $relations = ['user:id,name', 'category:id,name,slug'];
+        if ($withImages) {
+            $relations[] = 'images';
+        }
+
         $query = LostFoundReport::query()
-            ->with(['user:id,name', 'category:id,name,slug', 'images'])
+            ->with($relations)
             ->withCount('reports')
             ->latest();
 
@@ -112,11 +115,11 @@ class AdminLostFoundController extends Controller
         }
 
         if (! empty($validated['date_from'])) {
-            $query->whereDate('created_at', '>=', $validated['date_from']);
+            $query->where('created_at', '>=', Carbon::parse((string) $validated['date_from'])->startOfDay());
         }
 
         if (! empty($validated['date_to'])) {
-            $query->whereDate('created_at', '<=', $validated['date_to']);
+            $query->where('created_at', '<=', Carbon::parse((string) $validated['date_to'])->endOfDay());
         }
 
         return $query;
@@ -139,7 +142,7 @@ class AdminLostFoundController extends Controller
 
         $this->applyAction($report, $validated['action']);
 
-        $report->load(['user:id,name', 'category:id,name,slug']);
+        $report->load(['user:id,name', 'category:id,name,slug', 'images']);
         $report->loadCount('reports');
 
         return response()->json([

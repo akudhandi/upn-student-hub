@@ -10,9 +10,9 @@ use App\Http\Controllers\Controller;
 use App\Models\ChatMessage;
 use App\Models\ChatParticipant;
 use App\Models\ChatRoom;
-use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class ChatController extends Controller
@@ -48,10 +48,13 @@ class ChatController extends Controller
 
     private function conversationPayload(ChatRoom $room, int $userId): array
     {
-        $room->loadMissing(['participants.user:id,name', 'contextable']);
+        $room->loadMissing(['participants.user:id,name', 'contextable', 'latestMessage']);
 
         $other = $room->participants->firstWhere('user_id', '!=', $userId);
-        $latest = $room->messages()->latest()->first();
+        $latest = $room->latestMessage;
+        $unreadCount = array_key_exists('unread_count', $room->getAttributes())
+            ? (int) $room->getAttribute('unread_count')
+            : $this->unreadCount($room, $userId);
 
         $context = null;
         if ($room->contextable_type && $room->contextable_id) {
@@ -75,21 +78,23 @@ class ChatController extends Controller
                 'is_deleted' => (bool) $latest->is_deleted,
                 'created_at' => $latest->created_at,
             ] : null,
-            'unread_count' => $this->unreadCount($room->id, $userId),
+            'unread_count' => $unreadCount,
             'context' => $context,
             'updated_at' => $room->updated_at,
         ];
     }
 
-    private function unreadCount(int $roomId, int $userId): int
+    private function unreadCount(ChatRoom $room, int $userId): int
     {
-        $participant = ChatParticipant::query()
-            ->where('chat_room_id', $roomId)
-            ->where('user_id', $userId)
-            ->first();
+        $participant = $room->relationLoaded('participants')
+            ? $room->participants->firstWhere('user_id', $userId)
+            : ChatParticipant::query()
+                ->where('chat_room_id', $room->id)
+                ->where('user_id', $userId)
+                ->first();
 
         $query = ChatMessage::query()
-            ->where('chat_room_id', $roomId)
+            ->where('chat_room_id', $room->id)
             ->where('user_id', '!=', $userId)
             ->where('is_deleted', false);
 
@@ -104,13 +109,25 @@ class ChatController extends Controller
     {
         $userId = $this->currentUserId($request);
 
-        $roomIds = ChatParticipant::query()
-            ->where('user_id', $userId)
-            ->pluck('chat_room_id');
-
         $rooms = ChatRoom::query()
-            ->with(['participants.user:id,name', 'contextable'])
-            ->whereIn('id', $roomIds)
+            ->with(['participants.user:id,name', 'contextable', 'latestMessage'])
+            ->withCount([
+                'messages as unread_count' => function ($query) use ($userId) {
+                    $query->where('user_id', '!=', $userId)
+                        ->where('is_deleted', false)
+                        ->whereRaw(
+                            'NOT EXISTS (
+                                SELECT 1 FROM chat_participants
+                                WHERE chat_participants.chat_room_id = chat_messages.chat_room_id
+                                  AND chat_participants.user_id = ?
+                                  AND chat_participants.last_read_at IS NOT NULL
+                                  AND chat_messages.created_at <= chat_participants.last_read_at
+                            )',
+                            [$userId]
+                        );
+                },
+            ])
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $userId))
             ->orderBy('updated_at', 'desc')
             ->get();
 
@@ -168,36 +185,40 @@ class ChatController extends Controller
             }
         }
 
-        $query = ChatRoom::query()
-            ->whereHas('participants', fn ($q) => $q->where('user_id', $userId))
-            ->whereHas('participants', fn ($q) => $q->where('user_id', $recipientId));
+        [$room, $created] = DB::transaction(function () use ($userId, $recipientId, $contextClass, $listingId, $validated): array {
+            $query = ChatRoom::query()
+                ->whereHas('participants', fn ($q) => $q->where('user_id', $userId))
+                ->whereHas('participants', fn ($q) => $q->where('user_id', $recipientId));
 
-        if ($contextClass !== null && $listingId !== null) {
-            $query->where('contextable_type', $contextClass)->where('contextable_id', $listingId);
-        } else {
-            $query->whereNull('contextable_type');
-        }
+            if ($contextClass !== null && $listingId !== null) {
+                $query->where('contextable_type', $contextClass)->where('contextable_id', $listingId);
+            } else {
+                $query->whereNull('contextable_type');
+            }
 
-        $room = $query->first();
-        $created = false;
+            $room = $query->first();
+            $created = false;
 
-        if ($room === null) {
-            $room = ChatRoom::create([
-                'contextable_type' => $contextClass,
-                'contextable_id' => $listingId,
-            ]);
-            ChatParticipant::create(['chat_room_id' => $room->id, 'user_id' => $userId]);
-            ChatParticipant::create(['chat_room_id' => $room->id, 'user_id' => $recipientId]);
-            $created = true;
-        }
+            if ($room === null) {
+                $room = ChatRoom::create([
+                    'contextable_type' => $contextClass,
+                    'contextable_id' => $listingId,
+                ]);
+                ChatParticipant::create(['chat_room_id' => $room->id, 'user_id' => $userId]);
+                ChatParticipant::create(['chat_room_id' => $room->id, 'user_id' => $recipientId]);
+                $created = true;
+            }
 
-        if (!empty($validated['message'])) {
-            $this->appendMessage($room, $userId, (string) $validated['message']);
-        }
+            if (!empty($validated['message'])) {
+                $this->appendMessage($room, $userId, (string) $validated['message']);
+            }
+
+            return [$room, $created];
+        });
 
         return response()->json([
             'message' => $created ? 'Percakapan berhasil dibuat' : 'Percakapan sudah ada',
-            'data' => $this->conversationPayload($room->fresh(), $userId),
+            'data' => $this->conversationPayload($room->fresh(['participants.user:id,name', 'contextable', 'latestMessage']), $userId),
         ], $created ? 201 : 200);
     }
 
@@ -309,17 +330,18 @@ class ChatController extends Controller
             'body' => 'required|string|max:2000',
         ]);
 
-        $message->update([
-            'message' => $validated['body'],
-            'is_edited' => true,
-            'edited_at' => now(),
-        ]);
-        $message->loadMissing('user:id,name');
-        $room->touch();
+        DB::transaction(function () use ($message, $room, $validated): void {
+            $message->update([
+                'message' => $validated['body'],
+                'is_edited' => true,
+                'edited_at' => now(),
+            ]);
+            $room->touch();
+        });
 
         return response()->json([
             'message' => 'Pesan berhasil diubah',
-            'data' => $this->messagePayload($message->fresh()),
+            'data' => $this->messagePayload($message->fresh(['user:id,name'])),
         ]);
     }
 
@@ -365,13 +387,14 @@ class ChatController extends Controller
             ], 422);
         }
 
-        $message->update(['is_deleted' => true]);
-        $message->loadMissing('user:id,name');
-        $room->touch();
+        DB::transaction(function () use ($message, $room): void {
+            $message->update(['is_deleted' => true]);
+            $room->touch();
+        });
 
         return response()->json([
             'message' => 'Pesan berhasil dihapus',
-            'data' => $this->messagePayload($message->fresh()),
+            'data' => $this->messagePayload($message->fresh(['user:id,name'])),
         ]);
     }
 
@@ -404,15 +427,17 @@ class ChatController extends Controller
 
     private function appendMessage(ChatRoom $room, int $userId, string $body): ChatMessage
     {
-        $message = ChatMessage::create([
-            'chat_room_id' => $room->id,
-            'user_id' => $userId,
-            'message' => $body,
-        ]);
+        return DB::transaction(function () use ($room, $userId, $body): ChatMessage {
+            $message = ChatMessage::create([
+                'chat_room_id' => $room->id,
+                'user_id' => $userId,
+                'message' => $body,
+            ]);
 
-        $room->update(['last_message_at' => $message->created_at]);
-        $room->touch();
+            $room->update(['last_message_at' => $message->created_at]);
+            $room->touch();
 
-        return $message;
+            return $message;
+        });
     }
 }

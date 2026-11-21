@@ -11,6 +11,7 @@ use App\Models\ServiceListing;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class ServiceController extends Controller
@@ -37,16 +38,21 @@ class ServiceController extends Controller
 
         $imagePaths = $validated['image_paths'] ?? null;
         unset($validated['image_paths']);
+        $userId = $this->resolveStudentUserId($request);
 
-        $listing = ServiceListing::create([
-            ...$validated,
-            'user_id' => $this->resolveStudentUserId($request),
-            'status' => 'active',
-        ]);
+        $listing = DB::transaction(function () use ($validated, $userId, $imagePaths): ServiceListing {
+            $listing = ServiceListing::create([
+                ...$validated,
+                'user_id' => $userId,
+                'status' => 'active',
+            ]);
 
-        if (is_array($imagePaths) && $imagePaths !== []) {
-            $this->syncImages($listing, $imagePaths);
-        }
+            if (is_array($imagePaths) && $imagePaths !== []) {
+                $this->syncImages($listing, $imagePaths);
+            }
+
+            return $listing;
+        });
 
         $listing->load([
             'user:id,name',
@@ -202,12 +208,14 @@ class ServiceController extends Controller
         $imagePaths = $validated['image_paths'] ?? [];
         unset($validated['image_paths']);
 
-        if ($validated !== []) {
-            $listing->update($validated);
-        }
-        if ($hasImages && is_array($imagePaths)) {
-            $this->syncImages($listing, $imagePaths);
-        }
+        DB::transaction(function () use ($listing, $validated, $hasImages, $imagePaths): void {
+            if ($validated !== []) {
+                $listing->update($validated);
+            }
+            if ($hasImages && is_array($imagePaths)) {
+                $this->syncImages($listing, $imagePaths);
+            }
+        });
 
         $listing->load(['user:id,name', 'category:id,name,slug', 'images']);
 

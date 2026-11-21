@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -102,12 +103,14 @@ class AdminUserController extends Controller
             ], 404);
         }
 
-        $user->account_type = $validated['account_type'];
-        if (! empty($validated['password'])) {
-            $user->password = Hash::make($validated['password']);
-            $user->tokens()->delete();
-        }
-        $user->save();
+        DB::transaction(function () use ($user, $validated): void {
+            $user->account_type = $validated['account_type'];
+            if (! empty($validated['password'])) {
+                $user->password = Hash::make($validated['password']);
+                $user->tokens()->delete();
+            }
+            $user->save();
+        });
         $user->load('profile');
 
         return response()->json([
@@ -118,16 +121,13 @@ class AdminUserController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
-        $rows = $this->filteredQuery($this->validateFilters($request))
-            ->limit(5000)
-            ->get();
-
+        $query = $this->filteredQuery($this->validateFilters($request));
         $filename = 'users-'.now()->format('Ymd-His').'.csv';
 
         return $this->streamCsv(
             $filename,
             ['ID', 'Nama', 'Email', 'Tipe Akun', 'NIM', 'Fakultas', 'Status', 'Terdaftar'],
-            $rows,
+            $this->chunkedExportRows($query),
             static fn ($row): array => [
                 $row->id,
                 $row->profile->name ?? $row->name,
@@ -193,11 +193,11 @@ class AdminUserController extends Controller
         }
 
         if (! empty($validated['date_from'])) {
-            $query->whereDate('users.created_at', '>=', $validated['date_from']);
+            $query->where('users.created_at', '>=', Carbon::parse((string) $validated['date_from'])->startOfDay());
         }
 
         if (! empty($validated['date_to'])) {
-            $query->whereDate('users.created_at', '<=', $validated['date_to']);
+            $query->where('users.created_at', '<=', Carbon::parse((string) $validated['date_to'])->endOfDay());
         }
 
         return $query;
@@ -255,16 +255,18 @@ class AdminUserController extends Controller
             ], 404);
         }
 
-        if (! empty($validated['status'])) {
-            $user->status = $validated['status'];
-        } else {
-            $user->status = $user->status === 'active' ? 'suspended' : 'active';
-        }
+        DB::transaction(function () use ($user, $validated): void {
+            if (! empty($validated['status'])) {
+                $user->status = $validated['status'];
+            } else {
+                $user->status = $user->status === 'active' ? 'suspended' : 'active';
+            }
 
-        $user->save();
-        if ($user->status !== 'active') {
-            $user->tokens()->delete();
-        }
+            $user->save();
+            if ($user->status !== 'active') {
+                $user->tokens()->delete();
+            }
+        });
         $user->load('profile');
 
         return response()->json([
@@ -292,13 +294,17 @@ class AdminUserController extends Controller
             ], 422);
         }
 
-        $updated = User::whereIn('id', $ids)->update(['status' => $validated['status']]);
-        if ($validated['status'] !== 'active') {
-            PersonalAccessToken::query()
-                ->where('tokenable_type', User::class)
-                ->whereIn('tokenable_id', $ids)
-                ->delete();
-        }
+        $updated = DB::transaction(function () use ($ids, $validated): int {
+            $count = User::whereIn('id', $ids)->update(['status' => $validated['status']]);
+            if ($validated['status'] !== 'active') {
+                PersonalAccessToken::query()
+                    ->where('tokenable_type', User::class)
+                    ->whereIn('tokenable_id', $ids)
+                    ->delete();
+            }
+
+            return $count;
+        });
 
         return response()->json([
             'message' => 'Status pengguna berhasil diperbarui',

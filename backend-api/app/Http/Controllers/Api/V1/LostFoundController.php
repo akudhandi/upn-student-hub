@@ -11,6 +11,7 @@ use App\Models\LostFoundReport;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class LostFoundController extends Controller
@@ -34,16 +35,21 @@ class LostFoundController extends Controller
 
         $imagePaths = $validated['image_paths'] ?? null;
         unset($validated['image_paths']);
+        $userId = $this->resolveStudentUserId($request);
 
-        $report = LostFoundReport::create([
-            ...$validated,
-            'user_id' => $this->resolveStudentUserId($request),
-            'status' => 'open',
-        ]);
+        $report = DB::transaction(function () use ($validated, $userId, $imagePaths): LostFoundReport {
+            $report = LostFoundReport::create([
+                ...$validated,
+                'user_id' => $userId,
+                'status' => 'open',
+            ]);
 
-        if (is_array($imagePaths) && $imagePaths !== []) {
-            $this->syncImages($report, $imagePaths);
-        }
+            if (is_array($imagePaths) && $imagePaths !== []) {
+                $this->syncImages($report, $imagePaths);
+            }
+
+            return $report;
+        });
 
         $report->load([
             'user:id,name',
@@ -171,12 +177,14 @@ class LostFoundController extends Controller
         $imagePaths = $validated['image_paths'] ?? [];
         unset($validated['image_paths']);
 
-        if ($validated !== []) {
-            $report->update($validated);
-        }
-        if ($hasImages && is_array($imagePaths)) {
-            $this->syncImages($report, $imagePaths);
-        }
+        DB::transaction(function () use ($report, $validated, $hasImages, $imagePaths): void {
+            if ($validated !== []) {
+                $report->update($validated);
+            }
+            if ($hasImages && is_array($imagePaths)) {
+                $this->syncImages($report, $imagePaths);
+            }
+        });
 
         $report->load(['user:id,name', 'category:id,name,slug', 'images']);
 

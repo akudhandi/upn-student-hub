@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -30,16 +31,13 @@ class AdminMarketplaceController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
-        $rows = $this->filteredQuery($this->validateFilters($request))
-            ->limit(5000)
-            ->get();
-
+        $query = $this->filteredQuery($this->validateFilters($request), false);
         $filename = 'marketplace-'.now()->format('Ymd-His').'.csv';
 
         return $this->streamCsv(
             $filename,
             ['ID', 'Judul', 'Kategori', 'Penjual', 'Harga', 'Kondisi', 'Status', 'Laporan', 'Diunggah'],
-            $rows,
+            $this->chunkedExportRows($query),
             static fn ($row): array => [
                 $row->id,
                 $row->title,
@@ -71,10 +69,15 @@ class AdminMarketplaceController extends Controller
     /**
      * @param array<string, mixed> $validated
      */
-    private function filteredQuery(array $validated): Builder
+    private function filteredQuery(array $validated, bool $withImages = true): Builder
     {
+        $relations = ['user:id,name', 'category:id,name,slug'];
+        if ($withImages) {
+            $relations[] = 'images';
+        }
+
         $query = MarketplaceListing::query()
-            ->with(['user:id,name', 'category:id,name,slug', 'images'])
+            ->with($relations)
             ->withCount('reports')
             ->latest();
 
@@ -99,11 +102,11 @@ class AdminMarketplaceController extends Controller
         }
 
         if (! empty($validated['date_from'])) {
-            $query->whereDate('created_at', '>=', $validated['date_from']);
+            $query->where('created_at', '>=', Carbon::parse((string) $validated['date_from'])->startOfDay());
         }
 
         if (! empty($validated['date_to'])) {
-            $query->whereDate('created_at', '<=', $validated['date_to']);
+            $query->where('created_at', '<=', Carbon::parse((string) $validated['date_to'])->endOfDay());
         }
 
         return $query;
@@ -126,7 +129,7 @@ class AdminMarketplaceController extends Controller
 
         $this->applyAction($listing, $validated['action']);
 
-        $listing->load(['user:id,name', 'category:id,name,slug']);
+        $listing->load(['user:id,name', 'category:id,name,slug', 'images']);
         $listing->loadCount('reports');
 
         return response()->json([

@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -34,16 +36,13 @@ class AdminEventController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
-        $rows = $this->filteredQuery($this->validateFilters($request))
-            ->limit(5000)
-            ->get();
-
+        $query = $this->filteredQuery($this->validateFilters($request), false);
         $filename = 'event-'.now()->format('Ymd-His').'.csv';
 
         return $this->streamCsv(
             $filename,
             ['ID', 'Judul', 'Kategori', 'Penyelenggara', 'Tanggal Acara', 'Lokasi', 'Status', 'Diunggah'],
-            $rows,
+            $this->chunkedExportRows($query),
             static fn ($row): array => [
                 $row->id,
                 $row->title,
@@ -74,14 +73,18 @@ class AdminEventController extends Controller
     /**
      * @param array<string, mixed> $validated
      */
-    private function filteredQuery(array $validated): Builder
+    private function filteredQuery(array $validated, bool $withImages = true): Builder
     {
+        $relations = [
+            'user:id,name',
+            'category:id,name,slug',
+        ];
+        if ($withImages) {
+            $relations[] = 'images';
+        }
+
         $query = Event::query()
-            ->with([
-                'user:id,name',
-                'category:id,name,slug',
-                'images',
-            ])
+            ->with($relations)
             ->latest();
 
         if (! empty($validated['status'])) {
@@ -101,11 +104,11 @@ class AdminEventController extends Controller
         }
 
         if (! empty($validated['date_from'])) {
-            $query->whereDate('event_date', '>=', $validated['date_from']);
+            $query->where('event_date', '>=', Carbon::parse((string) $validated['date_from'])->startOfDay());
         }
 
         if (! empty($validated['date_to'])) {
-            $query->whereDate('event_date', '<=', $validated['date_to']);
+            $query->where('event_date', '<=', Carbon::parse((string) $validated['date_to'])->endOfDay());
         }
 
         return $query;
@@ -119,35 +122,39 @@ class AdminEventController extends Controller
         $imagePaths = $validated['image_paths'] ?? null;
         unset($validated['image_paths']);
 
-        $ownerUserId = $request->user() instanceof User
-            ? $request->user()->id
-            : (User::query()
-                ->whereIn('account_type', User::OFFICIAL_ACCOUNT_TYPES)
-                ->value('id')
-                ?? User::query()->firstOrCreate(
-                    ['email' => 'kemahasiswaan@upnjatim.ac.id'],
-                    [
-                        'name' => 'UPN Kemahasiswaan',
-                        'password' => Hash::make(Str::random(32)),
-                        'status' => 'active',
-                        'account_type' => 'faculty',
-                    ]
-                )->id);
+        $event = DB::transaction(function () use ($request, $validated, $imagePaths): Event {
+            $ownerUserId = $request->user() instanceof User
+                ? $request->user()->id
+                : (User::query()
+                    ->whereIn('account_type', User::OFFICIAL_ACCOUNT_TYPES)
+                    ->value('id')
+                    ?? User::query()->firstOrCreate(
+                        ['email' => 'kemahasiswaan@upnjatim.ac.id'],
+                        [
+                            'name' => 'UPN Kemahasiswaan',
+                            'password' => Hash::make(Str::random(32)),
+                            'status' => 'active',
+                            'account_type' => 'faculty',
+                        ]
+                    )->id);
 
-        $event = Event::create([
-            ...$validated,
-            'user_id' => $ownerUserId,
-            'slug' => Str::slug($validated['title']).'-'.Str::lower(Str::random(5)),
-            'is_verified' => true,
-        ]);
+            $event = Event::create([
+                ...$validated,
+                'user_id' => $ownerUserId,
+                'slug' => Str::slug($validated['title']).'-'.Str::lower(Str::random(5)),
+                'is_verified' => true,
+            ]);
 
-        $event->update([
-            'event_code' => sprintf('EVT-%s-%04d', $event->created_at->format('Y'), $event->id),
-        ]);
+            $event->update([
+                'event_code' => sprintf('EVT-%s-%04d', $event->created_at->format('Y'), $event->id),
+            ]);
 
-        if (is_array($imagePaths) && $imagePaths !== []) {
-            $this->syncImages($event, $imagePaths);
-        }
+            if (is_array($imagePaths) && $imagePaths !== []) {
+                $this->syncImages($event, $imagePaths);
+            }
+
+            return $event;
+        });
 
         $event->load(['user:id,name,account_type', 'category:id,name,slug', 'images']);
 
@@ -196,13 +203,15 @@ class AdminEventController extends Controller
             $validated['slug'] = Str::slug($validated['title']).'-'.Str::lower(Str::random(5));
         }
 
-        if ($validated !== []) {
-            $event->update($validated);
-        }
+        DB::transaction(function () use ($event, $validated, $hasImages, $imagePaths): void {
+            if ($validated !== []) {
+                $event->update($validated);
+            }
 
-        if ($hasImages && is_array($imagePaths)) {
-            $this->syncImages($event, $imagePaths);
-        }
+            if ($hasImages && is_array($imagePaths)) {
+                $this->syncImages($event, $imagePaths);
+            }
+        });
 
         $event->load(['user:id,name', 'category:id,name,slug', 'images']);
 

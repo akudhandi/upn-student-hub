@@ -48,36 +48,51 @@ class UserProfileController extends Controller
         $marketplaceIds = $marketplace->pluck('id');
         $serviceIds = $services->pluck('id');
 
-        $reviewsQuery = Rating::query()
-            ->with(['user:id,name', 'rateable'])
-            ->where(function ($q) use ($marketplaceIds, $serviceIds) {
-                $q->where(function ($sub) use ($marketplaceIds) {
-                    $sub->where('rateable_type', MarketplaceListing::class)
-                        ->whereIn('rateable_id', $marketplaceIds);
-                })->orWhere(function ($sub) use ($serviceIds) {
-                    $sub->where('rateable_type', ServiceListing::class)
-                        ->whereIn('rateable_id', $serviceIds);
+        if ($marketplaceIds->isEmpty() && $serviceIds->isEmpty()) {
+            $ratingCount = 0;
+            $ratingAverage = 0.0;
+            $recentReviews = collect();
+        } else {
+            $reviewsQuery = Rating::query()
+                ->where(function ($q) use ($marketplaceIds, $serviceIds) {
+                    if ($marketplaceIds->isNotEmpty()) {
+                        $q->where(function ($sub) use ($marketplaceIds) {
+                            $sub->where('rateable_type', MarketplaceListing::class)
+                                ->whereIn('rateable_id', $marketplaceIds);
+                        });
+                    }
+                    if ($serviceIds->isNotEmpty()) {
+                        $q->orWhere(function ($sub) use ($serviceIds) {
+                            $sub->where('rateable_type', ServiceListing::class)
+                                ->whereIn('rateable_id', $serviceIds);
+                        });
+                    }
                 });
-            });
 
-        $ratingCount = (clone $reviewsQuery)->count();
-        $ratingAverage = $ratingCount > 0
-            ? round((float) (clone $reviewsQuery)->avg('rating'), 1)
-            : 0.0;
+            $aggregate = (clone $reviewsQuery)
+                ->selectRaw('COUNT(*) as rating_count, COALESCE(AVG(rating), 0) as rating_avg')
+                ->first();
 
-        $recentReviews = $reviewsQuery
-            ->latest()
-            ->limit(10)
-            ->get()
-            ->map(fn (Rating $rating) => [
-                'id' => $rating->id,
-                'rating' => $rating->rating,
-                'review' => $rating->review,
-                'created_at' => $rating->created_at,
-                'reviewer_name' => $rating->user?->name ?? 'Mahasiswa UPN',
-                'target_title' => $rating->rateable?->getAttribute('title') ?? 'Listing',
-            ])
-            ->values();
+            $ratingCount = (int) ($aggregate?->rating_count ?? 0);
+            $ratingAverage = $ratingCount > 0
+                ? round((float) ($aggregate?->rating_avg ?? 0), 1)
+                : 0.0;
+
+            $recentReviews = $reviewsQuery
+                ->with(['user:id,name', 'rateable'])
+                ->latest()
+                ->limit(10)
+                ->get()
+                ->map(fn (Rating $rating) => [
+                    'id' => $rating->id,
+                    'rating' => $rating->rating,
+                    'review' => $rating->review,
+                    'created_at' => $rating->created_at,
+                    'reviewer_name' => $rating->user?->name ?? 'Mahasiswa UPN',
+                    'target_title' => $rating->rateable?->getAttribute('title') ?? 'Listing',
+                ])
+                ->values();
+        }
 
         $activeCount = $marketplace->where('status', 'active')->count()
             + $services->where('status', 'active')->count()

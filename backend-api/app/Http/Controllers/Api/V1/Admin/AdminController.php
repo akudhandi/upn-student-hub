@@ -9,6 +9,7 @@ use App\Models\Admin;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
@@ -82,8 +83,26 @@ class AdminController extends Controller
             ], 422);
         }
 
-        $admin->tokens()->delete();
-        $admin->delete();
+        $deleted = DB::transaction(function () use ($admin): bool {
+            if (
+                $admin->role === 'superadmin'
+                && Admin::query()->where('role', 'superadmin')->lockForUpdate()->count() <= 1
+            ) {
+                return false;
+            }
+
+            $admin->tokens()->delete();
+            $admin->delete();
+
+            return true;
+        });
+
+        if (! $deleted) {
+            return response()->json([
+                'message' => 'Tidak dapat menghapus superadmin terakhir',
+                'data' => null,
+            ], 422);
+        }
 
         return response()->json([
             'message' => 'Admin berhasil dihapus',

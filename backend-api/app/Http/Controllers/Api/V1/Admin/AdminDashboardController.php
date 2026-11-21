@@ -19,27 +19,41 @@ class AdminDashboardController extends Controller
     {
         $usersCount = User::count();
 
-        $marketplaceCount = MarketplaceListing::count();
-        $servicesCount = ServiceListing::count();
-        $lostFoundCount = LostFoundReport::count();
-        $eventsCount = Event::count();
+        $marketplaceStats = MarketplaceListing::query()
+            ->selectRaw("COUNT(*) as total, COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) as active_count")
+            ->first();
+        $serviceStats = ServiceListing::query()
+            ->selectRaw("COUNT(*) as total, COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) as active_count")
+            ->first();
+        $lostFoundStats = LostFoundReport::query()
+            ->selectRaw("COUNT(*) as total, COALESCE(SUM(CASE WHEN status IN ('open', 'active') THEN 1 ELSE 0 END), 0) as active_count")
+            ->first();
+        $eventStats = Event::query()
+            ->selectRaw("COUNT(*) as total, COALESCE(SUM(CASE WHEN status IN ('draft', 'pending') THEN 1 ELSE 0 END), 0) as pending_count")
+            ->first();
+        $reportStats = Report::query()
+            ->where('status', 'pending')
+            ->selectRaw(
+                'COUNT(*) as pending_total,
+                 COUNT(DISTINCT CASE WHEN reportable_type != ? THEN reportable_id END) as reported_listings,
+                 COUNT(DISTINCT CASE WHEN reportable_type = ? THEN reportable_id END) as reported_users',
+                [User::class, User::class]
+            )
+            ->first();
 
-        $activeListings = MarketplaceListing::where('status', 'active')->count()
-            + ServiceListing::where('status', 'active')->count()
-            + LostFoundReport::whereIn('status', ['open', 'active'])->count();
+        $marketplaceCount = (int) ($marketplaceStats?->total ?? 0);
+        $servicesCount = (int) ($serviceStats?->total ?? 0);
+        $lostFoundCount = (int) ($lostFoundStats?->total ?? 0);
+        $eventsCount = (int) ($eventStats?->total ?? 0);
 
-        $pendingEventsCount = Event::whereIn('status', ['draft', 'pending'])->count();
-        $pendingReportsCount = Report::where('status', 'pending')->count();
+        $activeListings = (int) ($marketplaceStats?->active_count ?? 0)
+            + (int) ($serviceStats?->active_count ?? 0)
+            + (int) ($lostFoundStats?->active_count ?? 0);
 
-        $reportedListingIds = Report::where('status', 'pending')
-            ->where('reportable_type', '!=', User::class)
-            ->distinct('reportable_id')
-            ->count('reportable_id');
-
-        $reportedUsersCount = Report::where('status', 'pending')
-            ->where('reportable_type', User::class)
-            ->distinct('reportable_id')
-            ->count('reportable_id');
+        $pendingEventsCount = (int) ($eventStats?->pending_count ?? 0);
+        $pendingReportsCount = (int) ($reportStats?->pending_total ?? 0);
+        $reportedListingIds = (int) ($reportStats?->reported_listings ?? 0);
+        $reportedUsersCount = (int) ($reportStats?->reported_users ?? 0);
 
         return response()->json([
             'message' => 'Statistik dashboard admin berhasil diambil',

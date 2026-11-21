@@ -13,8 +13,10 @@ use App\Models\LostFoundReport;
 use App\Models\MarketplaceListing;
 use App\Models\ServiceListing;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class FavoriteController extends Controller
 {
@@ -45,23 +47,31 @@ class FavoriteController extends Controller
 
         $userId = $this->resolveStudentUserId($request);
 
-        $favorite = Favorite::query()
-            ->where('user_id', $userId)
-            ->where('favoritable_type', $class)
-            ->where('favoritable_id', $target->id)
-            ->first();
+        $favorited = DB::transaction(function () use ($userId, $class, $target): bool {
+            $favorite = Favorite::query()
+                ->where('user_id', $userId)
+                ->where('favoritable_type', $class)
+                ->where('favoritable_id', $target->id)
+                ->first();
 
-        if ($favorite) {
-            $favorite->delete();
-            $favorited = false;
-        } else {
-            Favorite::create([
-                'user_id' => $userId,
-                'favoritable_type' => $class,
-                'favoritable_id' => $target->id,
-            ]);
-            $favorited = true;
-        }
+            if ($favorite) {
+                $favorite->delete();
+
+                return false;
+            }
+
+            try {
+                Favorite::create([
+                    'user_id' => $userId,
+                    'favoritable_type' => $class,
+                    'favoritable_id' => $target->id,
+                ]);
+            } catch (UniqueConstraintViolationException) {
+                return true;
+            }
+
+            return true;
+        });
 
         return response()->json([
             'message' => $favorited ? 'Ditambahkan ke favorit' : 'Dihapus dari favorit',

@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -58,21 +59,25 @@ class EventController extends Controller
         $imagePaths = $validated['image_paths'] ?? null;
         unset($validated['image_paths']);
 
-        $event = Event::create([
-            ...$validated,
-            'user_id' => $studentUser->id,
-            'slug' => Str::slug($validated['title']).'-'.Str::lower(Str::random(5)),
-            'status' => 'pending',
-            'is_verified' => true,
-        ]);
+        $event = DB::transaction(function () use ($validated, $studentUser, $imagePaths): Event {
+            $event = Event::create([
+                ...$validated,
+                'user_id' => $studentUser->id,
+                'slug' => Str::slug($validated['title']).'-'.Str::lower(Str::random(5)),
+                'status' => 'pending',
+                'is_verified' => true,
+            ]);
 
-        $event->update([
-            'event_code' => sprintf('EVT-%s-%04d', $event->created_at->format('Y'), $event->id),
-        ]);
+            $event->update([
+                'event_code' => sprintf('EVT-%s-%04d', $event->created_at->format('Y'), $event->id),
+            ]);
 
-        if (is_array($imagePaths) && $imagePaths !== []) {
-            $this->syncImages($event, $imagePaths);
-        }
+            if (is_array($imagePaths) && $imagePaths !== []) {
+                $this->syncImages($event, $imagePaths);
+            }
+
+            return $event;
+        });
 
         $event->load([
             'user:id,name,account_type',
