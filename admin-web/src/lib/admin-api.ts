@@ -764,6 +764,20 @@ export async function resolveAdminReport(
   return data.data;
 }
 
+export async function bulkResolveAdminReports(
+  ids: number[],
+  input: {
+    status: Exclude<ReportStatus, 'pending'>;
+    target_action?: ReportTargetAction;
+  },
+): Promise<{ updated: number }> {
+  const { data } = await api.post<{
+    message: string;
+    data: { updated: number };
+  }>('/admin/reports/bulk-resolve', { ids, ...input });
+  return data.data;
+}
+
 // ---------------------------------------------------------------------------
 // Settings & System Status
 // ---------------------------------------------------------------------------
