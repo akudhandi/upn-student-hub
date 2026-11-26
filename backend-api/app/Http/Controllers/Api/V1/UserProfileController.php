@@ -13,6 +13,7 @@ use App\Models\StudentProfile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class UserProfileController extends Controller
 {
@@ -29,20 +30,24 @@ class UserProfileController extends Controller
         }
 
         $user->load('profile');
+        $limit = max(1, min(100, (int) $request->query('limit', 50)));
 
         $marketplace = $user->marketplaceListings()
             ->with(['category:id,name,slug', 'images'])
-            ->latest()
+            ->latest('id')
+            ->limit($limit)
             ->get();
 
         $services = $user->serviceListings()
             ->with(['category:id,name,slug', 'images'])
-            ->latest()
+            ->latest('id')
+            ->limit($limit)
             ->get();
 
         $lostFound = $user->lostFoundReports()
             ->with(['category:id,name,slug', 'images'])
-            ->latest()
+            ->latest('id')
+            ->limit($limit)
             ->get();
 
         $marketplaceIds = $marketplace->pluck('id');
@@ -94,12 +99,22 @@ class UserProfileController extends Controller
                 ->values();
         }
 
-        $activeCount = $marketplace->where('status', 'active')->count()
-            + $services->where('status', 'active')->count()
-            + $lostFound->whereIn('status', ['active', 'open'])->count();
+        $activeCount = ($marketplace->count() < $limit
+                ? $marketplace->where('status', 'active')->count()
+                : $user->marketplaceListings()->where('status', 'active')->count())
+            + ($services->count() < $limit
+                ? $services->where('status', 'active')->count()
+                : $user->serviceListings()->where('status', 'active')->count())
+            + ($lostFound->count() < $limit
+                ? $lostFound->whereIn('status', ['active', 'open'])->count()
+                : $user->lostFoundReports()->whereIn('status', ['active', 'open'])->count());
 
-        $completedCount = $marketplace->where('status', 'sold')->count()
-            + $lostFound->whereIn('status', ['resolved', 'closed'])->count();
+        $completedCount = ($marketplace->count() < $limit
+                ? $marketplace->where('status', 'sold')->count()
+                : $user->marketplaceListings()->where('status', 'sold')->count())
+            + ($lostFound->count() < $limit
+                ? $lostFound->whereIn('status', ['resolved', 'closed'])->count()
+                : $user->lostFoundReports()->whereIn('status', ['resolved', 'closed'])->count());
 
         return response()->json([
             'message' => 'Profil pengguna berhasil diambil',
@@ -116,6 +131,9 @@ class UserProfileController extends Controller
                     'services' => $services,
                     'lost_found' => $lostFound,
                 ],
+                'listings_meta' => [
+                    'limit' => $limit,
+                ],
                 'reviews' => $recentReviews,
             ],
         ]);
@@ -131,12 +149,19 @@ class UserProfileController extends Controller
             ], 401);
         }
 
+        if (is_string($request->input('nim'))) {
+            $trimmedNim = trim($request->input('nim'));
+            $request->merge(['nim' => $trimmedNim === '' ? null : $trimmedNim]);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'nim' => 'nullable|string|max:50',
+            'nim' => ['nullable', 'string', 'max:50', Rule::unique('student_profiles', 'nim')->ignore($user->id, 'user_id')],
             'faculty' => 'nullable|string|max:255',
             'bio' => 'nullable|string|max:1000',
             'avatar' => 'nullable|string|max:500',
+        ], [
+            'nim.unique' => 'NPM ini sudah digunakan oleh akun lain.',
         ]);
 
         $avatarUpdate = ['provided' => false, 'value' => null];

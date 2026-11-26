@@ -111,10 +111,11 @@ class FavoriteController extends Controller
     public function index(Request $request): JsonResponse
     {
         $userId = $this->resolveStudentUserId($request);
+        $limit = max(1, min(100, (int) $request->query('limit', 60)));
 
         $relations = ['user:id,name,account_type', 'category:id,name,slug', 'images'];
 
-        $favorites = Favorite::query()
+        $rows = Favorite::query()
             ->with([
                 'favoritable' => static function (MorphTo $morphTo) use ($relations): void {
                     $morphTo->morphWith([
@@ -126,8 +127,14 @@ class FavoriteController extends Controller
                 },
             ])
             ->where('user_id', $userId)
-            ->latest()
-            ->get()
+            ->latest('id')
+            ->limit($limit + 1)
+            ->get();
+
+        $hasMore = $rows->count() > $limit;
+
+        $favorites = $rows
+            ->take($limit)
             ->filter(function (Favorite $favorite): bool {
                 $target = $favorite->favoritable;
                 if ($target === null) {
@@ -153,6 +160,10 @@ class FavoriteController extends Controller
         return response()->json([
             'message' => 'Daftar favorit berhasil diambil',
             'data' => $favorites,
+            'meta' => [
+                'limit' => $limit,
+                'has_more' => $hasMore,
+            ],
         ]);
     }
 }

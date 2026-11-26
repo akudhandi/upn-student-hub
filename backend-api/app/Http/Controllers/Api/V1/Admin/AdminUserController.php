@@ -35,12 +35,17 @@ class AdminUserController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        if (is_string($request->input('nim'))) {
+            $trimmedNim = trim($request->input('nim'));
+            $request->merge(['nim' => $trimmedNim === '' ? null : $trimmedNim]);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|min:2|max:255',
             'email' => 'required|string|email|max:255|unique:users,email',
             'password' => 'required|string|min:8|max:128',
             'account_type' => 'required|in:student,hima,ormawa,faculty',
-            'nim' => 'nullable|string|max:30',
+            'nim' => 'nullable|string|max:30|unique:student_profiles,nim',
             'faculty' => 'nullable|string|max:150',
             'bio' => 'nullable|string|max:500',
         ], [
@@ -52,6 +57,7 @@ class AdminUserController extends Controller
             'password.min' => 'Password minimal 8 karakter.',
             'account_type.required' => 'Tipe akun wajib dipilih.',
             'account_type.in' => 'Tipe akun tidak valid.',
+            'nim.unique' => 'NPM sudah digunakan oleh akun lain.',
         ]);
 
         $user = DB::transaction(function () use ($validated) {

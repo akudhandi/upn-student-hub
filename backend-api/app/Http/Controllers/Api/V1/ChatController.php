@@ -141,8 +141,9 @@ class ChatController extends Controller
     public function index(Request $request): JsonResponse
     {
         $userId = $this->currentUserId($request);
+        $limit = max(1, min(100, (int) $request->query('limit', 50)));
 
-        $rooms = ChatRoom::query()
+        $fetchedRooms = ChatRoom::query()
             ->with([
                 'participants.user:id,name,account_type',
                 'contextable' => $this->contextableLoader(),
@@ -166,11 +167,19 @@ class ChatController extends Controller
             ])
             ->whereHas('participants', fn ($q) => $q->where('user_id', $userId))
             ->orderBy('updated_at', 'desc')
+            ->limit($limit + 1)
             ->get();
+
+        $hasMore = $fetchedRooms->count() > $limit;
+        $rooms = $fetchedRooms->take($limit);
 
         return response()->json([
             'message' => 'Daftar percakapan berhasil diambil',
-            'data' => $rooms->map(fn (ChatRoom $room) => $this->conversationPayload($room, $userId)),
+            'data' => $rooms->map(fn (ChatRoom $room) => $this->conversationPayload($room, $userId))->values(),
+            'meta' => [
+                'limit' => $limit,
+                'has_more' => $hasMore,
+            ],
         ]);
     }
 
@@ -269,6 +278,9 @@ class ChatController extends Controller
     public function show(Request $request, string $id): JsonResponse
     {
         $userId = $this->currentUserId($request);
+        $limit = max(1, min(200, (int) $request->query('limit', 100)));
+        $beforeIdRaw = $request->query('before_id');
+        $beforeId = is_numeric($beforeIdRaw) && (int) $beforeIdRaw > 0 ? (int) $beforeIdRaw : null;
 
         $room = ChatRoom::query()
             ->with([
@@ -286,10 +298,18 @@ class ChatController extends Controller
             ], 404);
         }
 
-        $messages = $room->messages()
+        $fetchedMessages = $room->messages()
             ->with('user:id,name,account_type')
-            ->orderBy('created_at', 'asc')
-            ->get()
+            ->when($beforeId !== null, fn ($q) => $q->where('id', '<', $beforeId))
+            ->orderByDesc('id')
+            ->limit($limit + 1)
+            ->get();
+
+        $hasMoreMessages = $fetchedMessages->count() > $limit;
+        $messages = $fetchedMessages
+            ->take($limit)
+            ->reverse()
+            ->values()
             ->map(fn (ChatMessage $message) => $this->messagePayload($message));
 
         $payload = $this->conversationPayload($room, $userId);
@@ -299,6 +319,10 @@ class ChatController extends Controller
             'data' => [
                 ...$payload,
                 'messages' => $messages,
+                'messages_meta' => [
+                    'limit' => $limit,
+                    'has_more' => $hasMoreMessages,
+                ],
             ],
         ]);
     }

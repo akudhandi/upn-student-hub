@@ -50,30 +50,50 @@ class ReviewController extends Controller
             ], 422);
         }
 
+        $limit = max(1, min(100, (int) $request->query('limit', 20)));
+        $page = max(1, (int) $request->query('page', 1));
+
+        $summaryRows = Rating::query()
+            ->selectRaw('rating, COUNT(*) as aggregate_count')
+            ->where('rateable_type', $class)
+            ->where('rateable_id', $validated['id'])
+            ->groupBy('rating')
+            ->pluck('aggregate_count', 'rating');
+
+        $count = 0;
+        $weightedSum = 0;
+        $distribution = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
+        foreach ($distribution as $star => $_) {
+            $starCount = (int) ($summaryRows[$star] ?? 0);
+            $distribution[$star] = $starCount;
+            $count += $starCount;
+            $weightedSum += $star * $starCount;
+        }
+        $average = $count > 0 ? round($weightedSum / $count, 1) : 0;
+
         $reviews = Rating::query()
             ->with('user:id,name,account_type')
             ->where('rateable_type', $class)
             ->where('rateable_id', $validated['id'])
-            ->latest()
+            ->latest('id')
+            ->forPage($page, $limit)
             ->get();
-
-        $count = $reviews->count();
-        $distribution = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
-        foreach ($reviews as $review) {
-            if (isset($distribution[$review->rating])) {
-                $distribution[$review->rating]++;
-            }
-        }
 
         return response()->json([
             'message' => 'Daftar ulasan berhasil diambil',
             'data' => [
                 'summary' => [
                     'count' => $count,
-                    'average' => $count > 0 ? round($reviews->avg('rating'), 1) : 0,
+                    'average' => $average,
                     'distribution' => $distribution,
                 ],
                 'reviews' => $reviews,
+                'meta' => [
+                    'total' => $count,
+                    'limit' => $limit,
+                    'page' => $page,
+                    'has_more' => ($page * $limit) < $count,
+                ],
             ],
         ]);
     }

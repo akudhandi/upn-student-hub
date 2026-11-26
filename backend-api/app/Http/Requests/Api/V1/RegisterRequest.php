@@ -20,6 +20,13 @@ class RegisterRequest extends FormRequest
                 'email' => strtolower(trim($this->input('email'))),
             ]);
         }
+
+        if (is_string($this->input('nim'))) {
+            $trimmedNim = trim($this->input('nim'));
+            $this->merge([
+                'nim' => $trimmedNim === '' ? null : $trimmedNim,
+            ]);
+        }
     }
 
     public function rules(): array
@@ -28,7 +35,7 @@ class RegisterRequest extends FormRequest
             'name' => ['required', 'string', 'min:2', 'max:255', "regex:/^[A-Za-z\\s.',-]+$/"],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email', 'ends_with:@student.upnjatim.ac.id'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'nim' => ['nullable', 'string', 'regex:/^[0-9]{11}$/'],
+            'nim' => ['nullable', 'string', 'regex:/^[0-9]{11}$/', 'unique:student_profiles,nim'],
             'faculty' => ['nullable', 'string', 'max:255'],
             'bio' => ['nullable', 'string'],
         ];
@@ -48,6 +55,7 @@ class RegisterRequest extends FormRequest
             'password.min' => 'Password minimal 8 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
             'nim.regex' => 'NPM harus tepat 11 digit angka.',
+            'nim.unique' => 'NPM ini sudah terdaftar pada akun lain.',
         ];
     }
 }
