@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getUser, setAuth, type AuthUser } from "@/lib/auth";
+import { ALLOW_DEV_AUTH, getUser, setAuth, type AuthUser } from "@/lib/auth";
 
 // ---------------------------------------------------------------------------
 // Dev-only user switcher for 1-on-1 chat testing. Swaps the client-side mock
@@ -48,7 +48,7 @@ export default function DevUserSwitcher() {
     };
   }, [open ]);
 
-  if (process.env.NODE_ENV === "production") return null;
+  if (!ALLOW_DEV_AUTH) return null;
 
   function switchTo(user: AuthUser) {
     // Switch local dev identity and mark token as dev-token so X-Dev-User-Id

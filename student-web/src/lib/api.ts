@@ -1,4 +1,4 @@
-import { clearAuth, getToken, getUser, type AuthUser } from "./auth";
+import { ALLOW_DEV_AUTH, clearAuth, getToken, getUser, type AuthUser } from "./auth";
 
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
@@ -15,7 +15,7 @@ function buildAuthHeaders(): Record<string, string> {
   const token = getToken();
   if (token && token !== "dev-token") {
     headers.Authorization = `Bearer ${token}`;
-  } else if (token === "dev-token" && process.env.NODE_ENV !== "production") {
+  } else if (token === "dev-token" && ALLOW_DEV_AUTH) {
     const user = getUser();
     headers["X-Dev-User-Id"] = String(user?.id || 1);
   }

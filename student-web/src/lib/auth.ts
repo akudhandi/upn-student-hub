@@ -1,6 +1,9 @@
 export const TOKEN_KEY = "upn_student_hub_token";
 export const USER_KEY = "upn_student_hub_user";
 export const USER_UPDATED_EVENT = "upn-user-updated";
+export const ALLOW_DEV_AUTH =
+  process.env.NODE_ENV !== "production" &&
+  process.env.NEXT_PUBLIC_ALLOW_DEV_AUTH === "true";
 
 export type AccountType = "student" | "hima" | "ormawa" | "faculty";
 
@@ -61,11 +64,20 @@ export function accountTypeLabel(accountType?: string | null): string {
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
+  const raw = localStorage.getItem(TOKEN_KEY);
+  if (raw === "dev-token" && !ALLOW_DEV_AUTH) {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    return null;
+  }
+  return raw;
 }
 
 export function getUser(): AuthUser | null {
   if (typeof window === "undefined") return null;
+  if (!ALLOW_DEV_AUTH && localStorage.getItem(TOKEN_KEY) === "dev-token") {
+    return null;
+  }
   const raw = localStorage.getItem(USER_KEY);
   if (!raw) return null;
   try {
