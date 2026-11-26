@@ -133,6 +133,14 @@ export type AuthResponse = {
   user: AuthUser;
 };
 
+export type RegisterResponse = {
+  message: string;
+  requires_verification?: boolean;
+  email?: string;
+  token?: string;
+  user: AuthUser;
+};
+
 export function login(payload: LoginPayload): Promise<AuthResponse> {
   return apiFetch<AuthResponse>("/v1/auth/login", {
     method: "POST",
@@ -140,8 +148,49 @@ export function login(payload: LoginPayload): Promise<AuthResponse> {
   });
 }
 
-export function register(payload: RegisterPayload): Promise<AuthResponse> {
-  return apiFetch<AuthResponse>("/v1/auth/register", {
+export function register(payload: RegisterPayload): Promise<RegisterResponse> {
+  return apiFetch<RegisterResponse>("/v1/auth/register", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function verifyOtp(payload: {
+  email: string;
+  code: string;
+}): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>("/v1/auth/verify-otp", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function resendOtp(payload: {
+  email: string;
+  type?: "register" | "password_reset";
+}): Promise<{ message: string; retry_after?: number }> {
+  return apiFetch<{ message: string; retry_after?: number }>("/v1/auth/resend-otp", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function forgotPassword(payload: {
+  email: string;
+}): Promise<{ message: string; retry_after?: number }> {
+  return apiFetch<{ message: string; retry_after?: number }>("/v1/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function resetPassword(payload: {
+  email: string;
+  code: string;
+  password: string;
+  password_confirmation: string;
+}): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>("/v1/auth/reset-password", {
     method: "POST",
     body: JSON.stringify(payload),
   });

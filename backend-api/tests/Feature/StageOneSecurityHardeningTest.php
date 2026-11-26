@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Mail\OtpCodeMail;
 use App\Models\Admin;
 use App\Models\Category;
 use App\Models\MarketplaceListing;
@@ -12,6 +13,7 @@ use App\Models\ServiceListing;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Laravel\Sanctum\PersonalAccessToken;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -283,6 +285,8 @@ class StageOneSecurityHardeningTest extends TestCase
 
     public function test_auth_register_and_login_normalize_email(): void
     {
+        Mail::fake();
+
         $register = $this->postJson('/api/v1/auth/register', [
             'name' => 'Mahasiswa UPN',
             'email' => '  Mahasiswa.Test@Student.UpnJatim.ac.id  ',
@@ -294,6 +298,20 @@ class StageOneSecurityHardeningTest extends TestCase
         $this->assertDatabaseHas('users', [
             'email' => 'mahasiswa.test@student.upnjatim.ac.id',
         ]);
+
+        $sentMail = null;
+        Mail::assertSent(OtpCodeMail::class, function (OtpCodeMail $mail) use (&$sentMail): bool {
+            $sentMail = $mail;
+
+            return $mail->hasTo('mahasiswa.test@student.upnjatim.ac.id');
+        });
+
+        $this->assertNotNull($sentMail);
+
+        $this->postJson('/api/v1/auth/verify-otp', [
+            'email' => '  MAHASISWA.TEST@STUDENT.UPNJATIM.AC.ID ',
+            'code' => $sentMail->code,
+        ])->assertOk()->assertJsonStructure(['token', 'user']);
 
         $this->postJson('/api/v1/auth/login', [
             'email' => '  MAHASISWA.TEST@STUDENT.UPNJATIM.AC.ID ',

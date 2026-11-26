@@ -34,7 +34,11 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::middleware('throttle:auth-attempts')->group(function () {
             Route::post('/register', [AuthController::class, 'register']);
+            Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
+            Route::post('/resend-otp', [AuthController::class, 'resendOtp']);
             Route::post('/login', [AuthController::class, 'login']);
+            Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+            Route::post('/reset-password', [AuthController::class, 'resetPassword']);
         });
 
         Route::middleware('student.auth')->group(function () {

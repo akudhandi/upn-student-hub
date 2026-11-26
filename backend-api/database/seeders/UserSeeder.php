@@ -27,9 +27,9 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'status' => 'active',
                 'account_type' => 'student',
-                'email_verified_at' => now(),
             ]
         );
+        $student->forceFill(['email_verified_at' => now()])->save();
 
         StudentProfile::updateOrCreate(
             ['user_id' => $student->id],
@@ -74,9 +74,9 @@ class UserSeeder extends Seeder
                     'password' => Hash::make('password123'),
                     'status' => 'active',
                     'account_type' => $account['account_type'],
-                    'email_verified_at' => now(),
                 ]
             );
+            $orgUser->forceFill(['email_verified_at' => now()])->save();
 
             StudentProfile::updateOrCreate(
                 ['user_id' => $orgUser->id],

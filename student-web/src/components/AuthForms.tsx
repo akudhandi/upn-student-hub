@@ -3,7 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { login, register, type ApiError } from "@/lib/api";
+import {
+  forgotPassword,
+  login,
+  register,
+  resendOtp,
+  resetPassword,
+  verifyOtp,
+  type ApiError,
+} from "@/lib/api";
 import { setAuth } from "@/lib/auth";
 import { UPN_FACULTIES } from "@/lib/constants";
 
@@ -222,6 +230,169 @@ function FacultyDropdown({
   );
 }
 
+function OtpVerifyPanel({
+  email,
+  initialCooldown,
+  notice,
+  backLabel,
+  onBack,
+}: {
+  email: string;
+  initialCooldown: number;
+  notice?: string | null;
+  backLabel: string;
+  onBack: () => void;
+}) {
+  const router = useRouter();
+  const [code, setCode] = useState("");
+  const [cooldown, setCooldown] = useState(initialCooldown);
+  const [verifying, setVerifying] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [statusNotice, setStatusNotice] = useState<string | null>(notice ?? null);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      setCooldown((prev) => (prev > 1 ? prev - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldown]);
+
+  async function handleVerify(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!/^\d{6}$/.test(code)) {
+      setError("Masukkan kode OTP 6 digit angka.");
+      return;
+    }
+
+    setVerifying(true);
+    try {
+      const res = await verifyOtp({ email, code });
+      setAuth(res.token, res.user);
+      router.push("/dashboard");
+    } catch (err) {
+      const apiError = err as ApiError;
+      const firstFieldError = apiError.errors
+        ? Object.values(apiError.errors).flat()[0]
+        : null;
+      setError(
+        firstFieldError || apiError.message || "Kode OTP tidak valid atau sudah kedaluwarsa."
+      );
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  async function handleResend() {
+    if (resending || cooldown > 0) return;
+    setResending(true);
+    setError(null);
+    try {
+      const res = await resendOtp({ email, type: "register" });
+      setStatusNotice(res.message);
+      setCooldown(res.retry_after ?? 60);
+    } catch (err) {
+      const apiError = err as ApiError;
+      const retryAfter = (apiError.data as { retry_after?: number } | undefined)?.retry_after;
+      if (typeof retryAfter === "number" && retryAfter > 0) {
+        setCooldown(retryAfter);
+      }
+      setError(apiError.message || "Gagal mengirim ulang kode OTP.");
+    } finally {
+      setResending(false);
+    }
+  }
+
+  return (
+    <div className="px-0.5 py-0.5">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-[#141416] sm:text-[26px]">
+          Verifikasi Email Kampus
+        </h1>
+        <p className="mt-1.5 text-xs leading-relaxed text-[#787470]">
+          Masukkan kode OTP 6 digit yang telah kami kirim ke{" "}
+          <span className="font-semibold text-[#141416]">{email}</span>.
+        </p>
+      </div>
+
+      {statusNotice && (
+        <p
+          role="status"
+          className="mt-4 rounded-xl border border-[#CBE5D5] bg-[#E4F2EA] px-3.5 py-2.5 text-xs font-medium text-[#1E603E]"
+        >
+          {statusNotice}
+        </p>
+      )}
+
+      <form className="mt-5 space-y-4" onSubmit={handleVerify} noValidate>
+        <div>
+          <label
+            htmlFor="otp-verify-code"
+            className="block text-xs font-medium text-[#57534E]"
+          >
+            Kode OTP 6 Digit <span className="text-[#C53939]">*</span>
+          </label>
+          <input
+            id="otp-verify-code"
+            name="code"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            placeholder="000000"
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            disabled={verifying}
+            className={`${authInputClass(Boolean(error))} text-center font-mono text-base tracking-[0.35em]`}
+          />
+        </div>
+
+        {error && (
+          <p
+            role="alert"
+            className="auth-error-enter rounded-xl border border-[#F1C9C9] bg-[#FDF2F2] px-3.5 py-2.5 text-xs font-medium text-[#B83232]"
+          >
+            {error}
+          </p>
+        )}
+
+        <div className="space-y-2.5 pt-1">
+          <button
+            type="submit"
+            disabled={verifying || code.length !== 6}
+            className="flex h-11 w-full items-center justify-center rounded-full bg-[#141416] px-5 text-sm font-medium text-white transition-all duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-[1px] hover:bg-[#242428] disabled:pointer-events-none disabled:opacity-60"
+          >
+            {verifying ? "Memverifikasi…" : "Verifikasi & Masuk"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => void handleResend()}
+            disabled={resending || cooldown > 0}
+            className="flex h-11 w-full items-center justify-center rounded-full border border-[#DFD9D2] bg-white px-5 text-xs font-semibold text-[#141416] transition-colors hover:bg-[#FAF8F6] disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            {resending
+              ? "Mengirim ulang…"
+              : cooldown > 0
+                ? `Kirim ulang kode OTP (${cooldown}d)`
+                : "Kirim ulang kode OTP"}
+          </button>
+
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex h-10 w-full items-center justify-center rounded-full bg-[#EFECE8] px-5 text-xs font-medium text-[#27272A] transition-colors hover:bg-[#E5E1DC]"
+          >
+            {backLabel}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 export function LoginFormPanel({
   onSwitchToRegister,
 }: {
@@ -235,6 +406,10 @@ export function LoginFormPanel({
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingVerify, setPendingVerify] = useState<{
+    email: string;
+    message: string;
+  } | null>(null);
 
   function markTouched(field: LoginField) {
     setTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
@@ -276,6 +451,16 @@ export function LoginFormPanel({
       router.push("/dashboard");
     } catch (err) {
       const apiError = err as ApiError;
+      const errData = apiError.data as
+        | { requires_verification?: boolean; email?: string }
+        | undefined;
+      if (apiError.status === 403 && errData?.requires_verification) {
+        setPendingVerify({
+          email: errData.email || email.trim().toLowerCase(),
+          message: apiError.message,
+        });
+        return;
+      }
       if (apiError.errors) {
         const firstFieldError = Object.values(apiError.errors).flat()[0];
         setError(firstFieldError || apiError.message);
@@ -285,6 +470,18 @@ export function LoginFormPanel({
     } finally {
       setLoading(false);
     }
+  }
+
+  if (pendingVerify) {
+    return (
+      <OtpVerifyPanel
+        email={pendingVerify.email}
+        initialCooldown={0}
+        notice={pendingVerify.message}
+        backLabel="Kembali ke form masuk"
+        onBack={() => setPendingVerify(null)}
+      />
+    );
   }
 
   return (
@@ -323,12 +520,20 @@ export function LoginFormPanel({
         </div>
 
         <div>
-          <label
-            htmlFor="login-password"
-            className="block text-xs font-medium text-[#57534E]"
-          >
-            Password <span className="text-[#C53939]">*</span>
-          </label>
+          <div className="flex items-center justify-between gap-2">
+            <label
+              htmlFor="login-password"
+              className="block text-xs font-medium text-[#57534E]"
+            >
+              Password <span className="text-[#C53939]">*</span>
+            </label>
+            <Link
+              href="/forgot-password"
+              className="text-xs font-medium text-[#57534E] underline-offset-4 transition-colors hover:text-[#141416] hover:underline"
+            >
+              Lupa password?
+            </Link>
+          </div>
           <div className="relative mt-1.5">
             <input
               id="login-password"
@@ -417,6 +622,10 @@ export function RegisterFormPanel({
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingVerify, setPendingVerify] = useState<{
+    email: string;
+    message: string;
+  } | null>(null);
 
   function markTouched(field: RegisterField) {
     setTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
@@ -511,8 +720,13 @@ export function RegisterFormPanel({
       });
       if (res.token && res.user) {
         setAuth(res.token, res.user);
+        router.push("/dashboard");
+        return;
       }
-      router.push("/dashboard");
+      setPendingVerify({
+        email: res.email || email.trim().toLowerCase(),
+        message: res.message,
+      });
     } catch (err) {
       const apiError = err as ApiError;
       if (apiError.errors) {
@@ -524,6 +738,18 @@ export function RegisterFormPanel({
     } finally {
       setLoading(false);
     }
+  }
+
+  if (pendingVerify) {
+    return (
+      <OtpVerifyPanel
+        email={pendingVerify.email}
+        initialCooldown={60}
+        notice={pendingVerify.message}
+        backLabel="Kembali ke form pendaftaran"
+        onBack={() => setPendingVerify(null)}
+      />
+    );
   }
 
   return (
@@ -734,6 +960,341 @@ export function RegisterFormPanel({
           Masuk di sini
         </a>
       </div>
+    </div>
+  );
+}
+
+export function ForgotPasswordFormPanel() {
+  const [step, setStep] = useState<"request" | "reset" | "done">("request");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      setCooldown((prev) => (prev > 1 ? prev - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldown]);
+
+  const trimmedEmail = email.trim().toLowerCase();
+
+  async function handleRequestOtp(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!trimmedEmail || !EMAIL_RE.test(trimmedEmail)) {
+      setError("Masukkan alamat email kampus yang valid.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await forgotPassword({ email: trimmedEmail });
+      setNotice(res.message);
+      setCooldown(res.retry_after ?? 60);
+      setStep("reset");
+    } catch (err) {
+      const apiError = err as ApiError;
+      const retryAfter = (apiError.data as { retry_after?: number } | undefined)?.retry_after;
+      if (typeof retryAfter === "number" && retryAfter > 0) {
+        setCooldown(retryAfter);
+      }
+      setError(apiError.message || "Gagal mengirim kode OTP reset password.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResendResetOtp() {
+    if (resending || cooldown > 0) return;
+    setResending(true);
+    setError(null);
+    try {
+      const res = await resendOtp({ email: trimmedEmail, type: "password_reset" });
+      setNotice(res.message);
+      setCooldown(res.retry_after ?? 60);
+    } catch (err) {
+      const apiError = err as ApiError;
+      const retryAfter = (apiError.data as { retry_after?: number } | undefined)?.retry_after;
+      if (typeof retryAfter === "number" && retryAfter > 0) {
+        setCooldown(retryAfter);
+      }
+      setError(apiError.message || "Gagal mengirim ulang kode OTP.");
+    } finally {
+      setResending(false);
+    }
+  }
+
+  async function handleResetSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!/^\d{6}$/.test(code)) {
+      setError("Kode OTP harus 6 digit angka.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password baru minimal 8 karakter.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Konfirmasi password tidak cocok.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await resetPassword({
+        email: trimmedEmail,
+        code,
+        password,
+        password_confirmation: confirmPassword,
+      });
+      setNotice(res.message);
+      setStep("done");
+    } catch (err) {
+      const apiError = err as ApiError;
+      const firstFieldError = apiError.errors
+        ? Object.values(apiError.errors).flat()[0]
+        : null;
+      setError(firstFieldError || apiError.message || "Gagal memperbarui password.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (step === "done") {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-[#141416] sm:text-[26px]">
+            Password Berhasil Diperbarui
+          </h1>
+          <p className="mt-1.5 text-xs leading-relaxed text-[#787470]">
+            Akun Anda sudah diamankan. Seluruh sesi aktif sebelumnya telah dicabut.
+          </p>
+        </div>
+
+        <p
+          role="status"
+          className="rounded-xl border border-[#CBE5D5] bg-[#E4F2EA] px-3.5 py-3 text-xs font-medium text-[#1E603E]"
+        >
+          {notice || "Password berhasil diperbarui. Silakan masuk dengan password baru Anda."}
+        </p>
+
+        <Link
+          href="/login"
+          className="flex h-11 w-full items-center justify-center rounded-full bg-[#141416] px-5 text-sm font-medium text-white transition-colors hover:bg-[#242428]"
+        >
+          Masuk dengan Password Baru
+        </Link>
+      </div>
+    );
+  }
+
+  if (step === "reset") {
+    return (
+      <div>
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-[#141416] sm:text-[26px]">
+            Atur Ulang Password
+          </h1>
+          <p className="mt-1.5 text-xs leading-relaxed text-[#787470]">
+            Masukkan kode OTP 6 digit yang dikirim ke{" "}
+            <span className="font-semibold text-[#141416]">{trimmedEmail}</span> dan buat password baru.
+          </p>
+        </div>
+
+        {notice && (
+          <p
+            role="status"
+            className="mt-4 rounded-xl border border-[#CBE5D5] bg-[#E4F2EA] px-3.5 py-2.5 text-xs font-medium text-[#1E603E]"
+          >
+            {notice}
+          </p>
+        )}
+
+        <form className="mt-5 space-y-4" onSubmit={handleResetSubmit} noValidate>
+          <div>
+            <label
+              htmlFor="reset-otp-code"
+              className="block text-xs font-medium text-[#57534E]"
+            >
+              Kode OTP 6 Digit <span className="text-[#C53939]">*</span>
+            </label>
+            <input
+              id="reset-otp-code"
+              name="code"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              placeholder="000000"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              disabled={loading}
+              className={`${authInputClass(false)} text-center font-mono text-base tracking-[0.35em]`}
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="reset-new-password"
+              className="block text-xs font-medium text-[#57534E]"
+            >
+              Password Baru <span className="text-[#C53939]">*</span>
+            </label>
+            <div className="relative mt-1.5">
+              <input
+                id="reset-new-password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                placeholder="Minimal 8 karakter"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                className={authInputClass(false, "pl-3.5 pr-10")}
+              />
+              <PasswordEyeButton
+                shown={showPassword}
+                onToggle={() => setShowPassword((v) => !v)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              htmlFor="reset-confirm-password"
+              className="block text-xs font-medium text-[#57534E]"
+            >
+              Konfirmasi Password Baru <span className="text-[#C53939]">*</span>
+            </label>
+            <input
+              id="reset-confirm-password"
+              name="confirmPassword"
+              type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
+              placeholder="Ulangi password baru"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              disabled={loading}
+              className={authInputClass(false)}
+            />
+          </div>
+
+          {error && (
+            <p
+              role="alert"
+              className="auth-error-enter rounded-xl border border-[#F1C9C9] bg-[#FDF2F2] px-3.5 py-2.5 text-xs font-medium text-[#B83232]"
+            >
+              {error}
+            </p>
+          )}
+
+          <div className="space-y-2.5 pt-1">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex h-11 w-full items-center justify-center rounded-full bg-[#141416] px-5 text-sm font-medium text-white transition-colors hover:bg-[#242428] disabled:pointer-events-none disabled:opacity-60"
+            >
+              {loading ? "Menyimpan…" : "Simpan Password Baru"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void handleResendResetOtp()}
+              disabled={resending || cooldown > 0}
+              className="flex h-11 w-full items-center justify-center rounded-full border border-[#DFD9D2] bg-white px-5 text-xs font-semibold text-[#141416] transition-colors hover:bg-[#FAF8F6] disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {resending
+                ? "Mengirim ulang…"
+                : cooldown > 0
+                  ? `Kirim ulang OTP (${cooldown}d)`
+                  : "Kirim ulang OTP"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setStep("request");
+                setError(null);
+              }}
+              className="flex h-10 w-full items-center justify-center rounded-full bg-[#EFECE8] px-5 text-xs font-medium text-[#27272A] transition-colors hover:bg-[#E5E1DC]"
+            >
+              Ganti email
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-[#141416] sm:text-[26px]">
+          Lupa Password
+        </h1>
+        <p className="mt-1.5 text-xs leading-relaxed text-[#787470]">
+          Masukkan email kampus Anda untuk menerima kode OTP pemulihan password.
+        </p>
+      </div>
+
+      <form className="mt-6 space-y-4" onSubmit={handleRequestOtp} noValidate>
+        <div>
+          <label
+            htmlFor="forgot-email"
+            className="block text-xs font-medium text-[#57534E]"
+          >
+            Email Kampus <span className="text-[#C53939]">*</span>
+          </label>
+          <input
+            id="forgot-email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="nama@student.upnjatim.ac.id"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
+            className={authInputClass(Boolean(error))}
+          />
+        </div>
+
+        {error && (
+          <p
+            role="alert"
+            className="auth-error-enter rounded-xl border border-[#F1C9C9] bg-[#FDF2F2] px-3.5 py-2.5 text-xs font-medium text-[#B83232]"
+          >
+            {error}
+          </p>
+        )}
+
+        <div className="space-y-2.5 pt-1">
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex h-11 w-full items-center justify-center rounded-full bg-[#141416] px-5 text-sm font-medium text-white transition-colors hover:bg-[#242428] disabled:pointer-events-none disabled:opacity-60"
+          >
+            {loading ? "Mengirim kode OTP…" : "Kirim Kode OTP"}
+          </button>
+
+          <Link
+            href="/login"
+            className="flex h-11 w-full items-center justify-center rounded-full bg-[#EFECE8] px-5 text-sm font-medium text-[#27272A] transition-colors hover:bg-[#E5E1DC]"
+          >
+            Kembali ke Halaman Masuk
+          </Link>
+        </div>
+      </form>
     </div>
   );
 }

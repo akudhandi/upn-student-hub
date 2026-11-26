@@ -61,8 +61,8 @@ class AdminUserController extends Controller
                 'password' => Hash::make($validated['password']),
                 'status' => 'active',
                 'account_type' => $validated['account_type'],
-                'email_verified_at' => now(),
             ]);
+            $created->forceFill(['email_verified_at' => now()])->save();
 
             StudentProfile::create([
                 'user_id' => $created->id,

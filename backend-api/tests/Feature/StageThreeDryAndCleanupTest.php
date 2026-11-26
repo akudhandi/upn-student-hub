@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\Api\V1\Concerns\ResolvesStudentUser;
 use App\Models\MarketplaceListing;
+use App\Models\OtpCode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -71,6 +72,8 @@ class StageThreeDryAndCleanupTest extends TestCase
 
     public function test_unused_otp_code_model_is_removed(): void
     {
-        $this->assertFileDoesNotExist(app_path('Models/OtpCode.php'));
+        $this->assertTrue(class_exists(OtpCode::class));
+        $this->assertSame('register', OtpCode::TYPE_REGISTER);
+        $this->assertSame('password_reset', OtpCode::TYPE_PASSWORD_RESET);
     }
 }

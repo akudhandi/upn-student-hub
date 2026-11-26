@@ -388,7 +388,7 @@ class AuditStageATest extends TestCase
         ])->assertStatus(422)
             ->assertJsonValidationErrors(['name', 'email', 'password', 'nim']);
 
-        // Valid UPN student registration saves profile (nim + faculty) and returns token
+        // Valid UPN student registration saves profile (nim + faculty) and sends OTP verification without issuing token yet
         $ok = $this->postJson('/api/v1/auth/register', [
             'name' => 'Budi Santoso',
             'email' => '22081010099@student.upnjatim.ac.id',
@@ -398,11 +398,17 @@ class AuditStageATest extends TestCase
             'faculty' => 'Fakultas Ilmu Komputer',
         ])->assertCreated();
 
-        $ok->assertJsonPath('user.profile.nim', '22081010099');
-        $ok->assertJsonPath('user.profile.faculty', 'Fakultas Ilmu Komputer');
-        $ok->assertJsonPath('user.account_type', 'student');
-        $ok->assertJsonPath('user.is_official_account', false);
-        $this->assertNotEmpty($ok->json('token'));
+        $ok->assertJsonPath('user.profile.nim', '22081010099')
+            ->assertJsonPath('user.profile.faculty', 'Fakultas Ilmu Komputer')
+            ->assertJsonPath('user.account_type', 'student')
+            ->assertJsonPath('user.is_official_account', false)
+            ->assertJsonPath('requires_verification', true)
+            ->assertJsonMissingPath('token');
+
+        $this->assertDatabaseHas('otp_codes', [
+            'email' => '22081010099@student.upnjatim.ac.id',
+            'type' => 'register',
+        ]);
     }
 
     public function test_admin_can_provision_official_org_account_and_it_can_login_and_submit_verified_event(): void
