@@ -25,11 +25,19 @@ class StageThreeDryAndCleanupTest extends TestCase
         $reqTesting->headers->set('X-Dev-User-Id', (string) $active->id);
         $this->assertNull(ResolvesStudentUser::resolveFromDevHeader($reqTesting));
 
-        // Simulate 'local' environment
+        // Simulate 'local' environment without ALLOW_DEV_FALLBACK_AUTH: still ignored
         $originalEnv = $this->app['env'];
+        $originalDevFallback = config('app.allow_dev_fallback_auth');
         $this->app['env'] = 'local';
+        config(['app.allow_dev_fallback_auth' => false]);
 
         try {
+            $reqDisabled = Request::create('/api/v1/marketplace', 'GET');
+            $reqDisabled->headers->set('X-Dev-User-Id', (string) $active->id);
+            $this->assertNull(ResolvesStudentUser::resolveFromDevHeader($reqDisabled, true));
+
+            config(['app.allow_dev_fallback_auth' => true]);
+
             $reqActive = Request::create('/api/v1/marketplace', 'GET');
             $reqActive->headers->set('X-Dev-User-Id', (string) $active->id);
             $this->assertSame($active->id, ResolvesStudentUser::resolveFromDevHeader($reqActive, true)?->id);
@@ -39,6 +47,7 @@ class StageThreeDryAndCleanupTest extends TestCase
             $this->assertNull(ResolvesStudentUser::resolveFromDevHeader($reqSuspended, true));
             $this->assertSame($suspended->id, ResolvesStudentUser::resolveFromDevHeader($reqSuspended, false)?->id);
         } finally {
+            config(['app.allow_dev_fallback_auth' => $originalDevFallback]);
             $this->app['env'] = $originalEnv;
         }
     }

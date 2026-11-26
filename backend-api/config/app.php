@@ -41,6 +41,10 @@ return [
 
     'debug' => (bool) env('APP_DEBUG', false),
 
+    'allow_dev_fallback_auth' => (bool) env('ALLOW_DEV_FALLBACK_AUTH', false),
+
+    'trusted_proxies' => env('TRUSTED_PROXIES', ''),
+
     /*
     |--------------------------------------------------------------------------
     | Application URL

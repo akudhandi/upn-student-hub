@@ -17,14 +17,17 @@ return [
 
     'allowed_origins_patterns' => [],
 
-    'allowed_headers' => [
+    'allowed_headers' => array_values(array_filter([
         'Accept',
         'Authorization',
         'Content-Type',
         'Origin',
         'X-Requested-With',
-        'X-Dev-User-Id',
-    ],
+        env('APP_ENV', 'production') === 'local'
+            && filter_var(env('ALLOW_DEV_FALLBACK_AUTH', false), FILTER_VALIDATE_BOOLEAN)
+            ? 'X-Dev-User-Id'
+            : null,
+    ])),
 
     'exposed_headers' => ['Content-Disposition'],
 

@@ -13,7 +13,7 @@ trait ResolvesStudentUser
 {
     public static function resolveFromDevHeader(Request $request, bool $requireActive = false): ?User
     {
-        if (! app()->environment('local')) {
+        if (! app()->environment('local') || config('app.allow_dev_fallback_auth') !== true) {
             return null;
         }
 

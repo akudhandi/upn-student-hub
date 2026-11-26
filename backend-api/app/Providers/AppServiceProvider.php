@@ -31,7 +31,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth-attempts', function (Request $request) {
             $email = strtolower(trim((string) $request->input('email', '')));
 
-            return Limit::perMinute(10)->by($email.'|'.$request->ip());
+            return [
+                Limit::perMinute(10)->by($email.'|'.$request->ip()),
+                Limit::perMinute(30)->by('auth-ip:'.$request->ip()),
+            ];
         });
 
         RateLimiter::for('media-uploads', function (Request $request) {
@@ -49,7 +52,7 @@ class AppServiceProvider extends ServiceProvider
 
     private function actorRateKey(Request $request): string
     {
-        $user = $request->user();
+        $user = $request->user('sanctum') ?? $request->user();
         if ($user !== null) {
             return get_class($user).':'.$user->getAuthIdentifier();
         }

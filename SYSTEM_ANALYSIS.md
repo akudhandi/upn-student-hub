@@ -40,7 +40,7 @@
 
 ### 1.1 Latar Belakang
 
-Mahasiswa UPN "Veteran" Jawa Timur saat ini belum memiliki platform digital terpusat yang memfasilitasi kebutuhan akademis dan non-akademis secara terintegrasi. Kebutuhan seperti jual-beli barang bekas, pencarian kost, pelaporan barang hilang, dan akses informasi event kampus masih tersebar di berbagai platform yang tidak terstruktur, tidak terverifikasi, dan rawan penyalahgunaan.
+Mahasiswa UPN "Veteran" Jawa Timur saat ini belum memiliki platform digital terpusat yang memfasilitasi kebutuhan akademis dan non-akademis secara terintegrasi. Kebutuhan seperti jual-beli barang bekas, jasa mahasiswa, pelaporan barang hilang, dan akses informasi event kampus masih tersebar di berbagai platform yang tidak terstruktur, tidak terverifikasi, dan rawan penyalahgunaan.
 
 ### 1.2 Tujuan Sistem
 
@@ -118,13 +118,7 @@ Keputusan arsitektur final telah dikunci untuk memastikan proyek dapat diselesai
 
    - Database hanya menyimpan *relative path* (contoh: `listings/abc123.jpg`). Migrasi ke S3/MinIO di masa depan hanya perlu ganti `.env`.
 
-4. **Map / Location:**
-
-   - Menggunakan Leaflet.js + OpenStreetMap untuk MVP agar tidak ada dependensi billing (Google Maps).
-
-   - Kost menyimpan *latitude/longitude*. Optimasi *spatial index* MySQL adalah opsional untuk masa depan.
-
-5. **Chat & WebSocket:**
+4. **Chat & WebSocket:**
 
    - HANYA mendukung 1-on-1 chat. Group chat ditunda ke Post-MVP.
 
@@ -132,15 +126,7 @@ Keputusan arsitektur final telah dikunci untuk memastikan proyek dapat diselesai
 
    - *Presence channel* (status online) hanya aktif saat user masuk ke ruang chat, bukan secara global.
 
-6. **AI Implementation:**
-
-   - Menggunakan External AI API (OpenAI/Gemini). Tidak ada Python microservice, Vector DB, atau custom ML model.
-
-   - Abstraksi interface digunakan agar provider dapat diganti.
-
-   - AI hanya digunakan untuk *assisted matching* (L&F) dan rekomendasi kontekstual berbasis *recent searches* & *metadata*.
-
-7. **API Design:**
+5. **API Design:**
 
    - Disederhanakan menggunakan *polymorphic endpoints* (Favorites, Reports, Media Upload) untuk menekan jumlah endpoint dari 80+ menjadi ~50, tanpa mengurangi fungsionalitas.
 
@@ -160,8 +146,6 @@ Pemotongan *scope* dilakukan secara tegas untuk menjaga fokus pada *delivery* si
 
 - Student Services / Jasa (CRUD, Search, Filter)
 
-- Kost Listing (Leaflet Maps, Lat/Long, Fasilitas)
-
 - Lost & Found (Laporan, Pencarian)
 
 - Event & Informasi Kampus (Admin CRUD, daftar, detail, pencarian/filter)
@@ -172,15 +156,13 @@ Pemotongan *scope* dilakukan secara tegas untuk menjaga fokus pada *delivery* si
 
 - Admin Moderation & Dashboard
 
-- Basic AI Recommendation & L&F Assisted Matching (via External API)
-
 ### ❌ Post-MVP / Future (Tidak dikerjakan sekarang)
+
+- AI Recommendation & L&F Assisted Matching
 
 - Group Chat
 
 - SSO Kampus (SIAMIK)
-
-- Google Maps API
 
 - Custom Machine Learning / Python Microservices / Vector Database
 
@@ -192,11 +174,11 @@ Pemotongan *scope* dilakukan secara tegas untuk menjaga fokus pada *delivery* si
 
 1. **Guest (Pengunjung):** Akses landing page, login, register, lihat listing publik terbatas.
 
-2. **Student (Mahasiswa):** Mahasiswa terverifikasi via email/OTP. Bisa menggunakan semua fitur utama platform (Buyer, Seller, Pencari/Pemilik Kost, Pelapor L&F).
+2. **Student (Mahasiswa):** Mahasiswa terverifikasi via email/OTP. Bisa menggunakan semua fitur utama platform (Buyer, Seller, Penyedia/Pengguna Jasa, Pelapor L&F).
 
 3. **Admin (Administrator):** Pengelola platform (Moderasi konten, kelola user, manajemen event/kategori).
 
-4. **System (Automated Process):** Pengirim notifikasi, OTP email, pemanggil AI API.
+4. **System (Automated Process):** Pengirim notifikasi, OTP email.
 
 ---
 
@@ -206,19 +188,15 @@ Pemotongan *scope* dilakukan secara tegas untuk menjaga fokus pada *delivery* si
 
 2. **Marketplace & Jasa:** Listing barang bekas dan layanan mahasiswa.
 
-3. **Kost:** Direktori kost di sekitar kampus dengan peta OSM.
+3. **Lost & Found:** Pelaporan barang hilang/ditemukan.
 
-4. **Lost & Found:** Pelaporan barang hilang/ditemukan.
+4. **Event & Informasi Kampus:** Informasi kegiatan, event, dan pengumuman mahasiswa yang dikelola Admin.
 
-5. **Event & Informasi Kampus:** Informasi kegiatan, event, dan pengumuman mahasiswa yang dikelola Admin.
+5. **Chat:** Komunikasi real-time 1-on-1 antar mahasiswa.
 
-6. **Chat:** Komunikasi real-time 1-on-1 antar mahasiswa.
+6. **Interaction:** Sistem Rating, Favorite (Bookmark), dan Report (Pelaporan pelanggaran).
 
-7. **Interaction:** Sistem Rating, Favorite (Bookmark), dan Report (Pelaporan pelanggaran).
-
-8. **Admin & Notification:** Dashboard statistik, moderasi konten, notifikasi event/sistem.
-
-9. **AI:** Asisten pencocokan L&F dan rekomendasi listing.
+7. **Admin & Notification:** Dashboard statistik, moderasi konten, notifikasi event/sistem.
 
 ---
 
@@ -242,13 +220,11 @@ Pemotongan *scope* dilakukan secara tegas untuk menjaga fokus pada *delivery* si
 
 - **FR-SVC-01:** CRUD listing Jasa Mahasiswa.
 
-- **FR-KOST-01:** CRUD listing Kost dengan fasilitas, harga, dan lokasi (lat/long menggunakan Leaflet/OSM).
-
 - **FR-LNF-01:** CRUD pelaporan Lost & Found.
 
 - **FR-LIST-02:** Pencarian, filter, dan sorting pada semua modul listing.
 
-- **FR-LIST-03:** Fitur menandai status (Terjual, Penuh, Ditemukan, Inaktif).
+- **FR-LIST-03:** Fitur menandai status (Terjual, Ditemukan, Inaktif).
 
 **### 6.3 Event & Informasi Kampus (FR-EVENT)
 
@@ -266,19 +242,17 @@ FR-EVENT-04: Sistem dapat menampilkan status publikasi informasi (Draft, Publish
 
 - **FR-CHAT-02:** *Typing indicator* menggunakan client-side whisper.
 
-- **FR-RATE-01:** Rating & Review (1-5 bintang) untuk seller, pemilik kost, dan penyedia jasa.
+- **FR-RATE-01:** Rating & Review (1-5 bintang) untuk seller dan penyedia jasa.
 
 - **FR-FAV-01:** Menyimpan listing ke daftar Favorit.
 
-### 6.5 Moderasi, Notifikasi & AI (FR-SYS)
+### 6.5 Moderasi & Notifikasi (FR-SYS)
 
 - **FR-NOTIF-01:** Notifikasi in-app real-time (pesan baru, aktivitas listing).
 
 - **FR-RPT-01:** Fitur pelaporan (Report) listing/user/chat yang melanggar aturan.
 
 - **FR-ADMIN-01:** Dashboard admin untuk statistik, moderasi konten, ban user, dan CRUD kategori.
-
-- **FR-AI-01:** Eksternal AI untuk memberikan rekomendasi item (berdasarkan *recent search*) dan *assisted matching* untuk L&F.
 
 ### 6.6 Student Web & Admin Web Pages
 
@@ -305,13 +279,13 @@ FR-EVENT-04: Sistem dapat menampilkan status publikasi informasi (Draft, Publish
 
 Menggunakan *Polymorphic Relations* secara ekstensif untuk menyederhanakan desain:
 
-- **Media/Images:** Dapat menempel ke Marketplace, Kost, Jasa, L&F, atau User Profile.
+- **Media/Images:** Dapat menempel ke Marketplace, Jasa, L&F, Event, atau User Profile.
 
 - **Favorites:** Dapat menyimpan berbagai tipe listing.
 
 - **Reports:** Dapat melaporkan berbagai entitas (User, Listing, Chat).
 
-- **Ratings:** Dapat menilai Seller (Marketplace), Kost, atau Jasa.
+- **Ratings:** Dapat menilai Seller (Marketplace) atau Jasa.
 
 ---
 
@@ -327,7 +301,7 @@ Arsitektur disederhanakan untuk deployment VPS:
 
 4. **Data Layer:** MySQL 8 (RDBMS utama) dan Redis (Cache, Session, Queue).
 
-5. **External Services:** Mail Server (SMTP), AI API (OpenAI/Gemini), Google Auth API.
+5. **External Services:** Mail Server (SMTP), Google Auth API.
 
 ---
 
@@ -352,8 +326,6 @@ Tabel disederhanakan dan disesuaikan dengan MVP. Total ~15 tabel inti.
 - `marketplace_listings`: user_id, category_id, title, description, price, status, dll.
 
 - `service_listings`: user_id, category_id, title, price_min, price_max, dll.
-
-- `kost_listings`: user_id, title, address, latitude (DECIMAL), longitude (DECIMAL), price, facilities (JSON), dll.
 
 - `lost_found_reports`: user_id, type, title, location, status, dll.
 
@@ -401,7 +373,7 @@ Disederhanakan menjadi ~50 endpoint dengan pendekatan *polymorphic* dan *reusabl
 
 ### 11.3 Listing Endpoints (REST)
 
-Pola yang sama diterapkan untuk `/marketplace`, `/kost`, `/services`, `/lost-found`:
+Pola yang sama diterapkan untuk `/marketplace`, `/services`, `/lost-found`:
 
 - `GET /api/v1/{module}`: Pencarian, filter, pagination.
 
@@ -423,7 +395,7 @@ PUT, DELETE, PATCH /api/v1/admin/events/{id}/status: Admin mengelola dan mempubl
 
 11.5 Polymorphic Interactions (REST)**
 
-- `POST /api/v1/favorites/toggle`: Body `{ type: 'kost', id: 1 }`.
+- `POST /api/v1/favorites/toggle`: Body `{ type: 'marketplace', id: 1 }`.
 
 - `GET /api/v1/favorites`: List semua favorit user.
 
@@ -453,7 +425,7 @@ PUT, DELETE, PATCH /api/v1/admin/events/{id}/status: Admin mengelola dan mempubl
 
 ## 12. Development Roadmap
 
-Urutan implementasi didasarkan pada dependensi teknis, dibagi menjadi 10 fase:
+Urutan implementasi didasarkan pada dependensi teknis, dibagi menjadi 9 fase:
 
 - **Phase 1: Core Foundation & Database**
 
@@ -473,9 +445,9 @@ Urutan implementasi didasarkan pada dependensi teknis, dibagi menjadi 10 fase:
 
   - Kategori, CRUD listing barang bekas dan jasa. API dan Frontend.
 
-- **Phase 5: Kost, Lost & Found & Event**
+- **Phase 5: Lost & Found & Event**
 
-  - Integrasi Leaflet.js (OSM) untuk Kost, CRUD L&F.
+  - CRUD L&F serta Event & Informasi Kampus.
 
 - **Phase 6: Polymorphic Interactions**
 
@@ -489,10 +461,6 @@ Urutan implementasi didasarkan pada dependensi teknis, dibagi menjadi 10 fase:
 
   - Antarmuka khusus admin, penyelesaian laporan (ban user/hide konten).
 
-- **Phase 9: AI Recommendation & Matching**
-
-  - Integrasi API Eksternal (OpenAI/Gemini) untuk *assisted matching* dan rekomendasi.
-
-- **Phase 10: Finalization & Deployment**
+- **Phase 9: Finalization & Deployment**
 
   - Testing minimal (API & Core Logic), Security audit (CORS, Rate Limit), Hardening server VPS.

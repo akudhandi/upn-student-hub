@@ -14,6 +14,12 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
+        if (app()->environment('production') && ! filter_var(env('ALLOW_DEMO_SEEDING', false), FILTER_VALIDATE_BOOLEAN)) {
+            $this->command?->warn('Skipping demo UserSeeder in production.');
+
+            return;
+        }
+
         $student = User::updateOrCreate(
             ['email' => 'student@upnjatim.ac.id'],
             [
