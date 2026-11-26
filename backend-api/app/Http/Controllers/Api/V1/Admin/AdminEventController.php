@@ -76,7 +76,7 @@ class AdminEventController extends Controller
     private function filteredQuery(array $validated, bool $withImages = true): Builder
     {
         $relations = [
-            'user:id,name',
+            'user:id,name,account_type',
             'category:id,name,slug',
         ];
         if ($withImages) {
@@ -167,7 +167,7 @@ class AdminEventController extends Controller
     public function show(string $id): JsonResponse
     {
         try {
-            $event = Event::with(['user:id,name', 'category:id,name,slug', 'images'])
+            $event = Event::with(['user:id,name,account_type', 'category:id,name,slug', 'images'])
                 ->where('id', $id)
                 ->firstOrFail();
         } catch (ModelNotFoundException $e) {
@@ -213,7 +213,7 @@ class AdminEventController extends Controller
             }
         });
 
-        $event->load(['user:id,name', 'category:id,name,slug', 'images']);
+        $event->load(['user:id,name,account_type', 'category:id,name,slug', 'images']);
 
         return response()->json([
             'message' => 'Event berhasil diperbarui',
@@ -260,7 +260,7 @@ class AdminEventController extends Controller
 
         $event->save();
         $event->load([
-            'user:id,name',
+            'user:id,name,account_type',
             'category:id,name,slug',
         ]);
 

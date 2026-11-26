@@ -55,7 +55,7 @@ class ServiceController extends Controller
         });
 
         $listing->load([
-            'user:id,name',
+            'user:id,name,account_type',
             'category:id,name,slug',
             'images',
         ]);
@@ -70,7 +70,7 @@ class ServiceController extends Controller
     {
         $query = ServiceListing::query()
             ->with([
-                'user:id,name',
+                'user:id,name,account_type',
                 'category:id,name,slug',
                 'images',
             ])
@@ -120,7 +120,7 @@ class ServiceController extends Controller
         try {
             $listing = ServiceListing::query()
                 ->with([
-                    'user:id,name',
+                    'user:id,name,account_type',
                     'category:id,name,slug',
                     'images',
                 ])
@@ -217,7 +217,7 @@ class ServiceController extends Controller
             }
         });
 
-        $listing->load(['user:id,name', 'category:id,name,slug', 'images']);
+        $listing->load(['user:id,name,account_type', 'category:id,name,slug', 'images']);
 
         return response()->json([
             'message' => 'Listing jasa berhasil diperbarui',
@@ -255,7 +255,7 @@ class ServiceController extends Controller
         ]);
 
         $listing->update(['status' => $validated['status']]);
-        $listing->load(['user:id,name', 'category:id,name,slug', 'images']);
+        $listing->load(['user:id,name,account_type', 'category:id,name,slug', 'images']);
 
         return response()->json([
             'message' => 'Status jasa berhasil diperbarui',

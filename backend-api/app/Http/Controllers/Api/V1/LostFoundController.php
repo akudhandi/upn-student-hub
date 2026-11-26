@@ -52,7 +52,7 @@ class LostFoundController extends Controller
         });
 
         $report->load([
-            'user:id,name',
+            'user:id,name,account_type',
             'category:id,name,slug',
             'images',
         ]);
@@ -67,7 +67,7 @@ class LostFoundController extends Controller
     {
         $query = LostFoundReport::query()
             ->with([
-                'user:id,name',
+                'user:id,name,account_type',
                 'category:id,name,slug',
                 'images',
             ])
@@ -107,7 +107,7 @@ class LostFoundController extends Controller
         try {
             $report = LostFoundReport::query()
                 ->with([
-                    'user:id,name',
+                    'user:id,name,account_type',
                     'category:id,name,slug',
                     'images',
                 ])
@@ -186,7 +186,7 @@ class LostFoundController extends Controller
             }
         });
 
-        $report->load(['user:id,name', 'category:id,name,slug', 'images']);
+        $report->load(['user:id,name,account_type', 'category:id,name,slug', 'images']);
 
         return response()->json([
             'message' => 'Laporan berhasil diperbarui',
@@ -225,7 +225,7 @@ class LostFoundController extends Controller
 
         $normalizedStatus = $validated['status'] === 'active' ? 'open' : $validated['status'];
         $report->update(['status' => $normalizedStatus]);
-        $report->load(['user:id,name', 'category:id,name,slug', 'images']);
+        $report->load(['user:id,name,account_type', 'category:id,name,slug', 'images']);
 
         return response()->json([
             'message' => 'Status laporan berhasil diperbarui',

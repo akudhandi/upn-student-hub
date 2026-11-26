@@ -3,6 +3,7 @@
 import Link from "next/link";
 import ListingImage from "@/components/ListingImage";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import { accountTypeLabel, isOfficialAccount } from "@/lib/auth";
 import type { ApiImage } from "@/lib/images";
 import {
   formatOptionalShortDate,
@@ -24,6 +25,7 @@ export type ApiLostFoundItem = {
   user?: {
     id: number;
     name: string;
+    account_type?: string | null;
     is_official_account?: boolean;
   } | null;
   images?: ApiImage[] | null;
@@ -240,8 +242,11 @@ export function ReportCard({
             <span className="truncate text-[13px] font-medium text-[#141416]">
               {reporterName}
             </span>
-            {item.user?.is_official_account && (
-              <VerifiedBadge size="xs" title="Akun resmi terverifikasi UPN" />
+            {isOfficialAccount(item.user) && (
+              <VerifiedBadge
+                size="xs"
+                title={`Akun ${accountTypeLabel(item.user?.account_type)} terverifikasi`}
+              />
             )}
           </span>
           <span className="shrink-0 text-[13px] text-[#6E6A66]">

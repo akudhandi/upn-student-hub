@@ -166,6 +166,24 @@ function NavLink({
   );
 }
 
+const PUBLIC_CATALOG_PREFIXES = [
+  "/marketplace",
+  "/services",
+  "/lost-found",
+  "/lost-and-found",
+  "/events",
+];
+
+function isPublicCatalogPath(pathname: string | null): boolean {
+  if (!pathname) return false;
+  if (pathname === "/events/create" || pathname.startsWith("/events/create/")) {
+    return false;
+  }
+  return PUBLIC_CATALOG_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
 export default function AppLayout({
   children,
 }: {
@@ -174,6 +192,7 @@ export default function AppLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [checked, setChecked] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [searchInput, setSearchInput] = useState("");
@@ -183,24 +202,33 @@ export default function AppLayout({
   useEffect(() => {
     const token = getToken();
     if (!token) {
-      router.replace("/login");
+      if (!isPublicCatalogPath(pathname)) {
+        router.replace("/login");
+        return;
+      }
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate guest visibility on public catalogs
+      setUser(null);
+      setHasSession(false);
+      setChecked(true);
       return;
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate from localStorage on mount is required
     setUser(getUser());
+    setHasSession(true);
     setChecked(true);
 
     function syncUser() {
-      setUser(getUser());
+      const activeToken = getToken();
+      setHasSession(Boolean(activeToken));
+      setUser(activeToken ? getUser() : null);
     }
     window.addEventListener(USER_UPDATED_EVENT, syncUser);
     return () => {
       window.removeEventListener(USER_UPDATED_EVENT, syncUser);
     };
-  }, [router]);
+  }, [router, pathname]);
 
   useEffect(() => {
-    if (!checked) return;
+    if (!checked || !hasSession) return;
     const controller = new AbortController();
 
     function loadUnread() {
@@ -230,7 +258,7 @@ export default function AppLayout({
       controller.abort();
       window.removeEventListener("upn-messages-updated", handleMessagesUpdated);
     };
-  }, [checked, pathname]);
+  }, [checked, hasSession, pathname]);
 
   async function handleLogout() {
     try {
@@ -320,7 +348,7 @@ export default function AppLayout({
       >
         {/* Brand */}
         <Link
-          href="/dashboard"
+          href={hasSession ? "/dashboard" : "/marketplace"}
           onClick={() => setMobileOpen(false)}
           className="group flex h-[72px] items-center gap-3 px-5 focus-visible:outline-none"
         >
@@ -348,7 +376,7 @@ export default function AppLayout({
             Menu utama
           </p>
           <ul className="space-y-1">
-            {MAIN_NAV_ITEMS.map((item) => (
+            {MAIN_NAV_ITEMS.filter((item) => hasSession || item.href !== "/dashboard").map((item) => (
               <li key={item.href}>
                 <NavLink
                   item={item}
@@ -359,93 +387,124 @@ export default function AppLayout({
             ))}
           </ul>
 
-          <p className="px-3.5 pb-2 pt-6 text-[13px] font-medium text-[#6E6A66]">
-            Aktivitas saya
-          </p>
-          <ul className="space-y-1">
-            {ACTIVITY_NAV_ITEMS.map((item) => {
-              const resolvedItem =
-                item.href === "/messages" && unreadMessagesCount > 0
-                  ? { ...item, badge: String(unreadMessagesCount) }
-                  : item;
-              return (
-                <li key={item.href}>
-                  <NavLink
-                    item={resolvedItem}
-                    isActive={isNavActive(item.href)}
-                    onNavigate={() => setMobileOpen(false)}
-                  />
-                </li>
-              );
-            })}
-          </ul>
+          {hasSession && (
+            <>
+              <p className="px-3.5 pb-2 pt-6 text-[13px] font-medium text-[#6E6A66]">
+                Aktivitas saya
+              </p>
+              <ul className="space-y-1">
+                {ACTIVITY_NAV_ITEMS.map((item) => {
+                  const resolvedItem =
+                    item.href === "/messages" && unreadMessagesCount > 0
+                      ? { ...item, badge: String(unreadMessagesCount) }
+                      : item;
+                  return (
+                    <li key={item.href}>
+                      <NavLink
+                        item={resolvedItem}
+                        isActive={isNavActive(item.href)}
+                        onNavigate={() => setMobileOpen(false)}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
         </nav>
 
         {/* Bottom CTA + user summary */}
         <div className="border-t border-[#E4DFDA] p-4">
-          <button
-            type="button"
-            onClick={handleCreateClick}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#141416] px-5 text-[14px] font-medium text-white transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2"
-          >
-            <IconPlus />{" "}
-            {pathname?.startsWith("/events") && canSubmitEvent
-              ? "Ajukan kegiatan"
-              : "Pasang iklan baru"}
-          </button>
+          {hasSession ? (
+            <>
+              <button
+                type="button"
+                onClick={handleCreateClick}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#141416] px-5 text-[14px] font-medium text-white transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:bg-[#242428] active:translate-y-[1px] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] focus-visible:ring-offset-2"
+              >
+                <IconPlus />{" "}
+                {pathname?.startsWith("/events") && canSubmitEvent
+                  ? "Ajukan kegiatan"
+                  : "Pasang iklan baru"}
+              </button>
 
-          <div className="mt-3.5 flex items-center gap-2.5 rounded-xl border border-[#E5E0DA] bg-white p-2.5">
-            <Link
-              href="/profile"
-              onClick={() => setMobileOpen(false)}
-              className="flex min-w-0 flex-1 items-center gap-2.5 focus-visible:outline-none"
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-[13px] font-semibold text-white">
-                {showAvatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={avatarUrl!}
-                    alt=""
-                    onError={() => setFailedAvatarUrl(avatarUrl)}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  initials
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-1 text-[13px] font-semibold text-[#141416]">
-                  <span className="truncate">{displayName}</span>
-                  {canSubmitEvent && (
-                    <VerifiedBadge
-                      size="xs"
-                      title={`Akun ${accountTypeLabel(user?.account_type)} terverifikasi`}
+              <div className="mt-3.5 flex items-center gap-2.5 rounded-xl border border-[#E5E0DA] bg-white p-2.5">
+                <Link
+                  href="/profile"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex min-w-0 flex-1 items-center gap-2.5 focus-visible:outline-none"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-[13px] font-semibold text-white">
+                    {showAvatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatarUrl!}
+                        alt=""
+                        onError={() => setFailedAvatarUrl(avatarUrl)}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      initials
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-1 text-[13px] font-semibold text-[#141416]">
+                      <span className="truncate">{displayName}</span>
+                      {canSubmitEvent && (
+                        <VerifiedBadge
+                          size="xs"
+                          title={`Akun ${accountTypeLabel(user?.account_type)} terverifikasi`}
+                        />
+                      )}
+                    </p>
+                    <p className="truncate text-[13px] text-[#6E6A66]">
+                      {canSubmitEvent ? accountTypeLabel(user?.account_type) : displayFaculty}
+                    </p>
+                  </div>
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  title="Keluar dari akun"
+                  aria-label="Keluar dari akun"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#6E6A66] transition-colors hover:bg-[#F4F1EE] hover:text-[#C53939] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M15 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3M10 17l5-5-5-5M15 12H3"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
-                  )}
-                </p>
-                <p className="truncate text-[13px] text-[#6E6A66]">
-                  {canSubmitEvent ? accountTypeLabel(user?.account_type) : displayFaculty}
+                  </svg>
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="space-y-2.5 rounded-xl border border-[#E5E0DA] bg-white p-3.5">
+              <div>
+                <p className="text-[13px] font-semibold text-[#141416]">Mode Pengunjung</p>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-[#6E6A66]">
+                  Masuk dengan akun UPN untuk pasang iklan, simpan favorit, atau chat.
                 </p>
               </div>
-            </Link>
-            <button
-              type="button"
-              onClick={handleLogout}
-              title="Keluar dari akun"
-              aria-label="Keluar dari akun"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#6E6A66] transition-colors hover:bg-[#F4F1EE] hover:text-[#C53939] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path
-                  d="M15 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3M10 17l5-5-5-5M15 12H3"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-          </div>
+              <Link
+                href="/login"
+                onClick={() => setMobileOpen(false)}
+                className="flex h-10 w-full items-center justify-center rounded-full bg-[#141416] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+              >
+                Masuk
+              </Link>
+              <Link
+                href="/register"
+                onClick={() => setMobileOpen(false)}
+                className="flex h-10 w-full items-center justify-center rounded-full border border-[#DFD9D2] bg-[#FAF8F6] px-4 text-[13px] font-semibold text-[#141416] transition-colors hover:bg-[#EFECE8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+              >
+                Daftar akun UPN
+              </Link>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -509,58 +568,77 @@ export default function AppLayout({
           <div className="flex items-center gap-2.5 sm:gap-3">
             <DevUserSwitcher />
             <NotificationBell />
-            <Link
-              href="/profile"
-              className="hidden h-11 items-center gap-2.5 rounded-full border border-[#E5E0DA] bg-white py-1 pl-1.5 pr-4 transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:border-[#CFC8BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] sm:inline-flex"
-            >
-              <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-[13px] font-semibold text-white">
-                {showAvatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={avatarUrl!}
-                    alt=""
-                    onError={() => setFailedAvatarUrl(avatarUrl)}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  initials
-                )}
-              </div>
-              <div className="text-left">
-                <p className="flex max-w-[150px] items-center gap-1 text-[13px] font-semibold leading-tight text-[#141416]">
-                  <span className="truncate">{displayName}</span>
-                  {canSubmitEvent && (
-                    <VerifiedBadge
-                      size="xs"
-                      title={`Akun ${accountTypeLabel(user?.account_type)} terverifikasi`}
+            {hasSession ? (
+              <>
+                <Link
+                  href="/profile"
+                  className="hidden h-11 items-center gap-2.5 rounded-full border border-[#E5E0DA] bg-white py-1 pl-1.5 pr-4 transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-[1px] hover:border-[#CFC8BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] sm:inline-flex"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-[13px] font-semibold text-white">
+                    {showAvatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatarUrl!}
+                        alt=""
+                        onError={() => setFailedAvatarUrl(avatarUrl)}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      initials
+                    )}
+                  </div>
+                  <div className="text-left">
+                    <p className="flex max-w-[150px] items-center gap-1 text-[13px] font-semibold leading-tight text-[#141416]">
+                      <span className="truncate">{displayName}</span>
+                      {canSubmitEvent && (
+                        <VerifiedBadge
+                          size="xs"
+                          title={`Akun ${accountTypeLabel(user?.account_type)} terverifikasi`}
+                        />
+                      )}
+                    </p>
+                    <p className="max-w-[150px] truncate text-[13px] leading-tight text-[#6E6A66]">
+                      {canSubmitEvent
+                        ? accountTypeLabel(user?.account_type)
+                        : displayFaculty || displayEmail}
+                    </p>
+                  </div>
+                </Link>
+                {/* Mobile user avatar */}
+                <Link
+                  href="/profile"
+                  aria-label="Profil saya"
+                  className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-[13px] font-semibold text-white sm:hidden"
+                >
+                  {showAvatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatarUrl!}
+                      alt=""
+                      onError={() => setFailedAvatarUrl(avatarUrl)}
+                      className="h-full w-full object-cover"
                     />
+                  ) : (
+                    initials
                   )}
-                </p>
-                <p className="max-w-[150px] truncate text-[13px] leading-tight text-[#6E6A66]">
-                  {canSubmitEvent
-                    ? accountTypeLabel(user?.account_type)
-                    : displayFaculty || displayEmail}
-                </p>
+                </Link>
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/login"
+                  className="inline-flex h-10 items-center justify-center rounded-full border border-[#DFD9D2] bg-white px-4 text-[13px] font-semibold text-[#141416] transition-colors hover:bg-[#FAF8F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416]"
+                >
+                  Masuk
+                </Link>
+                <Link
+                  href="/register"
+                  className="hidden h-10 items-center justify-center rounded-full bg-[#141416] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#242428] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141416] sm:inline-flex"
+                >
+                  Daftar
+                </Link>
               </div>
-            </Link>
-            {/* Mobile user avatar */}
-            <Link
-              href="/profile"
-              aria-label="Profil saya"
-              className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-[#141416] text-[13px] font-semibold text-white sm:hidden"
-            >
-              {showAvatar ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={avatarUrl!}
-                  alt=""
-                  onError={() => setFailedAvatarUrl(avatarUrl)}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                initials
-              )}
-            </Link>
+            )}
           </div>
         </header>
 

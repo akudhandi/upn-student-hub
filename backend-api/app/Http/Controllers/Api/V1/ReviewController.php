@@ -51,7 +51,7 @@ class ReviewController extends Controller
         }
 
         $reviews = Rating::query()
-            ->with('user:id,name')
+            ->with('user:id,name,account_type')
             ->where('rateable_type', $class)
             ->where('rateable_id', $validated['id'])
             ->latest()
@@ -133,7 +133,7 @@ class ReviewController extends Controller
             'review' => $validated['comment'] ?? null,
         ]);
 
-        $rating->load('user:id,name');
+        $rating->load('user:id,name,account_type');
 
         return response()->json([
             'message' => 'Ulasan berhasil dikirim',

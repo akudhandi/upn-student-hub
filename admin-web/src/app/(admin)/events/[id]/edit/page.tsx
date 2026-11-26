@@ -26,8 +26,10 @@ function toFormValues(item: AdminEventItem): EventFormValues {
     registration_link: item.registration_link ?? "",
     status: (item.status as EventStatus) || "published",
     description: item.description ?? "",
-    existingPosterPath: item.images?.[0]?.file_path ?? null,
-    posterFile: null,
+    existingImagePaths: (item.images ?? [])
+      .map((img) => img.file_path)
+      .filter((path): path is string => Boolean(path)),
+    newPosterFiles: [],
   };
 }
 
@@ -76,13 +78,16 @@ export default function EventEditPage({
     setSubmitting(true);
     setServerError(null);
     try {
-      let imagePaths: string[] = values.existingPosterPath
-        ? [values.existingPosterPath]
-        : [];
-      if (values.posterFile) {
-        const uploaded = await uploadAdminMedia(values.posterFile, "events");
-        imagePaths = [uploaded.path];
-      }
+      const uploadedPaths = await Promise.all(
+        values.newPosterFiles.map(async (file) => {
+          const uploaded = await uploadAdminMedia(file, "events");
+          return uploaded.path;
+        }),
+      );
+      const imagePaths = [...values.existingImagePaths, ...uploadedPaths].slice(
+        0,
+        3,
+      );
       await updateAdminEvent(id, {
         title: values.title.trim(),
         category_id: values.category_id ? Number(values.category_id) : null,

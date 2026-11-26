@@ -3,6 +3,7 @@
 import Link from "next/link";
 import ListingImage from "@/components/ListingImage";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import { accountTypeLabel, isOfficialAccount } from "@/lib/auth";
 import type { ApiImage } from "@/lib/images";
 import { formatRupiah, formatTimeAgo, initialsOf } from "@/lib/formatters";
 
@@ -22,6 +23,7 @@ export type ApiServiceItem = {
   user?: {
     id: number;
     name: string;
+    account_type?: string | null;
     is_official_account?: boolean;
   } | null;
   category?: { id: number; name: string; slug: string } | null;
@@ -211,8 +213,11 @@ export function ServiceCard({
             <span className="truncate text-[13px] font-medium text-[#141416]">
               {providerName}
             </span>
-            {item.user?.is_official_account && (
-              <VerifiedBadge size="xs" title="Akun resmi terverifikasi UPN" />
+            {isOfficialAccount(item.user) && (
+              <VerifiedBadge
+                size="xs"
+                title={`Akun ${accountTypeLabel(item.user?.account_type)} terverifikasi`}
+              />
             )}
           </span>
           {footerMeta && (

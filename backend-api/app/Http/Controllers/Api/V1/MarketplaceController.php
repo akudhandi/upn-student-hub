@@ -49,7 +49,7 @@ class MarketplaceController extends Controller
         });
 
         $listing->load([
-            'user:id,name',
+            'user:id,name,account_type',
             'category:id,name,slug',
             'images',
         ]);
@@ -64,7 +64,7 @@ class MarketplaceController extends Controller
     {
         $query = MarketplaceListing::query()
             ->with([
-                'user:id,name',
+                'user:id,name,account_type',
                 'category:id,name,slug',
                 'images',
             ])
@@ -111,7 +111,7 @@ class MarketplaceController extends Controller
         try {
             $listing = MarketplaceListing::query()
                 ->with([
-                    'user:id,name',
+                    'user:id,name,account_type',
                     'category:id,name,slug',
                     'images',
                 ])
@@ -188,7 +188,7 @@ class MarketplaceController extends Controller
             }
         });
 
-        $listing->load(['user:id,name', 'category:id,name,slug', 'images']);
+        $listing->load(['user:id,name,account_type', 'category:id,name,slug', 'images']);
 
         return response()->json([
             'message' => 'Listing marketplace berhasil diperbarui',
@@ -226,7 +226,7 @@ class MarketplaceController extends Controller
         ]);
 
         $listing->update(['status' => $validated['status']]);
-        $listing->load(['user:id,name', 'category:id,name,slug', 'images']);
+        $listing->load(['user:id,name,account_type', 'category:id,name,slug', 'images']);
 
         return response()->json([
             'message' => 'Status listing berhasil diperbarui',

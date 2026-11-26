@@ -1,8 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { REPORT_REASONS, submitReport, type InteractableType } from "@/lib/interactions";
+import Link from "next/link";
+import { REPORT_REASONS, submitReport, type ReportableType } from "@/lib/interactions";
 import { type ApiError } from "@/lib/api";
+import { getToken } from "@/lib/auth";
+
+const REPORT_COPY: Record<string, { heading: string; sent: string }> = {
+  user: {
+    heading: "Laporkan Pengguna",
+    sent: "Laporan pengguna terkirim. Admin akan meninjau akun ini. Terima kasih atas kepedulianmu menjaga komunitas UPN.",
+  },
+  chat: {
+    heading: "Laporkan Percakapan",
+    sent: "Laporan percakapan terkirim. Admin akan meninjau laporan ini. Terima kasih atas kepedulianmu menjaga komunitas UPN.",
+  },
+  default: {
+    heading: "Laporkan Postingan",
+    sent: "Laporan terkirim. Admin akan meninjau postingan ini. Terima kasih atas kepedulianmu menjaga komunitas UPN.",
+  },
+};
 
 export default function ReportModal({
   open,
@@ -13,7 +30,7 @@ export default function ReportModal({
 }: {
   open: boolean;
   title: string;
-  type: InteractableType;
+  type: ReportableType;
   id: number | string;
   onClose: () => void;
 }) {
@@ -22,6 +39,9 @@ export default function ReportModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSent, setIsSent] = useState(false);
+
+  const hasSession = Boolean(getToken());
+  const copy = REPORT_COPY[type] ?? REPORT_COPY.default;
 
   useEffect(() => {
     if (!open) return;
@@ -72,7 +92,7 @@ export default function ReportModal({
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 id="report-modal-title" className="text-[15px] font-bold text-slate-900">
-              Laporkan Postingan
+              {copy.heading}
             </h2>
             <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{title}</p>
           </div>
@@ -86,10 +106,32 @@ export default function ReportModal({
           </button>
         </div>
 
-        {isSent ? (
+        {!hasSession ? (
+          <div className="mt-4 space-y-3">
+            <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-[13px] leading-5 text-slate-600">
+              Silakan masuk terlebih dahulu dengan akun mahasiswa UPN untuk mengirim laporan pelanggaran.
+            </p>
+            <div className="flex gap-2">
+              <Link
+                href="/login"
+                onClick={onClose}
+                className="flex-1 rounded-lg bg-[#141416] px-4 py-2 text-center text-[13px] font-semibold text-white hover:bg-[#242428]"
+              >
+                Masuk sekarang
+              </Link>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        ) : isSent ? (
           <div className="mt-4">
             <p role="status" className="rounded-lg bg-green-50 px-3 py-2.5 text-[13px] leading-5 text-green-800">
-              Laporan terkirim. Admin akan meninjau postingan ini. Terima kasih atas kepedulianmu menjaga komunitas UPN.
+              {copy.sent}
             </p>
             <button
               type="button"

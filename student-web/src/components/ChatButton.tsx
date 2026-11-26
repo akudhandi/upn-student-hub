@@ -2,7 +2,7 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { getUser, USER_UPDATED_EVENT } from "@/lib/auth";
+import { getToken, getUser, USER_UPDATED_EVENT } from "@/lib/auth";
 import { startConversation, type InteractableType } from "@/lib/interactions";
 import type { ApiError } from "@/lib/api";
 
@@ -73,6 +73,10 @@ export default function ChatButton({
   }
 
   async function handleClick() {
+    if (!getToken()) {
+      router.push("/login");
+      return;
+    }
     if (isStarting) return;
     setIsStarting(true);
     setError(null);

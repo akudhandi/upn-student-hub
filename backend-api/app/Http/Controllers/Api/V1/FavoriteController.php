@@ -112,7 +112,7 @@ class FavoriteController extends Controller
     {
         $userId = $this->resolveStudentUserId($request);
 
-        $relations = ['user:id,name', 'category:id,name,slug', 'images'];
+        $relations = ['user:id,name,account_type', 'category:id,name,slug', 'images'];
 
         $favorites = Favorite::query()
             ->with([

@@ -11,6 +11,9 @@ import ListingImage from "@/components/ListingImage";
 import type { ApiImage } from "@/lib/images";
 import ReportModal from "@/components/ReportModal";
 import ReviewsSection from "@/components/ReviewsSection";
+import VerifiedBadge from "@/components/VerifiedBadge";
+import { accountTypeLabel, getUser, isOfficialAccount } from "@/lib/auth";
+import type { ReportableType } from "@/lib/interactions";
 
 // ---------------------------------------------------------------------------
 // API types — shape of GET /api/v1/marketplace/{id} (standard { message, data }
@@ -24,7 +27,12 @@ type ApiMarketplaceDetail = {
   condition: string;
   status: string;
   created_at: string;
-  user?: { id: number; name: string } | null;
+  user?: {
+    id: number;
+    name: string;
+    account_type?: string | null;
+    is_official_account?: boolean;
+  } | null;
   category?: { id: number; name: string; slug: string } | null;
   images?: ApiImage[] | null;
 };
@@ -123,7 +131,12 @@ export default function MarketplaceDetailPage() {
   const [isNotFound, setIsNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isFavorite, toggle: toggleFavorite } = useFavorite("marketplace", id);
-  const [reportOpen, setReportOpen] = useState(false);
+  const [currentUserId] = useState<number | null>(() => getUser()?.id ?? null);
+  const [reportTarget, setReportTarget] = useState<{
+    type: ReportableType;
+    id: number | string;
+    title: string;
+  } | null>(null);
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
 
   const loadDetail = useCallback(async (itemId: string, signal?: AbortSignal) => {
@@ -390,12 +403,18 @@ export default function MarketplaceDetailPage() {
             <span className="min-w-0">
               <span className="flex items-center gap-1 text-sm font-semibold text-slate-900">
                 <span className="truncate">{sellerName}</span>
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0 text-sky-500">
-                  <circle cx="8" cy="8" r="6.5" fill="currentColor" opacity="0.15" />
-                  <path d="M5.5 8.2L7.3 10L10.6 6.3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                {isOfficialAccount(item.user) && (
+                  <VerifiedBadge
+                    size="xs"
+                    title={`Akun ${accountTypeLabel(item.user?.account_type)} terverifikasi`}
+                  />
+                )}
               </span>
-              <span className="block truncate text-xs text-slate-500">Mahasiswa UPN</span>
+              <span className="block truncate text-xs text-slate-500">
+                {isOfficialAccount(item.user)
+                  ? accountTypeLabel(item.user?.account_type)
+                  : "Mahasiswa UPN"}
+              </span>
             </span>
           </div>
           <div className="mt-4 space-y-2.5">
@@ -420,23 +439,49 @@ export default function MarketplaceDetailPage() {
               </svg>
               {isFavorite ? "Tersimpan ke Favorit" : "Simpan ke Favorit"}
             </button>
-            <button
-              type="button"
-              onClick={() => setReportOpen(true)}
-              className="w-full text-center text-[11px] font-medium text-slate-400 hover:text-red-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
-            >
-              Laporkan postingan ini
-            </button>
+            <div className="flex items-center justify-center gap-3 pt-0.5">
+              <button
+                type="button"
+                onClick={() =>
+                  setReportTarget({
+                    type: "marketplace",
+                    id: item.id,
+                    title: item.title,
+                  })
+                }
+                className="text-center text-[11px] font-medium text-slate-400 hover:text-red-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+              >
+                Laporkan postingan
+              </button>
+              {item.user?.id && item.user.id !== currentUserId && (
+                <>
+                  <span aria-hidden="true" className="text-[11px] text-slate-300">·</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setReportTarget({
+                        type: "user",
+                        id: item.user!.id,
+                        title: sellerName,
+                      })
+                    }
+                    className="text-center text-[11px] font-medium text-slate-400 hover:text-red-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+                  >
+                    Laporkan penjual
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </aside>
       </div>
 
       <ReportModal
-        open={reportOpen}
-        title={item.title}
-        type="marketplace"
-        id={item.id}
-        onClose={() => setReportOpen(false)}
+        open={reportTarget !== null}
+        title={reportTarget?.title ?? item.title}
+        type={reportTarget?.type ?? "marketplace"}
+        id={reportTarget?.id ?? item.id}
+        onClose={() => setReportTarget(null)}
       />
 
       {/* Related items */}
@@ -478,6 +523,12 @@ export default function MarketplaceDetailPage() {
                         {initialsOf(entrySeller)}
                       </span>
                       <span className="truncate text-xs font-medium text-slate-700">{entrySeller}</span>
+                      {isOfficialAccount(entry.user) && (
+                        <VerifiedBadge
+                          size="xs"
+                          title={`Akun ${accountTypeLabel(entry.user?.account_type)} terverifikasi`}
+                        />
+                      )}
                     </div>
                   </div>
                 </article>

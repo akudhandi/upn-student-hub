@@ -10,7 +10,7 @@ import { UPN_FACULTIES } from "@/lib/constants";
 const FAKULTAS_OPTIONS = UPN_FACULTIES;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ALPHA_SPACE_RE = /^[A-Za-z\s]+$/;
+const ALPHA_SPACE_RE = /^[A-Za-z\s.',-]+$/;
 const NPM_RE = /^\d{11}$/;
 
 type LoginField = "email" | "password";
@@ -426,7 +426,7 @@ export function RegisterFormPanel({
     const trimmed = fullName.trim();
     if (!trimmed) return "Nama lengkap wajib diisi.";
     if (!ALPHA_SPACE_RE.test(trimmed)) {
-      return "Nama lengkap hanya boleh berisi huruf alfabet.";
+      return "Nama lengkap hanya boleh berisi huruf, spasi, titik, koma, tanda petik, atau tanda hubung.";
     }
     if (trimmed.length < 2) return "Nama lengkap minimal 2 huruf.";
     return null;
@@ -554,7 +554,7 @@ export function RegisterFormPanel({
               placeholder="Budi Santoso"
               value={fullName}
               onChange={(e) =>
-                setFullName(e.target.value.replace(/[^a-zA-Z\s]/g, ""))
+                setFullName(e.target.value.replace(/[^a-zA-Z\s.',-]/g, ""))
               }
               onBlur={() => markTouched("fullName")}
               disabled={loading}

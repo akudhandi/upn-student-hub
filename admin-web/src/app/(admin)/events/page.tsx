@@ -269,6 +269,104 @@ function EventInspectorContent({
         </p>
       </div>
 
+      {(item.speakers?.length ||
+        item.benefits?.length ||
+        item.contact_pics?.length ||
+        item.documents?.length) ? (
+        <div className="space-y-4 border-b border-hub-rule p-5 text-[13px]">
+          {item.speakers && item.speakers.length > 0 && (
+            <div>
+              <p className="font-semibold text-hub-ink-muted">
+                Narasumber / Pembicara
+              </p>
+              <ul className="mt-2 space-y-1.5">
+                {item.speakers.map((speaker, idx) => (
+                  <li
+                    key={`${speaker.name}-${idx}`}
+                    className="rounded-xl bg-hub-subtle px-3 py-2 text-hub-ink"
+                  >
+                    <p className="font-semibold">{speaker.name}</p>
+                    {(speaker.role || speaker.organization) && (
+                      <p className="text-hub-ink-muted">
+                        {[speaker.role, speaker.organization]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    )}
+                    {speaker.topic && (
+                      <p className="mt-0.5 text-hub-ink-subtle">
+                        Topik: {speaker.topic}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {item.benefits && item.benefits.length > 0 && (
+            <div>
+              <p className="font-semibold text-hub-ink-muted">
+                Manfaat / Fasilitas
+              </p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-hub-ink-muted">
+                {item.benefits.map((benefit, idx) => (
+                  <li key={`${benefit}-${idx}`}>{benefit}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {item.contact_pics && item.contact_pics.length > 0 && (
+            <div>
+              <p className="font-semibold text-hub-ink-muted">
+                Narahubung (PIC)
+              </p>
+              <ul className="mt-2 space-y-1.5">
+                {item.contact_pics.map((pic, idx) => (
+                  <li
+                    key={`${pic.name}-${idx}`}
+                    className="rounded-xl bg-hub-subtle px-3 py-2 text-hub-ink"
+                  >
+                    <p className="font-semibold">{pic.name}</p>
+                    <p className="text-hub-ink-muted">
+                      {[pic.whatsapp ? `WA: ${pic.whatsapp}` : null, pic.email]
+                        .filter(Boolean)
+                        .join(" · ") || "Tidak ada detail kontak"}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {item.documents && item.documents.length > 0 && (
+            <div>
+              <p className="font-semibold text-hub-ink-muted">
+                Dokumen / Lampiran
+              </p>
+              <ul className="mt-2 space-y-1.5">
+                {item.documents.map((doc, idx) => (
+                  <li
+                    key={`${doc.name}-${idx}`}
+                    className="flex items-center justify-between gap-2 rounded-xl bg-hub-subtle px-3 py-2"
+                  >
+                    <span className="truncate font-medium text-hub-ink">
+                      {doc.name}
+                    </span>
+                    {doc.meta && (
+                      <span className="shrink-0 text-hub-ink-subtle">
+                        {doc.meta}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ) : null}
+
       <div className="space-y-2.5 p-5">
         <div className="flex flex-wrap items-center gap-2">
           {canApprove && (

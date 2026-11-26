@@ -363,6 +363,24 @@ export type EventStatus =
   | 'rejected'
   | 'archived';
 
+export interface EventSpeaker {
+  name: string;
+  role?: string | null;
+  organization?: string | null;
+  topic?: string | null;
+}
+
+export interface EventContactPic {
+  name: string;
+  whatsapp?: string | null;
+  email?: string | null;
+}
+
+export interface EventDocument {
+  name: string;
+  meta?: string | null;
+}
+
 export interface AdminEventItem {
   id: number;
   user_id: number;
@@ -375,6 +393,11 @@ export interface AdminEventItem {
   event_time?: string | null;
   location: string;
   registration_link?: string | null;
+  speakers?: EventSpeaker[] | null;
+  benefits?: string[] | null;
+  contact_pics?: EventContactPic[] | null;
+  documents?: EventDocument[] | null;
+  is_verified?: boolean;
   description: string;
   status: EventStatus | string;
   created_at: string;
@@ -721,6 +744,10 @@ export interface ReportableTarget {
   name?: string;
   email?: string;
   status?: string;
+  participants?: Array<{
+    user_id: number;
+    user?: { id: number; name: string; email?: string } | null;
+  }>;
 }
 
 export interface AdminReportItem {

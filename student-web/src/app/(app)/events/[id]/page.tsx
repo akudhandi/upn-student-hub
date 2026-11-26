@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { apiFetch, type ApiError } from "@/lib/api";
 import {
   formatShortDate,
@@ -112,7 +112,6 @@ function DetailSkeleton() {
 
 export default function EventDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const [item, setItem] = useState<ApiEventDetail | null>(null);
@@ -196,13 +195,12 @@ export default function EventDetailPage() {
           <p className="mx-auto mt-1 max-w-[380px] text-xs leading-5 text-slate-500">
             Event yang kamu cari tidak tersedia atau sudah dihapus.
           </p>
-          <button
-            type="button"
-            onClick={() => router.back()}
+          <Link
+            href="/events"
             className="mt-4 inline-block rounded-lg bg-[#0A2342] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#12325e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
           >
             Kembali
-          </button>
+          </Link>
         </div>
       </div>
     );
@@ -222,13 +220,12 @@ export default function EventDetailPage() {
             >
               Coba lagi
             </button>
-            <button
-              type="button"
-              onClick={() => router.back()}
+            <Link
+              href="/events"
               className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
             >
               Kembali
-            </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -254,20 +251,23 @@ export default function EventDetailPage() {
           <ol className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
             <li><Link href="/dashboard" className="hover:text-slate-800 hover:underline">Beranda</Link></li>
             <li aria-hidden="true" className="text-slate-300">/</li>
-            <li>Event &amp; Informasi</li>
+            <li>
+              <Link href="/events" className="hover:text-slate-800 hover:underline">
+                Event &amp; Informasi
+              </Link>
+            </li>
             <li aria-hidden="true" className="text-slate-300">/</li>
             <li>{categoryName}</li>
             <li aria-hidden="true" className="text-slate-300">/</li>
             <li><span aria-current="page" className="font-medium text-slate-700">Detail Event</span></li>
           </ol>
         </nav>
-        <button
-          type="button"
-          onClick={() => router.back()}
+        <Link
+          href="/events"
           className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002147] focus-visible:ring-offset-2"
         >
           ← Kembali ke Daftar Event
-        </button>
+        </Link>
       </div>
 
       {/* Non-published status banner (for owner viewing pending/draft/archived submission) */}
@@ -413,13 +413,12 @@ export default function EventDetailPage() {
                   <span className="h-4 w-1 rounded-full bg-amber-500" aria-hidden="true" />
                   Event &amp; Informasi Kampus Lainnya
                 </h2>
-                <button
-                  type="button"
-                  onClick={() => router.back()}
+                <Link
+                  href="/events"
                   className="shrink-0 text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline"
                 >
                   Lihat Semua Event →
-                </button>
+                </Link>
               </div>
               <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {related.map((entry) => (

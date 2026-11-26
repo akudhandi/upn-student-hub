@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import type { ApiImage } from "@/lib/images";
@@ -11,6 +12,7 @@ import type { ApiImage } from "@/lib/images";
 // backend ResolvesMorphType map.
 // ---------------------------------------------------------------------------
 export type InteractableType = "marketplace" | "service" | "lostfound" | "event";
+export type ReportableType = InteractableType | "user" | "chat";
 
 export const REPORT_REASONS = [
   { value: "spam", label: "Spam / promosi" },
@@ -93,7 +95,7 @@ export async function fetchFavorites(signal?: AbortSignal): Promise<FavoriteEntr
 }
 
 export async function submitReport(
-  type: InteractableType,
+  type: ReportableType,
   id: number | string,
   reason: string,
   description?: string
@@ -142,11 +144,17 @@ export type ChatContext = {
   type: string | null;
   id: number | null;
   title: string | null;
+  images?: ApiImage[] | null;
 };
 
 export type ConversationItem = {
   id: number;
-  recipient: { id: number; name: string } | null;
+  recipient: {
+    id: number;
+    name: string;
+    account_type?: string | null;
+    is_official_account?: boolean;
+  } | null;
   last_message: { body: string; sender_id: number; is_edited?: boolean; is_deleted?: boolean; created_at: string } | null;
   unread_count: number;
   context: ChatContext | null;
@@ -253,6 +261,7 @@ export async function deleteChatMessage(
 
 // Hydrated optimistic favorite toggle for detail pages. Reverts on API failure.
 export function useFavorite(type: InteractableType, id: number | string | undefined) {
+  const router = useRouter();
   const [isFavorite, setIsFavorite] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
 
@@ -272,6 +281,10 @@ export function useFavorite(type: InteractableType, id: number | string | undefi
   }, [type, id]);
 
   const toggle = useCallback(async () => {
+    if (!getToken()) {
+      router.push("/login");
+      return;
+    }
     if (isToggling || id === undefined) return;
     setIsToggling(true);
     setIsFavorite((v) => !v);
@@ -283,7 +296,7 @@ export function useFavorite(type: InteractableType, id: number | string | undefi
     } finally {
       setIsToggling(false);
     }
-  }, [isToggling, type, id]);
+  }, [isToggling, type, id, router]);
 
   return { isFavorite, isToggling, toggle };
 }

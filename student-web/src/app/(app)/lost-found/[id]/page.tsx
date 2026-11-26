@@ -15,6 +15,9 @@ import ChatButton from "@/components/ChatButton";
 import ListingImage from "@/components/ListingImage";
 import type { ApiImage } from "@/lib/images";
 import ReportModal from "@/components/ReportModal";
+import VerifiedBadge from "@/components/VerifiedBadge";
+import { accountTypeLabel, getUser, isOfficialAccount } from "@/lib/auth";
+import type { ReportableType } from "@/lib/interactions";
 
 // ---------------------------------------------------------------------------
 // API types — shape of GET /api/v1/lost-found/{id} (standard { message, data }
@@ -31,7 +34,12 @@ type ApiLostFoundDetail = {
   reward: string | null;
   status: string;
   created_at: string;
-  user?: { id: number; name: string } | null;
+  user?: {
+    id: number;
+    name: string;
+    account_type?: string | null;
+    is_official_account?: boolean;
+  } | null;
   images?: ApiImage[] | null;
   category?: { id: number; name: string; slug: string } | null;
 };
@@ -141,7 +149,12 @@ export default function LostFoundDetailPage() {
   const [isNotFound, setIsNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isFavorite, toggle: toggleFavorite } = useFavorite("lostfound", id);
-  const [reportOpen, setReportOpen] = useState(false);
+  const [currentUserId] = useState<number | null>(() => getUser()?.id ?? null);
+  const [reportTarget, setReportTarget] = useState<{
+    type: ReportableType;
+    id: number | string;
+    title: string;
+  } | null>(null);
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const [shareNotice, setShareNotice] = useState<string | null>(null);
 
@@ -579,8 +592,20 @@ export default function LostFoundDetailPage() {
                 {initialsOf(reporterName)}
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold text-slate-900">{reporterName}</span>
-                <span className="block truncate text-xs text-slate-500">Mahasiswa UPN</span>
+                <span className="flex items-center gap-1 text-sm font-semibold text-slate-900">
+                  <span className="truncate">{reporterName}</span>
+                  {isOfficialAccount(item.user) && (
+                    <VerifiedBadge
+                      size="xs"
+                      title={`Akun ${accountTypeLabel(item.user?.account_type)} terverifikasi`}
+                    />
+                  )}
+                </span>
+                <span className="block truncate text-xs text-slate-500">
+                  {isOfficialAccount(item.user)
+                    ? accountTypeLabel(item.user?.account_type)
+                    : "Mahasiswa UPN"}
+                </span>
               </span>
             </div>
             <div className="mt-3 flex gap-2">
@@ -610,23 +635,49 @@ export default function LostFoundDetailPage() {
                 {shareNotice}
               </p>
             )}
-            <button
-              type="button"
-              onClick={() => setReportOpen(true)}
-              className="mt-2 w-full text-center text-[11px] font-medium text-slate-400 hover:text-red-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
-            >
-              Laporkan postingan ini
-            </button>
+            <div className="mt-2 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setReportTarget({
+                    type: "lostfound",
+                    id: item.id,
+                    title: item.title,
+                  })
+                }
+                className="text-center text-[11px] font-medium text-slate-400 hover:text-red-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+              >
+                Laporkan postingan
+              </button>
+              {item.user?.id && item.user.id !== currentUserId && (
+                <>
+                  <span aria-hidden="true" className="text-[11px] text-slate-300">·</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setReportTarget({
+                        type: "user",
+                        id: item.user!.id,
+                        title: reporterName,
+                      })
+                    }
+                    className="text-center text-[11px] font-medium text-slate-400 hover:text-red-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+                  >
+                    Laporkan pelapor
+                  </button>
+                </>
+              )}
+            </div>
           </aside>
         </div>
       </div>
 
       <ReportModal
-        open={reportOpen}
-        title={item.title}
-        type="lostfound"
-        id={item.id}
-        onClose={() => setReportOpen(false)}
+        open={reportTarget !== null}
+        title={reportTarget?.title ?? item.title}
+        type={reportTarget?.type ?? "lostfound"}
+        id={reportTarget?.id ?? item.id}
+        onClose={() => setReportTarget(null)}
       />
     </div>
   );

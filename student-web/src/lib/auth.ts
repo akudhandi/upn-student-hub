@@ -27,7 +27,14 @@ export type AuthUser = {
   } | null;
 };
 
-export function isOfficialAccount(user: AuthUser | null | undefined): boolean {
+export type OfficialAccountLike = {
+  account_type?: AccountType | string | null;
+  is_official_account?: boolean | null;
+};
+
+export function isOfficialAccount(
+  user: OfficialAccountLike | null | undefined
+): boolean {
   if (!user) return false;
   if (user.is_official_account === true) return true;
   if (

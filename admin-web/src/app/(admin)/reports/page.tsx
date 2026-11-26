@@ -192,6 +192,9 @@ function moduleLabel(reportableType: string): string {
   if (reportableType.endsWith("\\User") || reportableType === "User") {
     return "Akun Pengguna";
   }
+  if (isChatTarget(reportableType)) {
+    return "Percakapan Chat";
+  }
   return shortReportableType(reportableType);
 }
 
@@ -199,8 +202,21 @@ function isUserTarget(reportableType: string): boolean {
   return reportableType.endsWith("\\User") || reportableType === "User";
 }
 
+function isChatTarget(reportableType: string): boolean {
+  return reportableType.endsWith("\\ChatRoom") || reportableType === "ChatRoom";
+}
+
 function targetDisplay(report: AdminReportItem): string {
   const target = report.reportable;
+  if (isChatTarget(report.reportable_type)) {
+    const participantNames = (target?.participants ?? [])
+      .map((participant) => participant.user?.name?.trim())
+      .filter((name): name is string => Boolean(name));
+    if (participantNames.length > 0) {
+      return `Percakapan: ${participantNames.join(" & ")}`;
+    }
+    return `Percakapan #${report.reportable_id}`;
+  }
   if (!target) {
     return `${moduleLabel(report.reportable_type)} #${report.reportable_id}`;
   }
@@ -256,6 +272,7 @@ function ReportDecisionPanel({
 
   const meta = statusPresentation(report.status);
   const userTarget = isUserTarget(report.reportable_type);
+  const chatTarget = isChatTarget(report.reportable_type);
   const effectiveAction: ReportTargetAction =
     nextStatus === "resolved" ? targetAction : "none";
   const isDestructive = DESTRUCTIVE_ACTIONS.has(effectiveAction);
@@ -269,19 +286,28 @@ function ReportDecisionPanel({
         },
         { value: "ban_user" as const, label: "Ban akun pengguna ini" },
       ]
-    : [
-        { value: "none" as const, label: "Tanpa tindakan tambahan pada target" },
-        {
-          value: "hide_content" as const,
-          label: "Sembunyikan / arsipkan konten terlapor",
-        },
-        {
-          value: "delete_content" as const,
-          label: "Hapus konten (soft delete)",
-        },
-        { value: "suspend_user" as const, label: "Suspend akun pemilik" },
-        { value: "ban_user" as const, label: "Ban akun pemilik" },
-      ];
+    : chatTarget
+      ? [
+          { value: "none" as const, label: "Tanpa tindakan tambahan" },
+          {
+            value: "suspend_user" as const,
+            label: "Suspend akun lawan bicara",
+          },
+          { value: "ban_user" as const, label: "Ban akun lawan bicara" },
+        ]
+      : [
+          { value: "none" as const, label: "Tanpa tindakan tambahan pada target" },
+          {
+            value: "hide_content" as const,
+            label: "Sembunyikan / arsipkan konten terlapor",
+          },
+          {
+            value: "delete_content" as const,
+            label: "Hapus konten (soft delete)",
+          },
+          { value: "suspend_user" as const, label: "Suspend akun pemilik" },
+          { value: "ban_user" as const, label: "Ban akun pemilik" },
+        ];
 
   const activeIntentMeta =
     INTENT_OPTIONS.find((opt) => opt.value === nextStatus) ?? INTENT_OPTIONS[0];

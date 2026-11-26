@@ -12,7 +12,25 @@ import {
   recipientRoleLabel,
 } from "./chat-helpers";
 
-export function ContextSidebar({ active }: { active: ConversationItem | null }) {
+export type MessageReportTarget = {
+  type: "user" | "chat";
+  id: number;
+  title: string;
+};
+
+export function ContextSidebar({
+  active,
+  myId,
+  onReport,
+}: {
+  active: ConversationItem | null;
+  myId?: number | null;
+  onReport?: (target: MessageReportTarget) => void;
+}) {
+  const recipientName = active?.recipient?.name?.trim() || "Pengguna UPN";
+  const canReportUser = Boolean(
+    active?.recipient?.id && active.recipient.id !== myId
+  );
   return (
     <aside
       aria-label="Detail kontak"
@@ -102,6 +120,47 @@ export function ContextSidebar({ active }: { active: ConversationItem | null }) 
               Jangan bagikan kode OTP atau data rekening pribadi. Untuk transaksi COD, temui lawan bicara di area kampus yang ramai.
             </p>
           </div>
+
+          {onReport && (
+            <div className="rounded-2xl border border-[#E5E0DA] bg-white p-4">
+              <p className="text-[13px] font-semibold text-[#141416]">
+                Keamanan &amp; Pelaporan
+              </p>
+              <p className="mt-1 text-[13px] leading-relaxed text-[#57534E]">
+                Laporkan akun atau isi percakapan ini bila menemukan penipuan, spam, atau pelecehan.
+              </p>
+              <div className="mt-3 flex flex-col gap-2">
+                {canReportUser && active.recipient && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onReport({
+                        type: "user",
+                        id: active.recipient!.id,
+                        title: recipientName,
+                      })
+                    }
+                    className="inline-flex min-h-[40px] w-full items-center justify-center rounded-full border border-[#E8C5C5] bg-[#FDF2F2] px-4 text-[13px] font-semibold text-[#B83232] transition-colors hover:bg-[#FCE4E4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B83232]"
+                  >
+                    Laporkan Pengguna
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    onReport({
+                      type: "chat",
+                      id: active.id,
+                      title: `Percakapan dengan ${recipientName}`,
+                    })
+                  }
+                  className="inline-flex min-h-[40px] w-full items-center justify-center rounded-full border border-[#E5E0DA] bg-white px-4 text-[13px] font-semibold text-[#57534E] transition-colors hover:border-[#B83232]/40 hover:text-[#B83232] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B83232]"
+                >
+                  Laporkan Percakapan
+                </button>
+              </div>
+            </div>
+          )}
         </>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center px-2 text-center">

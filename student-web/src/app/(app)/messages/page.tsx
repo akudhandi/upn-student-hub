@@ -11,6 +11,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import ReportModal from "@/components/ReportModal";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { getUser } from "@/lib/auth";
 import { initialsOf } from "@/lib/formatters";
@@ -34,7 +35,10 @@ import {
   isOfficialRecipient,
   recipientRoleLabel,
 } from "./_components/chat-helpers";
-import { ContextSidebar } from "./_components/ContextSidebar";
+import {
+  ContextSidebar,
+  type MessageReportTarget,
+} from "./_components/ContextSidebar";
 import { ThreadListPane } from "./_components/ThreadListPane";
 
 function MessagesContent() {
@@ -61,9 +65,11 @@ function MessagesContent() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [reportTarget, setReportTarget] = useState<MessageReportTarget | null>(null);
 
   const logRef = useRef<HTMLDivElement>(null);
   const activeIdRef = useRef<number | null>(null);
+  const loadRequestSeqRef = useRef(0);
   const shouldScrollToBottomRef = useRef(false);
   const isNearBottomRef = useRef(true);
   const prevMessageCountRef = useRef(0);
@@ -125,6 +131,7 @@ function MessagesContent() {
     if (requestedId) {
       const id = Number(requestedId);
       if (!Number.isNaN(id)) {
+        activeIdRef.current = id;
         // eslint-disable-next-line react-hooks/set-state-in-effect -- URL-driven selection must sync state
         setActiveId(id);
         setMobileView("chat");
@@ -137,13 +144,19 @@ function MessagesContent() {
 
   const loadMessages = useCallback(
     async (id: number, markRead: boolean, signal?: AbortSignal) => {
+      const requestSeq = ++loadRequestSeqRef.current;
+      const isStale = () =>
+        Boolean(signal?.aborted) ||
+        activeIdRef.current !== id ||
+        requestSeq !== loadRequestSeqRef.current;
+
       try {
         if (markRead) {
           setIsLoadingMessages(true);
           setMessagesError(null);
         }
         const { conversation: detail, messages: history } = await fetchConversation(id, signal);
-        if (signal?.aborted) return;
+        if (isStale()) return;
         setMessages(history);
         setThreads((prev) => {
           const exists = prev.some((t) => t.id === id);
@@ -163,20 +176,22 @@ function MessagesContent() {
         if (markRead || (detail.unread_count ?? 0) > 0) {
           try {
             await markConversationRead(id);
-            window.dispatchEvent(new Event("upn-messages-updated"));
+            if (!isStale()) {
+              window.dispatchEvent(new Event("upn-messages-updated"));
+            }
           } catch {
             // Non-fatal: unread badge refreshes on next poll.
           }
         }
       } catch {
-        if (!signal?.aborted && markRead) {
+        if (!isStale() && markRead) {
           setMessages([]);
           setMessagesError(
             "Gagal memuat riwayat pesan. Periksa koneksi backend lalu coba lagi."
           );
         }
       } finally {
-        if (!signal?.aborted && markRead) setIsLoadingMessages(false);
+        if (!isStale() && markRead) setIsLoadingMessages(false);
       }
     },
     []
@@ -194,11 +209,17 @@ function MessagesContent() {
   // Auto-poll active thread every 5s.
   useEffect(() => {
     if (activeId === null) return;
+    let pollController: AbortController | null = null;
     const timer = setInterval(() => {
       if (document.hidden) return;
-      void loadMessages(activeId, false);
+      pollController?.abort();
+      pollController = new AbortController();
+      void loadMessages(activeId, false, pollController.signal);
     }, 5000);
-    return () => clearInterval(timer);
+    return () => {
+      pollController?.abort();
+      clearInterval(timer);
+    };
   }, [activeId, loadMessages]);
 
   // Periodic thread-list refresh every 15s.
@@ -297,6 +318,7 @@ function MessagesContent() {
       setShowScrollBottom(false);
       setMessagesError(null);
     }
+    activeIdRef.current = id;
     setActiveId(id);
     setMobileView("chat");
     setOpenMenuId(null);
@@ -622,6 +644,37 @@ function MessagesContent() {
                 <p className="truncate text-[13px] text-[#6E6A66]">
                   {recipientRoleLabel(active.recipient)}
                 </p>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-1.5">
+                {active.recipient?.id && active.recipient.id !== myId && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setReportTarget({
+                        type: "user",
+                        id: active.recipient!.id,
+                        title: active.recipient?.name?.trim() || "Pengguna UPN",
+                      })
+                    }
+                    className="inline-flex min-h-[38px] items-center justify-center rounded-full border border-[#E5E0DA] bg-white px-3 text-[12px] font-medium text-[#57534E] transition-colors hover:border-[#B83232]/40 hover:text-[#B83232] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B83232]"
+                  >
+                    Laporkan pengguna
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setReportTarget({
+                      type: "chat",
+                      id: active.id,
+                      title: `Percakapan dengan ${active.recipient?.name?.trim() || "Pengguna UPN"}`,
+                    })
+                  }
+                  className="inline-flex min-h-[38px] items-center justify-center rounded-full border border-[#E5E0DA] bg-white px-3 text-[12px] font-medium text-[#57534E] transition-colors hover:border-[#B83232]/40 hover:text-[#B83232] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B83232]"
+                >
+                  Laporkan chat
+                </button>
               </div>
             </div>
 
@@ -977,8 +1030,20 @@ function MessagesContent() {
         )}
 
         {/* ---------- COLUMN 3: Context / profile (Desktop XL) ---------- */}
-        <ContextSidebar active={active} />
+        <ContextSidebar
+          active={active}
+          myId={myId}
+          onReport={(target) => setReportTarget(target)}
+        />
       </div>
+
+      <ReportModal
+        open={reportTarget !== null}
+        title={reportTarget?.title ?? ""}
+        type={reportTarget?.type ?? "chat"}
+        id={reportTarget?.id ?? 0}
+        onClose={() => setReportTarget(null)}
+      />
     </div>
   );
 }

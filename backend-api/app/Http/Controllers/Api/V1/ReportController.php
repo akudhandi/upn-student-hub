@@ -7,7 +7,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\V1\Concerns\ResolvesMorphType;
 use App\Http\Controllers\Api\V1\Concerns\ResolvesStudentUser;
 use App\Http\Controllers\Controller;
+use App\Models\ChatRoom;
 use App\Models\Report;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -24,7 +26,7 @@ class ReportController extends Controller
             'description' => 'nullable|string|max:2000',
         ]);
 
-        $class = static::resolveMorphClass($validated['reportable_type']);
+        $class = static::resolveReportableClass($validated['reportable_type']);
         if ($class === null) {
             return response()->json([
                 'message' => 'Tipe laporan tidak valid',
@@ -41,6 +43,20 @@ class ReportController extends Controller
         }
 
         $reporterId = $this->resolveStudentUserId($request);
+
+        if ($target instanceof User && (int) $target->id === $reporterId) {
+            return response()->json([
+                'message' => 'Tidak dapat melaporkan akun milik sendiri.',
+                'data' => null,
+            ], 422);
+        }
+
+        if ($target instanceof ChatRoom && ! $target->participants()->where('user_id', $reporterId)->exists()) {
+            return response()->json([
+                'message' => 'Anda tidak memiliki akses untuk melaporkan percakapan ini.',
+                'data' => null,
+            ], 403);
+        }
 
         if (isset($target->user_id) && (int) $target->user_id === $reporterId) {
             return response()->json([

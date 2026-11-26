@@ -40,11 +40,13 @@ export default function EventCreatePage() {
     setSubmitting(true);
     setServerError(null);
     try {
-      let imagePaths: string[] | undefined;
-      if (values.posterFile) {
-        const uploaded = await uploadAdminMedia(values.posterFile, "events");
-        imagePaths = [uploaded.path];
-      }
+      const uploadedPaths = await Promise.all(
+        values.newPosterFiles.map(async (file) => {
+          const uploaded = await uploadAdminMedia(file, "events");
+          return uploaded.path;
+        }),
+      );
+      const imagePaths = uploadedPaths.length > 0 ? uploadedPaths.slice(0, 3) : undefined;
       await createAdminEvent({
         title: values.title.trim(),
         category_id: values.category_id ? Number(values.category_id) : null,

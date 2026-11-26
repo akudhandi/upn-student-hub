@@ -10,6 +10,11 @@ use App\Http\Controllers\Controller;
 use App\Models\ChatMessage;
 use App\Models\ChatParticipant;
 use App\Models\ChatRoom;
+use App\Models\Event;
+use App\Models\LostFoundReport;
+use App\Models\MarketplaceListing;
+use App\Models\ServiceListing;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -46,9 +51,29 @@ class ChatController extends Controller
         ];
     }
 
+    private function contextableLoader(): \Closure
+    {
+        return static function (MorphTo $morphTo): void {
+            $withImages = static fn ($q) => $q
+                ->withTrashed()
+                ->with(['images' => static fn ($img) => $img->orderBy('sort_order')]);
+
+            $morphTo->constrain([
+                MarketplaceListing::class => $withImages,
+                ServiceListing::class => $withImages,
+                LostFoundReport::class => $withImages,
+                Event::class => $withImages,
+            ]);
+        };
+    }
+
     private function conversationPayload(ChatRoom $room, int $userId): array
     {
-        $room->loadMissing(['participants.user:id,name', 'contextable', 'latestMessage']);
+        $room->loadMissing([
+            'participants.user:id,name,account_type',
+            'contextable' => $this->contextableLoader(),
+            'latestMessage',
+        ]);
 
         $other = $room->participants->firstWhere('user_id', '!=', $userId);
         $latest = $room->latestMessage;
@@ -58,10 +83,16 @@ class ChatController extends Controller
 
         $context = null;
         if ($room->contextable_type && $room->contextable_id) {
+            $firstImage = $room->contextable?->images?->first();
             $context = [
                 'type' => static::resolveMorphAlias($room->contextable_type),
                 'id' => $room->contextable_id,
                 'title' => $room->contextable?->title ?? null,
+                'images' => $firstImage ? [[
+                    'id' => $firstImage->id,
+                    'file_path' => $firstImage->file_path,
+                    'sort_order' => $firstImage->sort_order,
+                ]] : [],
             ];
         }
 
@@ -70,6 +101,8 @@ class ChatController extends Controller
             'recipient' => $other?->user ? [
                 'id' => $other->user->id,
                 'name' => $other->user->name,
+                'account_type' => $other->user->account_type,
+                'is_official_account' => $other->user->is_official_account,
             ] : null,
             'last_message' => $latest ? [
                 'body' => $latest->is_deleted ? 'Pesan ini telah dihapus' : $latest->message,
@@ -110,7 +143,11 @@ class ChatController extends Controller
         $userId = $this->currentUserId($request);
 
         $rooms = ChatRoom::query()
-            ->with(['participants.user:id,name', 'contextable', 'latestMessage'])
+            ->with([
+                'participants.user:id,name,account_type',
+                'contextable' => $this->contextableLoader(),
+                'latestMessage',
+            ])
             ->withCount([
                 'messages as unread_count' => function ($query) use ($userId) {
                     $query->where('user_id', '!=', $userId)
@@ -218,7 +255,14 @@ class ChatController extends Controller
 
         return response()->json([
             'message' => $created ? 'Percakapan berhasil dibuat' : 'Percakapan sudah ada',
-            'data' => $this->conversationPayload($room->fresh(['participants.user:id,name', 'contextable', 'latestMessage']), $userId),
+            'data' => $this->conversationPayload(
+                $room->fresh([
+                    'participants.user:id,name,account_type',
+                    'contextable' => $this->contextableLoader(),
+                    'latestMessage',
+                ]),
+                $userId
+            ),
         ], $created ? 201 : 200);
     }
 
@@ -227,7 +271,11 @@ class ChatController extends Controller
         $userId = $this->currentUserId($request);
 
         $room = ChatRoom::query()
-            ->with(['participants.user:id,name'])
+            ->with([
+                'participants.user:id,name,account_type',
+                'contextable' => $this->contextableLoader(),
+                'latestMessage',
+            ])
             ->where('id', $id)
             ->first();
 
@@ -239,7 +287,7 @@ class ChatController extends Controller
         }
 
         $messages = $room->messages()
-            ->with('user:id,name')
+            ->with('user:id,name,account_type')
             ->orderBy('created_at', 'asc')
             ->get()
             ->map(fn (ChatMessage $message) => $this->messagePayload($message));
@@ -276,7 +324,7 @@ class ChatController extends Controller
         ]);
 
         $message = $this->appendMessage($room, $userId, $validated['body']);
-        $message->loadMissing('user:id,name');
+        $message->loadMissing('user:id,name,account_type');
 
         return response()->json([
             'message' => 'Pesan berhasil dikirim',
@@ -341,7 +389,7 @@ class ChatController extends Controller
 
         return response()->json([
             'message' => 'Pesan berhasil diubah',
-            'data' => $this->messagePayload($message->fresh(['user:id,name'])),
+            'data' => $this->messagePayload($message->fresh(['user:id,name,account_type'])),
         ]);
     }
 
@@ -394,7 +442,7 @@ class ChatController extends Controller
 
         return response()->json([
             'message' => 'Pesan berhasil dihapus',
-            'data' => $this->messagePayload($message->fresh(['user:id,name'])),
+            'data' => $this->messagePayload($message->fresh(['user:id,name,account_type'])),
         ]);
     }
 

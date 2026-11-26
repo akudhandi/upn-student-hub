@@ -17,8 +17,8 @@ export interface EventFormValues {
   registration_link: string;
   status: EventStatus;
   description: string;
-  existingPosterPath: string | null;
-  posterFile: File | null;
+  existingImagePaths: string[];
+  newPosterFiles: File[];
 }
 
 export const EMPTY_EVENT_FORM: EventFormValues = {
@@ -31,12 +31,18 @@ export const EMPTY_EVENT_FORM: EventFormValues = {
   registration_link: "",
   status: "published",
   description: "",
-  existingPosterPath: null,
-  posterFile: null,
+  existingImagePaths: [],
+  newPosterFiles: [],
 };
 
 const MAX_POSTER_BYTES = 5 * 1024 * 1024;
+const MAX_POSTERS = 3;
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+interface PendingPosterPreview {
+  file: File;
+  url: string;
+}
 
 export default function EventForm({
   initial,
@@ -55,27 +61,29 @@ export default function EventForm({
 }) {
   const [values, setValues] = useState<EventFormValues>(initial);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
-  const localPreviewUrlRef = useRef<string | null>(null);
+  const [pendingPreviews, setPendingPreviews] = useState<PendingPosterPreview[]>([]);
+  const pendingUrlsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    pendingUrlsRef.current = pendingPreviews.map((item) => item.url);
+  }, [pendingPreviews]);
 
   useEffect(() => {
     return () => {
-      if (localPreviewUrlRef.current) {
-        URL.revokeObjectURL(localPreviewUrlRef.current);
+      for (const url of pendingUrlsRef.current) {
+        URL.revokeObjectURL(url);
       }
     };
   }, []);
 
-  function updateLocalPreview(nextUrl: string | null) {
-    if (localPreviewUrlRef.current) {
-      URL.revokeObjectURL(localPreviewUrlRef.current);
-    }
-    localPreviewUrlRef.current = nextUrl;
-    setLocalPreviewUrl(nextUrl);
-  }
-
-  const activePosterPreview =
-    localPreviewUrl ?? mediaUrl(values.existingPosterPath);
+  const activeCategories = categories.filter((cat) => cat.is_active);
+  const hasInactiveSelectedCategory = Boolean(
+    values.category_id &&
+      categories.length > 0 &&
+      !activeCategories.some((cat) => String(cat.id) === values.category_id),
+  );
+  const totalPosterCount =
+    values.existingImagePaths.length + values.newPosterFiles.length;
 
   function setField<K extends keyof EventFormValues>(
     key: K,
@@ -85,30 +93,68 @@ export default function EventForm({
   }
 
   function handlePosterChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
+    const selected = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (!file) return;
+    if (selected.length === 0) return;
 
-    if (!ALLOWED_MIME.has(file.type)) {
-      setValidationError("Format poster harus JPG, PNG, atau WebP.");
-      return;
-    }
-    if (file.size > MAX_POSTER_BYTES) {
-      setValidationError("Ukuran poster maksimal 5 MB.");
+    const remainingSlots = MAX_POSTERS - totalPosterCount;
+    if (remainingSlots <= 0) {
+      setValidationError(`Maksimal ${MAX_POSTERS} poster per event.`);
       return;
     }
 
-    setValidationError(null);
-    updateLocalPreview(URL.createObjectURL(file));
-    setValues((prev) => ({ ...prev, posterFile: file }));
-  }
+    const accepted: PendingPosterPreview[] = [];
+    for (const file of selected) {
+      if (!ALLOWED_MIME.has(file.type)) {
+        setValidationError("Format poster harus JPG, PNG, atau WebP.");
+        return;
+      }
+      if (file.size > MAX_POSTER_BYTES) {
+        setValidationError("Ukuran tiap poster maksimal 5 MB.");
+        return;
+      }
+      if (accepted.length >= remainingSlots) {
+        break;
+      }
+      accepted.push({
+        file,
+        url: URL.createObjectURL(file),
+      });
+    }
 
-  function handleRemovePoster() {
-    updateLocalPreview(null);
+    if (selected.length > remainingSlots) {
+      setValidationError(
+        `Maksimal ${MAX_POSTERS} poster per event. Hanya ${remainingSlots} file pertama yang ditambahkan.`,
+      );
+    } else {
+      setValidationError(null);
+    }
+
+    setPendingPreviews((prev) => [...prev, ...accepted]);
     setValues((prev) => ({
       ...prev,
-      posterFile: null,
-      existingPosterPath: null,
+      newPosterFiles: [...prev.newPosterFiles, ...accepted.map((item) => item.file)],
+    }));
+  }
+
+  function handleRemoveExistingPoster(index: number) {
+    setValidationError(null);
+    setValues((prev) => ({
+      ...prev,
+      existingImagePaths: prev.existingImagePaths.filter((_, i) => i !== index),
+    }));
+  }
+
+  function handleRemoveNewPoster(index: number) {
+    setValidationError(null);
+    const removed = pendingPreviews[index];
+    if (removed) {
+      URL.revokeObjectURL(removed.url);
+    }
+    setPendingPreviews((prev) => prev.filter((_, i) => i !== index));
+    setValues((prev) => ({
+      ...prev,
+      newPosterFiles: prev.newPosterFiles.filter((_, i) => i !== index),
     }));
   }
 
@@ -200,13 +246,18 @@ export default function EventForm({
               className="w-full cursor-pointer appearance-none rounded-xl border border-[#E5E0DA] bg-[#FAF8F6] py-2.5 pr-9 pl-3.5 text-sm text-[#141416] outline-none transition focus:border-[#141416] focus:bg-white focus:ring-2 focus:ring-[#141416]/10"
             >
               <option value="">Pilih kategori (opsional)</option>
-              {categories.map((cat) => (
+              {activeCategories.map((cat) => (
                 <option key={cat.id} value={String(cat.id)}>
                   {cat.name}
                 </option>
               ))}
             </select>
           </SelectWrapper>
+          {hasInactiveSelectedCategory && (
+            <p className="mt-1.5 text-xs text-[#925814]">
+              Kategori sebelumnya sedang nonaktif. Pilih kategori aktif di atas jika ingin menggantinya.
+            </p>
+          )}
         </div>
       </div>
 
@@ -315,44 +366,88 @@ export default function EventForm({
           htmlFor="event-poster"
           className="mb-1.5 block text-xs font-semibold text-[#57534E]"
         >
-          Poster / Gambar Event (Opsional)
+          Poster / Gambar Event (Opsional, maks. {MAX_POSTERS} gambar)
         </label>
-        <div className="flex flex-col gap-3 rounded-xl border border-dashed border-[#D5cec6] bg-[#FAF8F6] p-4 sm:flex-row sm:items-center">
-          {activePosterPreview ? (
-            <AdminImage
-              src={activePosterPreview}
-              alt="Preview poster event"
-              className="h-28 w-44 shrink-0 rounded-xl border border-[#E5E0DA] bg-white object-cover"
-              fallbackClassName="flex h-28 w-44 shrink-0 items-center justify-center rounded-xl border border-[#E5E0DA] bg-white px-2 text-center text-xs text-[#787470]"
-              fallbackLabel="Poster tidak dapat dimuat"
-            />
+        <div className="space-y-3 rounded-xl border border-dashed border-[#D5cec6] bg-[#FAF8F6] p-4">
+          {totalPosterCount > 0 ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {values.existingImagePaths.map((path, index) => (
+                <div
+                  key={`existing-${path}-${index}`}
+                  className="overflow-hidden rounded-xl border border-[#E5E0DA] bg-white"
+                >
+                  <AdminImage
+                    src={mediaUrl(path)}
+                    alt={`Poster ${index + 1}`}
+                    className="h-28 w-full bg-white object-cover"
+                    fallbackClassName="flex h-28 w-full items-center justify-center bg-white px-2 text-center text-xs text-[#787470]"
+                    fallbackLabel="Poster tidak dapat dimuat"
+                  />
+                  <div className="flex items-center justify-between gap-2 border-t border-[#F2EEEA] px-3 py-2">
+                    <span className="text-xs font-medium text-[#57534E]">
+                      {index === 0 ? "Poster Utama" : `Poster ${index + 1}`}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={submitting}
+                      onClick={() => handleRemoveExistingPoster(index)}
+                      className="text-xs font-semibold text-[#C53939] hover:underline disabled:opacity-50"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {pendingPreviews.map((preview, index) => {
+                const slotNumber = values.existingImagePaths.length + index + 1;
+                return (
+                  <div
+                    key={`new-${preview.url}`}
+                    className="overflow-hidden rounded-xl border border-[#E5E0DA] bg-white"
+                  >
+                    <AdminImage
+                      src={preview.url}
+                      alt={`Poster baru ${slotNumber}`}
+                      className="h-28 w-full bg-white object-cover"
+                      fallbackClassName="flex h-28 w-full items-center justify-center bg-white px-2 text-center text-xs text-[#787470]"
+                      fallbackLabel="Poster tidak dapat dimuat"
+                    />
+                    <div className="flex items-center justify-between gap-2 border-t border-[#F2EEEA] px-3 py-2">
+                      <span className="text-xs font-medium text-[#57534E]">
+                        {slotNumber === 1 ? "Poster Utama" : `Poster ${slotNumber}`}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => handleRemoveNewPoster(index)}
+                        className="text-xs font-semibold text-[#C53939] hover:underline disabled:opacity-50"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
-            <div className="flex h-28 w-44 shrink-0 items-center justify-center rounded-xl border border-[#E5E0DA] bg-white text-xs text-[#787470]">
-              Belum ada poster
+            <div className="flex h-24 w-full items-center justify-center rounded-xl border border-[#E5E0DA] bg-white text-xs text-[#787470]">
+              Belum ada poster terpasang
             </div>
           )}
-          <div className="min-w-0 flex-1 space-y-2">
+
+          <div className="space-y-1.5">
             <input
               id="event-poster"
               type="file"
+              multiple
               accept="image/jpeg,image/png,image/webp"
-              disabled={submitting}
+              disabled={submitting || totalPosterCount >= MAX_POSTERS}
               onChange={handlePosterChange}
-              className="block w-full text-xs text-[#57534E] file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-[#141416] file:px-3.5 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-[#242428]"
+              className="block w-full text-xs text-[#57534E] file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-[#141416] file:px-3.5 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-[#242428] disabled:cursor-not-allowed disabled:opacity-50"
             />
             <p className="text-xs text-[#787470]">
-              Format JPG, PNG, atau WebP. Ukuran maksimal 5 MB.
+              Format JPG, PNG, atau WebP. Maksimal {MAX_POSTERS} gambar, tiap file hingga 5 MB ({totalPosterCount}/{MAX_POSTERS} terisi).
             </p>
-            {activePosterPreview && (
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={handleRemovePoster}
-                className="text-xs font-semibold text-[#C53939] hover:underline disabled:opacity-50"
-              >
-                Hapus Poster
-              </button>
-            )}
           </div>
         </div>
       </div>

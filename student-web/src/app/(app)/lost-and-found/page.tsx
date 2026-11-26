@@ -72,7 +72,8 @@ export function LostAndFoundContent() {
   } | null>(null);
 
   const [isModalManuallyOpen, setIsModalManuallyOpen] = useState(false);
-  const isModalOpen = isModalManuallyOpen || createRequested;
+  const [hasSession] = useState(() => Boolean(getToken()));
+  const isModalOpen = hasSession && (isModalManuallyOpen || createRequested);
   const [backendCategories, setBackendCategories] = useState<PublicCategory[]>([]);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => getUser());
 
@@ -186,10 +187,14 @@ export function LostAndFoundContent() {
   }, [router, searchParams, urlQuery]);
 
   const openModal = useCallback((triggerEl?: HTMLButtonElement | null) => {
+    if (!getToken()) {
+      router.push("/login");
+      return;
+    }
     if (triggerEl) lastTriggerRef.current = triggerEl;
     setOpenMenu(null);
     setIsModalManuallyOpen(true);
-  }, []);
+  }, [router]);
 
   const closeModal = useCallback(() => {
     setIsModalManuallyOpen(false);

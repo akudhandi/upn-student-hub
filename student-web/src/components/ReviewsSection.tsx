@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   fetchReviews,
   submitReview,
@@ -9,7 +10,7 @@ import {
   type ReviewSummary,
 } from "@/lib/interactions";
 import { type ApiError } from "@/lib/api";
-import { getUser } from "@/lib/auth";
+import { getToken, getUser } from "@/lib/auth";
 
 function StarRow({ value, onSelect }: { value: number; onSelect?: (v: number) => void }) {
   return (
@@ -49,6 +50,7 @@ export default function ReviewsSection({
   ownerId?: number | null;
 }) {
   const [currentUserId] = useState<number | null>(() => getUser()?.id ?? null);
+  const [hasSession] = useState<boolean>(() => Boolean(getToken()));
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -146,7 +148,17 @@ export default function ReviewsSection({
             </div>
           )}
 
-          {ownerId !== null &&
+          {!hasSession ? (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-600">
+              <span>Masuk dengan akun mahasiswa UPN untuk menulis ulasan.</span>
+              <Link
+                href="/login"
+                className="font-semibold text-[#141416] hover:underline"
+              >
+                Masuk →
+              </Link>
+            </div>
+          ) : ownerId !== null &&
           ownerId !== undefined &&
           currentUserId !== null &&
           Number(ownerId) === Number(currentUserId) ? (

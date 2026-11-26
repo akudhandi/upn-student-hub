@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Api\V1\Concerns\ExportsCsv;
 use App\Http\Controllers\Controller;
+use App\Models\ChatRoom;
 use App\Models\Event;
 use App\Models\LostFoundReport;
 use App\Models\MarketplaceListing;
@@ -143,6 +144,16 @@ class AdminReportController extends Controller
             ], 422);
         }
 
+        if (
+            in_array($targetAction, ['delete', 'delete_content', 'hide_content', 'deactivate'], true)
+            && $report->reportable instanceof ChatRoom
+        ) {
+            return response()->json([
+                'message' => 'Aksi konten tidak didukung untuk target percakapan. Gunakan suspend_user atau ban_user.',
+                'data' => null,
+            ], 422);
+        }
+
         $adminId = $request->user()?->id;
 
         DB::transaction(function () use ($report, $validated, $targetAction, $adminId): void {
@@ -198,6 +209,16 @@ class AdminReportController extends Controller
             ], 422);
         }
 
+        if (
+            in_array($targetAction, ['delete', 'delete_content', 'hide_content', 'deactivate'], true)
+            && Report::whereIn('id', $ids)->where('reportable_type', ChatRoom::class)->exists()
+        ) {
+            return response()->json([
+                'message' => 'Aksi konten tidak didukung untuk target percakapan. Gunakan suspend_user atau ban_user.',
+                'data' => null,
+            ], 422);
+        }
+
         DB::transaction(function () use ($ids, $validated, $targetAction, $adminId) {
             $reports = Report::with(['reportable' => $this->reportableWithTrashedLoader()])
                 ->whereIn('id', $ids)
@@ -224,7 +245,11 @@ class AdminReportController extends Controller
         $report->save();
 
         if ($targetAction !== 'none' && $report->reportable !== null) {
-            $this->applyTargetAction($report->reportable, $targetAction);
+            $this->applyTargetAction(
+                $report->reportable,
+                $targetAction,
+                (int) $report->reporter_id
+            );
         }
     }
 
@@ -236,11 +261,12 @@ class AdminReportController extends Controller
                 ServiceListing::class => fn ($q) => $q->withTrashed(),
                 LostFoundReport::class => fn ($q) => $q->withTrashed(),
                 Event::class => fn ($q) => $q->withTrashed(),
+                ChatRoom::class => fn ($q) => $q->with(['participants.user:id,name,email', 'contextable']),
             ]);
         };
     }
 
-    private function applyTargetAction(object $target, string $action): void
+    private function applyTargetAction(object $target, string $action, ?int $reporterId = null): void
     {
         // Canonical moderation verbs used by the admin portal.
         if ($action === 'delete_content') {
@@ -292,6 +318,20 @@ class AdminReportController extends Controller
             if ($target instanceof User) {
                 $target->update(['status' => $status]);
                 $target->tokens()->delete();
+
+                return;
+            }
+
+            if ($target instanceof ChatRoom) {
+                $counterpart = $target->participants()
+                    ->with('user')
+                    ->when($reporterId !== null, fn ($q) => $q->where('user_id', '!=', $reporterId))
+                    ->first()?->user;
+
+                if ($counterpart instanceof User) {
+                    $counterpart->update(['status' => $status]);
+                    $counterpart->tokens()->delete();
+                }
 
                 return;
             }
