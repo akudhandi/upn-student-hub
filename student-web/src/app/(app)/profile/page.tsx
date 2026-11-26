@@ -880,9 +880,8 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        {/* Right 5 Columns: Digital KTM & Ulasan Terbaru */}
+        {/* Right 5 Columns: Ulasan Terbaru */}
         <ProfileSidebar
-          user={user}
           meDataStats={
             meData
               ? {
@@ -891,16 +890,7 @@ export default function ProfilePage() {
                 }
               : null
           }
-          avatarUrl={avatarUrl}
-          initials={initials}
-          displayName={displayName}
-          displayNim={displayNim}
-          displayFaculty={displayFaculty}
-          displayEmail={displayEmail}
-          officialAccount={officialAccount}
-          officialLabel={officialLabel}
           reviews={reviews}
-          onOpenEditProfile={() => setEditProfileOpen(true)}
           onViewAllReviews={handleViewAllReviews}
         />
       </div>
